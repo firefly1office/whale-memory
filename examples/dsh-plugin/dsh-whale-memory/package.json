@@ -1,0 +1,19 @@
+{
+  "name": "dsh-whale-memory",
+  "version": "0.1.0",
+  "description": "鲸鲸的自传性记忆：给 DSH 的 skill 包（CLI 适配，无需插件 API）",
+  "type": "module",
+  "main": "skills/whale-memory/scripts/memory-cli.mjs",
+  "dsh": {
+    "bundle": {
+      "skills": "./skills"
+    }
+  },
+  "files": [
+    "skills"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  }
+}
