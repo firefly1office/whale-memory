@@ -69,6 +69,7 @@ export function loadAll(dir) {
 
 // 写下时的"当时"：她写的 + 系统能自动带的状态（情绪/时间/场合）
 export function addExperience(dir, { text, scene = '', feeling = [], thought = '', unfinished = '', quote = null, weight = 'normal', kind = '其它', state = null, source = 'own-time' }) {
+  fs.mkdirSync(dir, { recursive: true })
   const rows = readAll(dir)
   const now = new Date()
   const id = 'exp_' + now.getTime().toString(36) + Math.random().toString(36).slice(2, 6)

@@ -76,6 +76,24 @@ docs/                       设计文档与原则
 - 不伪造经历：没有出处的内容只能标为"念头/想象"，不能当成事实
 - 不把"像人"当作验收标准：项目验收看的是"她经历了什么、哪一步是她自己选的、隔天有什么延续"
 
+## 适配层（给非 QQ Agent 的宿主）
+
+`
+adapters/cli/memory-cli.mjs   通用 CLI：任何能执行命令的 agent 都能用
+adapters/dsh/SKILL.md         给 DSH 的 skill 说明与命令表
+packages/core/                可直接 import 的记忆内核
+docs/porting.md               宿主契约、模块通用性、隐私规则
+`
+
+最小用法：
+
+``bash
+export WHALE_DATA_DIR=/path/to/data
+node adapters/cli/memory-cli.mjs write --text "读到烤肉那段，笑了一下" --feeling "轻松,羡慕" --weight important
+node adapters/cli/memory-cli.mjs recall --query "那本书里那个人" --limit 1
+node adapters/cli/memory-cli.mjs waking --chat "private:100000000"
+``
+
 ## License
 
 MIT
