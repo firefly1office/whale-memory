@@ -20,18 +20,23 @@ dsh-whale-memory/
 
 把 `skills/whale-memory` 整个复制到你的 DSH skills 目录，重启后应该能看到 `whale-memory` 这个 skill。
 
-**B. 当成本地 npm 包装**
+**B. 从宿主项目安装本地包**
 
 ```bash
-cd dsh-whale-memory
-npm i /path/to/dsh-whale-memory      # 或放进 profile 的 node_modules
+# 在 DSH 加载插件的项目目录运行，路径指向克隆的仓库
+npm install /path/to/whale-memory/examples/dsh-plugin/dsh-whale-memory
 ```
 
 ## 用之前设数据目录
 
-```bash
-export WHALE_DATA_DIR=/path/to/data     # Linux/macOS
-set WHALE_DATA_DIR=D:\path\to\data      # Windows
+```sh
+export WHALE_DATA_DIR=/path/to/data
+```
+
+Windows PowerShell：
+
+```powershell
+$env:WHALE_DATA_DIR = "$env:LOCALAPPDATA/whale-memory-demo"
 ```
 
 不设就用当前目录下的 `data/`。

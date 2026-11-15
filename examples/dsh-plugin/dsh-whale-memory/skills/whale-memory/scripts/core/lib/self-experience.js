@@ -5,22 +5,22 @@ import path from 'node:path'
 const FILE = 'self-experience.jsonl'
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
 
-function readAll(dir) {
+function readAll(dir, { rewriting = false } = {}) {
+  let raw
   try {
-    const raw = fs.readFileSync(path.join(dir, FILE), 'utf8').trim()
-    if (!raw) return []
-    const out = []
-    let bad = 0
-    for (const l of raw.split('\n').filter(Boolean)) {
-      try { out.push(JSON.parse(l)) } catch { bad++ }
+    raw = fs.readFileSync(path.join(dir, FILE), 'utf8')
+  } catch (error) {
+    if (error.code === 'ENOENT') return []
+    throw error
+  }
+  const rows = []
+  for (const line of raw.split('\n').filter(line => line.trim())) {
+    try { rows.push(JSON.parse(line)) }
+    catch {
+      if (rewriting) throw new Error('经历文件含损坏记录，请备份并修复后再修改。')
     }
-    if (bad) {
-      // 有坏行：先原样备份，绝不静默丢弃
-      const bak = path.join(dir, FILE + '.bad-' + Date.now())
-      try { fs.writeFileSync(bak, raw, 'utf8') } catch {}
-    }
-    return out
-  } catch { return [] }
+  }
+  return rows
 }
 
 function atomicWrite(dir, rows) {
@@ -70,7 +70,6 @@ export function loadAll(dir) {
 // 写下时的"当时"：她写的 + 系统能自动带的状态（情绪/时间/场合）
 export function addExperience(dir, { text, scene = '', feeling = [], thought = '', unfinished = '', quote = null, weight = 'normal', kind = '其它', state = null, source = 'own-time' }) {
   fs.mkdirSync(dir, { recursive: true })
-  const rows = readAll(dir)
   const now = new Date()
   const id = 'exp_' + now.getTime().toString(36) + Math.random().toString(36).slice(2, 6)
   const row = {
@@ -93,20 +92,22 @@ export function addExperience(dir, { text, scene = '', feeling = [], thought = '
     later: [],
     status: 'kept'
   }
-  rows.push(row)
-  // 坏行存在时用追加，不重写整本，避免丢掉无法解析的原始行
+  const fd = fs.openSync(path.join(dir, FILE), 'a+')
   try {
-    const raw = fs.readFileSync(path.join(dir, FILE), 'utf8')
-    const bad = raw.trim().split('\\n').filter(Boolean).some((l) => { try { JSON.parse(l); return false } catch { return true } })
-    if (bad) fs.appendFileSync(path.join(dir, FILE), JSON.stringify(row) + '\\n', 'utf8')
-    else writeAll(dir, rows)
-  } catch { writeAll(dir, rows) }
+    const size = fs.fstatSync(fd).size
+    const lastByte = Buffer.alloc(1)
+    if (size) fs.readSync(fd, lastByte, 0, 1, size - 1)
+    const separator = size && lastByte[0] !== 10 ? '\n' : ''
+    fs.writeFileSync(fd, separator + JSON.stringify(row) + '\n', 'utf8')
+  } finally {
+    fs.closeSync(fd)
+  }
   return row
 }
 
 // 改主意 / 回头想：只往 later 里加，不动"当时"
 export function reviseExperience(dir, { id, thought, reason = '' }) {
-  const rows = readAll(dir)
+  const rows = readAll(dir, { rewriting: true })
   const i = rows.findIndex((r) => r.id === id)
   if (i < 0) return { ok: false, error: '找不到这条经历' }
   const cur = normalize(rows[i])
@@ -119,7 +120,7 @@ export function reviseExperience(dir, { id, thought, reason = '' }) {
 
 // 想起时记一笔（不改内容）
 export function markRecalled(dir, id) {
-  const rows = readAll(dir)
+  const rows = readAll(dir, { rewriting: true })
   const i = rows.findIndex((r) => r.id === id)
   if (i < 0) return false
   const cur = normalize(rows[i])

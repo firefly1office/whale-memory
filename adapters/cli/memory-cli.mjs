@@ -15,7 +15,8 @@ function arg(name, fallback = null) {
   const i = process.argv.indexOf('--' + name)
   if (i < 0) return fallback
   const v = process.argv[i + 1]
-  return v === undefined || v.startsWith('--') ? true : v
+  if (v === undefined || v.startsWith('--')) throw new Error('--' + name + ' 缺少参数值')
+  return v
 }
 function out(obj) { console.log(JSON.stringify(obj, null, 2)) }
 

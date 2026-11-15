@@ -20,6 +20,6 @@ import * as exp from './lib/self-experience.js'
 node demo.mjs
 ```
 
-不需要配置文件、不需要 API key、不联网。演示会在临时目录里建一份数据，跑完不留在你机器上。
+不需要配置文件、不需要 API key、不联网。演示会在临时目录里建一份数据，结束时会输出目录位置，方便检查记录。
 
 移植说明见仓库根目录 [`docs/porting.md`](../../docs/porting.md)。

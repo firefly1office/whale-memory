@@ -1,99 +1,56 @@
-# whale-memory · 鲸鲸的记忆
+# 鲸鲸的自传性记忆 · whale-memory
 
-一个跑在 [QQ Agent](https://github.com/) 0.4.x 上的 AI 伴侣记忆插件，以及围绕它的一组工具。
+鲸鲸是一个在 QQ 里生活的 AI 角色。这个项目最初想解决一个很小的问题：如果她昨天读了一章书，今天改变了看法，她还能翻回昨天的自己吗？
 
-它服务的对象不是"用户画像"，而是一个角色自己的一生：
+鲸鲸可以给自己写一条经历，留下当时读到的文字、感受和想法。以后再读到相关段落，她可以找到那一页，为它添上新的看法。记录分为 `then`（当时留下的内容）和 `later`（后来追加的想法）。什么时候值得记，由接入的角色和宿主决定。
 
-- **她自己的经历**：第一人称、场景、当时的感觉与想法、原文锚（读书时读到的原句），改主意只往 `later` 追加，不覆盖"当时"
-- **她自己的记忆层**：经历、日记、周摘要「最近的我」、由她本人确认过的自我档案
-- **跨会话的完整**：她自己的记录跟随她在所有会话里；别人的私事留在原地
-- **隐私护栏**：日记只对主人私聊与本机开放；群聊不注入；跨会话召回只放行她自己和主人
-- **可回看的成长**：每次改主意、每次修改自己的提示词与插件，都留版本与理由
+## 先看一次改主意
 
-## 目录
+用 Node.js 22.12 或更新版本，在仓库根目录运行下面的命令。演示使用临时目录和示例经历，可以离线运行，无需 API 密钥。
 
-```
-plugin/biomimetic-memory/   记忆插件源码（vault、证据策略、注入、工具）
-tools/                      运维与研究脚本（备份、金丝雀、影子、日报、验收）
-docs/                       设计文档与原则
+```sh
+git clone https://github.com/firefly1office/whale-memory.git
+cd whale-memory
+node packages/core/demo.mjs
 ```
 
-## 核心设计
+在输出的「改主意后」一节，找到「当时的想法」和「后来你想过」。两句话属于同一条经历。末尾会打印数据目录，方便你查看实际保存的内容。
 
-### 1. 证据优先
-回答历史事实前先取证据；证据不足就说"没有记录"，不编。被取代的旧值不会冒充新值返回；诱饵（别人的事）不会被说成自己的。
+## 写自己的第一条经历
 
-### 2. 经历不是一句话
-一条经历分两层：
+在仓库根目录运行。默认会写入当前目录的 `data/`。要长期使用，请为每个角色设置独立的 `WHALE_DATA_DIR`，并让同一目录的写入按顺序执行。
 
-```jsonc
-{
-  "then": {            // 写下即固定，之后谁都不能改
-    "text": "读到烤肉那段，笑了一下",
-    "scene": "晚上十一点多，屋里很静",
-    "feeling": ["轻松", "有点羡慕"],
-    "thought": "这种好事只在书里",
-    "quote": { "text": "那就让妳重新迷上我一百年吧", "source": "《败北女角太多了》" },
-    "state": { "mood": "偏愉快" }
-  },
-  "later": [           // 只往后加：回头想、改主意
-    { "at": "2026-11-15T…", "thought": "现在觉得那个人是在护着朋友" }
-  ],
-  "weight": "important"
-}
+```sh
+node adapters/cli/memory-cli.mjs write --text "今天读了灯塔那一章" --thought "守灯人是怕黑吗"
+node adapters/cli/memory-cli.mjs recall --query "灯塔" --limit 1
 ```
 
-回想时注入「当时 / 现在」两段，而不是一行摘要。
+第一条命令会返回经历的 `id`。把下面的 `返回的ID` 换成它，再读一次就能看见新旧两种想法。
 
-### 3. 自己的时间
-每天留一段没有任务、不等回复的时间。她想读书、发呆、写点不给人看的东西都可以；写不写、记不记由她自己定。
+```sh
+node adapters/cli/memory-cli.mjs revise --id 返回的ID --thought "读到结尾才知道，她是想让晚归的船看见灯"
+node adapters/cli/memory-cli.mjs read --limit 1
+```
 
-### 4. 她能改自己
-提示词 overlay、自己的设置、自己的纯计算小插件：写、跑、改、回退都归她自己；系统只做安全网（语法检查、失败隔离、版本历史、超时），不做审批。
+## 选择接入方式
 
-## 安装
+| 你想做什么 | 从哪里开始 |
+| --- | --- |
+| 让 DSH 通过命令读写经历 | [可独立复制的 DSH skill 和安装说明](examples/dsh-plugin/dsh-whale-memory/README.md) |
+| 给自己的 Agent 接入工具 | [命令行适配器](adapters/README.md)输出 JSON，由宿主决定何时调用 |
+| 在 JavaScript 中直接读写 | [内核说明](packages/core/README.md)和[宿主移植指南](docs/porting.md) |
+| 研究 QQ Agent 的完整接入 | [插件源码](plugin/biomimetic-memory/)包含召回、上下文注入和宿主工具，部分路径和会话配置需要适配本机 |
+| 了解项目为什么重视角色自己的经历 | [项目原则](docs/项目原则.md)与[开发路线](docs/计划-合并版-v2.md) |
 
-1. 把 `plugin/biomimetic-memory` 放进 QQ Agent 的 `resources/app/plugins/`
-2. 重启应用，在插件列表里启用
-3. 数据默认落在 `<QQAgentData>/plugin-data/biomimetic-memory/`
+## 数据与验证
 
-## 工具
+经历保存在 `<WHALE_DATA_DIR>/plugin-data/biomimetic-memory/`。同一目录中的记录由调用进程读取。接入群聊时，宿主需要校验调用者和会话可见范围，尤其是开放日记读取前。CLI 适合受信的本机进程。
 
-| 脚本 | 作用 |
-|---|---|
-| `daily-backup.mjs` | 每日备份记忆库、日记、摘要、配置，保留 30 天 |
-| `privacy-canary.mjs` | 金丝雀：私聊埋暗号，验证群聊/别的私聊读不到 |
-| `threads-shadow.mjs` | 跨天接续影子模式：只记录"本该注入什么"，不注入 |
-| `self-summary.mjs` | 每周从日记提炼「最近的我」 |
-| `fake-memory-probe.mjs` | 假记忆探针：问 5 件没发生的事，必须回答"不记得" |
-| `fabrication-watch.mjs` | 编造观察：扫她关于自己的断言，查不到出处的记下来 |
-| `virtual-harness.mjs` | 虚拟会话沙盘：离线验记忆检索与注入 |
-| `isolated-acceptance.mjs` | 隔离验收：多类问题 + 逐题归因 |
+`tools/` 中包含开发和运维脚本。有些会连接运行中的宿主、读取对话或调用模型。初次体验只需上面的演示。以下两项检查使用虚构数据，分别验证两份 CLI 的写入与修订，以及一次指定范围的检索。
 
-## 边界与伦理
+```sh
+node --test tests/public-cli.test.mjs
+node tools/privacy-canary.mjs
+```
 
-- 不采集第三方隐私：别人的私事不跨会话、不进群聊
-- 不伪造经历：没有出处的内容只能标为"念头/想象"，不能当成事实
-- 不把"像人"当作验收标准：项目验收看的是"她经历了什么、哪一步是她自己选的、隔天有什么延续"
-
-## 适配层（给非 QQ Agent 的宿主）
-
-`
-adapters/cli/memory-cli.mjs   通用 CLI：任何能执行命令的 agent 都能用
-adapters/dsh/SKILL.md         给 DSH 的 skill 说明与命令表
-packages/core/                可直接 import 的记忆内核
-docs/porting.md               宿主契约、模块通用性、隐私规则
-`
-
-最小用法：
-
-``bash
-export WHALE_DATA_DIR=/path/to/data
-node adapters/cli/memory-cli.mjs write --text "读到烤肉那段，笑了一下" --feeling "轻松,羡慕" --weight important
-node adapters/cli/memory-cli.mjs recall --query "那本书里那个人" --limit 1
-node adapters/cli/memory-cli.mjs waking --chat "private:100000000"
-``
-
-## License
-
-MIT
+本仓库采用 [MIT 许可证](LICENSE)。

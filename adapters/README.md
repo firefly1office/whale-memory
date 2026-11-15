@@ -15,7 +15,7 @@ adapters/cli/memory-cli.mjs
 export WHALE_DATA_DIR=/path/to/data
 node adapters/cli/memory-cli.mjs write --text "..." --feeling "轻松" --weight important
 node adapters/cli/memory-cli.mjs recall --query "那本书里那个人" --limit 2
-node adapters/cli/memory-cli.mjs waking --chat "private:100000000"
+node adapters/cli/memory-cli.mjs waking --chat "local:owner"
 ```
 
 ## 2. 直接 import（有 JS 运行时的宿主）

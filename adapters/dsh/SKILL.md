@@ -7,9 +7,14 @@
 1. 把整个 `whale-memory` 仓库放到你的工作目录（或子目录）
 2. 设一个数据目录：
 
-```bash
-export WHALE_DATA_DIR=/path/to/data        # Linux/macOS
-set WHALE_DATA_DIR=D:\path\to\data         # Windows
+```sh
+export WHALE_DATA_DIR=/path/to/data
+```
+
+Windows PowerShell：
+
+```powershell
+$env:WHALE_DATA_DIR = "$env:LOCALAPPDATA/whale-memory-demo"
 ```
 
 3. 所有命令都通过：
@@ -28,7 +33,7 @@ node adapters/cli/memory-cli.mjs <命令> [参数]
 | 想不起某件事，先翻自己的记录 | `recall --query "..."` |
 | 列出最近的经历 | `read --limit 8` |
 | 想法变了，改主意（旧的不删） | `revise --id ... --thought "..."` |
-| 每天第一次醒来，给昨天的自己一条线 | `waking --chat "private:100000000"` |
+| 每天第一次醒来，给昨天的自己一条线 | `waking --chat "local:owner"` |
 | 被问到自己、想带上自己的经历 | `memory --query "..." [--diary true]` |
 | 她想改自己的说话方式 | `prompt set --text "..." --reason "..."` |
 | 她想改自己的节奏/上限 | `settings set --json '{"readingPerDay":60}'` |
@@ -45,7 +50,7 @@ node adapters/cli/memory-cli.mjs <命令> [参数]
 
 ```bash
 # 1) 每天第一次唤醒
-node adapters/cli/memory-cli.mjs waking --chat "private:<owner-id>"
+node adapters/cli/memory-cli.mjs waking --chat "local:owner"
 
 # 2) 她自己的时间（没有任务、不等回复）
 #    提示语里只说：这段时间是你的，做什么都行，记不记也随你

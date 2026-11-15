@@ -40,7 +40,7 @@ node scripts/memory-cli.mjs read --limit 8
 node scripts/memory-cli.mjs revise --id exp_xxx --thought "现在觉得那样也挺好"
 
 # 每天第一次醒来
-node scripts/memory-cli.mjs waking --chat "private:<owner-id>"
+node scripts/memory-cli.mjs waking --chat "local:owner"
 
 # 被问到自己时，带上自己的经历（日记只在跟主人一对一私聊时加 --diary true）
 node scripts/memory-cli.mjs memory --query "你最近在做什么" --diary true
