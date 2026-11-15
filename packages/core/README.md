@@ -19,13 +19,10 @@ import * as exp from 'whale-memory-core/self-experience'
 ## 安装
 
 ```sh
-# 从本地目录安装（npm pack 出来的 tarball 或直接指目录）
-npm install ./packages/core
-# 或
-npm install ./whale-memory-core-0.1.0.tgz
+npm install whale-memory-core
 ```
 
-`npm` 上尚未发布同名包；要发布请先登录 npm，再在 `packages/core` 里 `npm publish`（包名可能需按你的账号调整）。
+已发布在 npm：`whale-memory-core@0.1.0`（[npmjs.com](https://www.npmjs.com/package/whale-memory-core)）。也可以从仓库本地安装：`npm install ./packages/core`。
 
 ## 运行示例
 
