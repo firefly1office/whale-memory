@@ -52,11 +52,11 @@ export function currentFact(facts, { subject, slot = 'default', at = new Date().
   return alive.length ? alive[alive.length - 1] : null
 }
 
-// 主查询：有就给出值 + 证据链；没有就明说没有；不问「可能是什么」
+// 主查询：有就给出值 + 证据链；没有就明说没有；同一时刻互相矛盾也明说说不清
 export function query(facts, { subject, slot = 'default', at = new Date().toISOString() } = {}) {
   const all = normalizeFacts(facts)
   const atT = ts(at)
-  if (atT === null) return { status: 'unknown', reason: 'as-of 时间不合法' }
+  if (atT === null) return { status: 'unknown', reason: 'as-of 时间不合法', evidence: [] }
 
   const pool = all.filter((f) => f.subject === subject && f.slot === slot && f.t <= atT)
   if (!pool.length) {
@@ -70,7 +70,15 @@ export function query(facts, { subject, slot = 'default', at = new Date().toISOS
     return { status: 'unknown', reason: '该时间点的记录都已被后续取代', evidence: pool }
   }
 
-  const latest = alive[alive.length - 1]
+  // 同一时刻、值不同、又没有任何一条被明确取代：说不清，不按 id 顺序替她决定
+  const latestT = alive[alive.length - 1].t
+  const tied = alive.filter((f) => f.t === latestT)
+  const distinctValues = new Set(tied.map((f) => JSON.stringify(f.value)))
+  if (tied.length > 1 && distinctValues.size > 1) {
+    return { status: 'unknown', reason: '同一时间有多条互相矛盾的记录，说不清', evidence: tied }
+  }
+
+  const latest = tied[tied.length - 1]
   const chain = []
   let cur = latest
   const seen = new Set()
@@ -80,6 +88,7 @@ export function query(facts, { subject, slot = 'default', at = new Date().toISOS
     cur = cur.supersedes ? pool.find((f) => f.id === cur.supersedes) || null : null
   }
   chain.reverse()
+  for (const f of tied) if (!seen.has(f.id)) { chain.push(f); seen.add(f.id) }
 
   return {
     status: 'known',

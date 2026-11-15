@@ -73,4 +73,15 @@ export function recall(dir: string, query: string, opts?: {
 
 export function renderTwoPart(entry: Experience, opts?: { now?: Date; laterCount?: number }): string
 
+export interface RecallContextItem {
+  id: string
+  day: string
+  text: string
+  thought: string
+  weight: Weight
+  raw: Experience
+}
+
+export function recallForContext(dir: string, query: string, opts?: { max?: number }): RecallContextItem[]
+
 export const internals: { WEIGHTS: Set<Weight>; FILE: string }

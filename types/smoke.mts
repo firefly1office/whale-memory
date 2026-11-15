@@ -11,5 +11,8 @@ const answer = evidenceFromExperience.ask(rows, { slot: 'mood' })
 
 const block = waking.buildWakingBlock('/tmp/whale', 'local:owner')
 const prompt = selfPrompt.save('/tmp/whale', '短一点')
+const ctx = selfExperience.recallForContext('/tmp/whale', '灯塔', { max: 1 })
+const firstCtx = ctx[0]
+if (firstCtx) console.log(firstCtx.text, firstCtx.raw.then.text)
 
 console.log(rows.length, made.then.text, verdict.status, facts.length, answer.status, block, prompt.ok)

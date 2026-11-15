@@ -2,6 +2,18 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.8.1] · 2026-11-15
+
+### Fixed
+
+- **同一时刻互相矛盾的证据不再被 id 顺序决定**：同一 `slot`、同一时间、值不同、又没有明确 `supersedes` 时，`query()` 返回 `unknown`，`evidence` 里给出全部冲突记录。之前会按 id 排序挑最后一条，理由还写"只有一条记录"。
+- `query()` 的「as-of 时间不合法」分支补上 `evidence: []`，与类型声明一致，调用方不会拿到 `undefined`。
+- `self-experience` 的 `recallForContext` 补上类型声明（此前 TypeScript 导入会报 TS2305），并加入 `types/smoke.mts` 编译冒烟与运行时测试。
+
+### Docs
+
+- `docs/evidence.md` 增加第 4 条规则：同一时刻矛盾就说说不清。
+
 ## [0.8.0] · 2026-11-15
 
 ### Added

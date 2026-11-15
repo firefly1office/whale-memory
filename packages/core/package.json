@@ -1,22 +1,55 @@
 {
   "name": "whale-memory-core",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Self-layer autobiographical memory core: then / later, append-only. Vault, evidence and consolidation live in the QQ Agent plugin.",
   "type": "module",
   "main": "./index.js",
   "types": "./index.d.ts",
   "exports": {
-    ".": { "types": "./index.d.ts", "default": "./index.js" },
-    "./self-experience": { "types": "./lib/self-experience.d.ts", "default": "./lib/self-experience.js" },
-    "./self-memory": { "types": "./lib/self-memory.d.ts", "default": "./lib/self-memory.js" },
-    "./waking": { "types": "./lib/waking.d.ts", "default": "./lib/waking.js" },
-    "./self-prompt": { "types": "./lib/self-prompt.d.ts", "default": "./lib/self-prompt.js" },
-    "./self-settings": { "types": "./lib/self-settings.d.ts", "default": "./lib/self-settings.js" },
-    "./recall-events": { "types": "./lib/recall-events.d.ts", "default": "./lib/recall-events.js" },
-    "./later-events": { "types": "./lib/later-events.d.ts", "default": "./lib/later-events.js" },
-    "./file-lock": { "types": "./lib/file-lock.d.ts", "default": "./lib/file-lock.js" },
-    "./evidence-policy": { "types": "./lib/evidence-policy.d.ts", "default": "./lib/evidence-policy.js" },
-    "./evidence-from-experience": { "types": "./lib/evidence-from-experience.d.ts", "default": "./lib/evidence-from-experience.js" }
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./self-experience": {
+      "types": "./lib/self-experience.d.ts",
+      "default": "./lib/self-experience.js"
+    },
+    "./self-memory": {
+      "types": "./lib/self-memory.d.ts",
+      "default": "./lib/self-memory.js"
+    },
+    "./waking": {
+      "types": "./lib/waking.d.ts",
+      "default": "./lib/waking.js"
+    },
+    "./self-prompt": {
+      "types": "./lib/self-prompt.d.ts",
+      "default": "./lib/self-prompt.js"
+    },
+    "./self-settings": {
+      "types": "./lib/self-settings.d.ts",
+      "default": "./lib/self-settings.js"
+    },
+    "./recall-events": {
+      "types": "./lib/recall-events.d.ts",
+      "default": "./lib/recall-events.js"
+    },
+    "./later-events": {
+      "types": "./lib/later-events.d.ts",
+      "default": "./lib/later-events.js"
+    },
+    "./file-lock": {
+      "types": "./lib/file-lock.d.ts",
+      "default": "./lib/file-lock.js"
+    },
+    "./evidence-policy": {
+      "types": "./lib/evidence-policy.d.ts",
+      "default": "./lib/evidence-policy.js"
+    },
+    "./evidence-from-experience": {
+      "types": "./lib/evidence-from-experience.d.ts",
+      "default": "./lib/evidence-from-experience.js"
+    }
   },
   "files": [
     "index.js",

@@ -111,3 +111,14 @@ test('召回会记一次“想起”，计数跟着涨', (t) => {
   const plain = exp.recall(dir, '灯塔', { limit: 1, mark: false })
   assert.equal(plain[0].recalls, 2, 'mark:false 只读不记')
 })
+
+test('recallForContext：给宿主的轻量结构，字段齐全', (t) => {
+  const dir = tmp(t)
+  const row = exp.addExperience(dir, { text: '灯塔', thought: '怕黑' })
+  const out = exp.recallForContext(dir, '灯塔', { max: 1 })
+  assert.equal(out.length, 1)
+  assert.equal(out[0].id, row.id)
+  assert.equal(out[0].text, '灯塔')
+  assert.equal(out[0].thought, '怕黑')
+  assert.equal(out[0].raw.id, row.id)
+})

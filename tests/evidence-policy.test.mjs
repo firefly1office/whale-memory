@@ -63,3 +63,34 @@ test('证据：坏输入不猜', () => {
   assert.deepEqual(ep.asOf(F, '不是时间'), [])
   assert.equal(ep.currentFact([], { subject: 'x' }), null)
 })
+test('证据：同一时刻互相矛盾 → 说不清，不按 id 顺序挑一个', () => {
+  const make = (a, b) => [
+    { id: a, subject: 'self', slot: 'mood', value: '闷', at: '2026-11-11T10:00:00+08:00' },
+    { id: b, subject: 'self', slot: 'mood', value: '开心', at: '2026-11-11T10:00:00+08:00' }
+  ]
+  const v1 = ep.query(make('a1', 'b1'), { subject: 'self', slot: 'mood', at: '2026-11-12T00:00:00+08:00' })
+  const v2 = ep.query(make('b1', 'a1'), { subject: 'self', slot: 'mood', at: '2026-11-12T00:00:00+08:00' })
+
+  assert.equal(v1.status, 'unknown')
+  assert.equal(v2.status, 'unknown')
+  assert.match(v1.reason, /矛盾/)
+  assert.equal(v1.evidence.length, 2)
+  assert.deepEqual(v1.evidence.map((f) => f.value).sort(), ['开心', '闷'].sort())
+})
+
+test('证据：同一时刻同值不矛盾，仍然 known', () => {
+  const facts = [
+    { id: 'a', subject: 'self', slot: 'mood', value: '闷', at: '2026-11-11T10:00:00+08:00' },
+    { id: 'b', subject: 'self', slot: 'mood', value: '闷', at: '2026-11-11T10:00:00+08:00' }
+  ]
+  const v = ep.query(facts, { subject: 'self', slot: 'mood', at: '2026-11-12T00:00:00+08:00' })
+  assert.equal(v.status, 'known')
+  assert.equal(v.evidence.length, 2)
+})
+
+test('证据：无效时间返回 unknown，且一定有 evidence 数组', () => {
+  const v = ep.query([], { subject: 'self', slot: 'mood', at: '不是时间' })
+  assert.equal(v.status, 'unknown')
+  assert.ok(Array.isArray(v.evidence))
+  assert.equal(v.evidence.length, 0)
+})
