@@ -69,6 +69,7 @@ export function recall(dir: string, query: string, opts?: {
   minOverlap?: number
   mark?: boolean
   minRatio?: number
+  mode?: 'strict' | 'loose'
 }): Experience[]
 
 export function renderTwoPart(entry: Experience, opts?: { now?: Date; laterCount?: number }): string

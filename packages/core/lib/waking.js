@@ -12,15 +12,20 @@ function dayStr(d = new Date()) { return d.toLocaleDateString('sv-SE') }
 
 // 只读：算出「今天该给她看什么」，不写任何文件
 // 调用方确认真的把这段注入了，再调 consumeWaking 记「已展示」
-export function buildWakingBlock(dataDir, chatKey, { now = new Date() } = {}) {
-  // 注入范围由调用方决定：这里只按「会话 + 日期」判断是否已经展示过
+// 安全默认：没有 chatKey、或群聊（未显式 allowGroup）→ 返回空
+// 醒来块里可能有昨天私下的话，默认不该流到群里
+export function buildWakingBlock(dataDir, chatKey, { now = new Date(), allowGroup = false } = {}) {
+  const key = String(chatKey || '').trim()
+  if (!key) return ''
+  if (!allowGroup && /^group/i.test(key)) return ''
+
   const dir = path.join(dataDir, 'plugin-data', 'biomimetic-memory')
   const today = dayStr(now)
   const flag = path.join(dir, 'waking-flags.json')
   let flags = {}
   try { flags = JSON.parse(fs.readFileSync(flag, 'utf8')) } catch {}
-  const key = chatKey + '|' + today
-  if (flags[key]) return ''
+  const dedupeKey = key + '|' + today
+  if (flags[dedupeKey]) return ''
 
   const rows = readJsonl(path.join(dir, 'self-experience.jsonl')).map((r) => {
     if (r.then) return { day: r.day, text: r.then.text, unfinished: r.then.unfinished, weight: r.weight, later: r.later || [] }
@@ -46,13 +51,17 @@ export function buildWakingBlock(dataDir, chatKey, { now = new Date() } = {}) {
 }
 
 // 确认已展示：写入 flags，之后同一天同一会话不会再出
-export function consumeWaking(dataDir, chatKey, { now = new Date() } = {}) {
+export function consumeWaking(dataDir, chatKey, { now = new Date(), allowGroup = false } = {}) {
+  const key = String(chatKey || '').trim()
+  if (!key) return false
+  if (!allowGroup && /^group/i.test(key)) return false
+
   const dir = path.join(dataDir, 'plugin-data', 'biomimetic-memory')
   fs.mkdirSync(dir, { recursive: true })
   const flag = path.join(dir, 'waking-flags.json')
   let flags = {}
   try { flags = JSON.parse(fs.readFileSync(flag, 'utf8')) } catch {}
-  flags[chatKey + '|' + dayStr(now)] = new Date().toISOString()
+  flags[key + '|' + dayStr(now)] = new Date().toISOString()
   fs.writeFileSync(flag, JSON.stringify(flags), 'utf8')
   return true
 }

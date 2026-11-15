@@ -197,13 +197,15 @@ function queryBigrams(q) {
 
 // 相关度 × 重要度：重要的先被想起
 // 阈值比较的是「原始重叠数」，重要度只影响排序，不影响过线门槛
-// 长查询要求按比例命中，避免「命中一个二字词就算相关」
+// mode='strict'（默认）：长查询要求 ≥60% 命中，宁可不召回也不硬凑
+// mode='loose'：只要求至少一个实词命中，适合"想起来就该出现在眼前"的日常召回，宿主自行承担误召
 // mark=false（默认）：只读；mark=true 追加一条 recall 事件（不重写经历文件）
-export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6 } = {}) {
+export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict' } = {}) {
   const rows = loadAll(dir)
   const q = String(query || '')
   const { cleaned, bigrams } = queryBigrams(q)
-  const required = (q && cleaned.length >= 8)
+  const strict = mode !== 'loose'
+  const required = (strict && q && cleaned.length >= 8)
     ? Math.max(minOverlap, Math.ceil(bigrams.size * minRatio))
     : minOverlap
 

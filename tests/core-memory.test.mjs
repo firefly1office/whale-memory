@@ -122,3 +122,18 @@ test('recallForContext：给宿主的轻量结构，字段齐全', (t) => {
   assert.equal(out[0].thought, '怕黑')
   assert.equal(out[0].raw.id, row.id)
 })
+
+test('召回模式：strict 宁可不召回，loose 至少给一个实词命中', (t) => {
+  const dir = tmp(t)
+  exp.addExperience(dir, {
+    text: '读到烤肉那段，笑了一下',
+    thought: '这种好事只在书里',
+    unfinished: '想知道小鞠和社长后来怎样了'
+  })
+  const longQuery = '那本书里那个人后来怎样了'
+
+  assert.deepEqual(exp.recall(dir, longQuery, { limit: 3 }), [], 'strict 下长问句不硬凑')
+  const loose = exp.recall(dir, longQuery, { limit: 3, mode: 'loose' })
+  assert.equal(loose.length, 1, 'loose 下应给出一句"书里"相关的记录')
+  assert.match(loose[0].then.thought, /书里/)
+})

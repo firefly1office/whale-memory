@@ -2,6 +2,21 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.9.0] · 2026-11-15
+
+### Added
+
+- 召回支持 `mode`：`strict`（默认，长查询宁可不召回）与 `loose`（至少一个实词命中，给日常对话召回用）。CLI 加 `--mode strict|loose`。
+- 长自然问句在 loose 下能召回：同一句「那本书里那个人后来怎样了」，strict 返回空，loose 命中「书里」那条。
+
+### Changed
+
+- **醒来块默认只给一对一**：`buildWakingBlock()` 在 chatKey 为空或 `group_*` 时返回空；群聊需显式 `allowGroup: true`。`consumeWaking()` 同样拒绝，避免没注入却消耗当天额度。这是把原本"交给宿主"的隐私判断做成代码默认值。
+
+### Docs
+
+- `architecture.md` 更新召回两种模式与醒来块安全默认。
+
 ## [0.8.2] · 2026-11-15
 
 ### Fixed

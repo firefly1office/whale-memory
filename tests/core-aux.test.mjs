@@ -182,3 +182,23 @@ test('提示词护栏：拼接默认段，截断要报告', (t) => {
   assert.equal(capped.truncated, true)
   assert.match(capped.note, /截断/)
 })
+
+test('醒来块安全默认：没 chatKey 或群聊一律空白', (t) => {
+  const dataDir = tmp(t)
+  fs.mkdirSync(memDir(dataDir), { recursive: true })
+  fs.writeFileSync(
+    path.join(memDir(dataDir), 'self-experience.jsonl'),
+    JSON.stringify({ id: 'w1', day: yesterday(), then: { text: '昨天私下说的话' } }) + '\n',
+    'utf8'
+  )
+
+  assert.equal(waking.buildWakingBlock(dataDir, ''), '', '没 chatKey 时不能给内容')
+  assert.equal(waking.buildWakingBlock(dataDir, undefined), '')
+  assert.equal(waking.buildWakingBlock(dataDir, 'group_123456'), '', '群聊默认不能给')
+
+  const allowed = waking.buildWakingBlock(dataDir, 'group_123456', { allowGroup: true })
+  assert.match(allowed, /昨天私下说的话/, '显式 allowGroup 才给')
+
+  assert.equal(waking.consumeWaking(dataDir, ''), false)
+  assert.equal(waking.consumeWaking(dataDir, 'group_123456'), false)
+})

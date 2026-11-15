@@ -59,7 +59,9 @@ try {
     const q = arg('query', '') || ''
     const n = limitArg('limit', 3)
     const mark = String(arg('mark', 'false')) === 'true'
-    const rows = n === 0 ? [] : exp.recall(MEM_DIR, q, { limit: n, mark })
+    const mode = String(arg('mode', 'strict'))
+    if (mode !== 'strict' && mode !== 'loose') throw new Error('--mode 只能是 strict 或 loose')
+    const rows = n === 0 ? [] : exp.recall(MEM_DIR, q, { limit: n, mark, mode })
     out({ ok: true, items: rows.map((r) => ({ id: r.id, day: r.day, weight: r.weight, text: exp.renderTwoPart(r) })) })
   } else if (cmd === 'read') {
     const n = limitArg('limit', 8)
@@ -106,7 +108,7 @@ try {
       ok: false,
       usage: [
         'write --text "..." [--scene .. --feeling a,b --thought .. --unfinished .. --quote .. --source .. --weight important|normal|minor --kind 读书]',
-        'recall --query "..." [--limit 3] [--mark true]   （空 query = 最近 N 条；默认只读）',
+        'recall --query "..." [--limit 3] [--mark true] [--mode strict|loose]   （空 query = 最近 N 条；默认只读，strict 宁可不召回）',
         'read [--limit 8]',
         'revise --id ... --thought "..." [--reason ..]',
         'waking [--chat private:100000000] [--peek true]   （默认打印即记为已展示）',
