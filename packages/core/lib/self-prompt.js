@@ -26,7 +26,13 @@ export function save(dataDir, text, reason = '') {
   if (!body) return { ok: false, error: '空的，不写。' }
   if (body.length > MAX_CHARS) return { ok: false, error: '太长了（' + body.length + '/' + MAX_CHARS + ' 字），删一些再试。' }
   const d = base(dataDir)
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 23)
+  const baseStamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 23)
+  let stamp = baseStamp
+  let n = 1
+  while (fs.existsSync(path.join(d, VERSIONS, stamp + '.md'))) {
+    stamp = baseStamp + '-' + n
+    n += 1
+  }
   fs.writeFileSync(path.join(d, VERSIONS, stamp + '.md'), body, 'utf8')
   fs.writeFileSync(path.join(d, ACTIVE), body, 'utf8')
   fs.appendFileSync(path.join(d, 'history.jsonl'), JSON.stringify({ at: new Date().toISOString(), chars: body.length, reason: String(reason || '').slice(0, 200), snapshot: stamp }) + '\n', 'utf8')

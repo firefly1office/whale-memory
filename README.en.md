@@ -81,4 +81,4 @@ node --test tests/public-cli.test.mjs
 node tools/privacy-canary.mjs
 ```
 
-MIT licensed — see [LICENSE](LICENSE). Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md).
+MIT licensed — see [LICENSE](LICENSE). Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md); changes are in [CHANGELOG.md](CHANGELOG.md); privacy and safety in [SECURITY.md](SECURITY.md).

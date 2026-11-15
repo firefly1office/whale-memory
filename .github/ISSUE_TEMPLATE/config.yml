@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 隐私 / 安全问题
+    url: https://github.com/firefly1office/whale-memory/security/policy
+    about: 请不要在公开 issue 里贴真实聊天内容或密钥，先看 SECURITY.md

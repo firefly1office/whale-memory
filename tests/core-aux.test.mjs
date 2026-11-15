@@ -1,0 +1,101 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import * as waking from '../packages/core/lib/waking.js'
+import * as prompt from '../packages/core/lib/self-prompt.js'
+import * as settings from '../packages/core/lib/self-settings.js'
+
+function tmp(t) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-aux-test-'))
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  return dir
+}
+
+const memDir = (dataDir) => path.join(dataDir, 'plugin-data', 'biomimetic-memory')
+
+function yesterday() {
+  return new Date(Date.now() - 86400000).toLocaleDateString('sv-SE')
+}
+
+test('醒来块：给昨天的时间线，同一天只给一次', (t) => {
+  const dataDir = tmp(t)
+  fs.mkdirSync(memDir(dataDir), { recursive: true })
+  fs.writeFileSync(
+    path.join(memDir(dataDir), 'self-experience.jsonl'),
+    JSON.stringify({
+      id: 'e1', day: yesterday(), author: 'self',
+      then: { text: '读到灯塔那一章', unfinished: '想知道她有没有等到船' }
+    }) + '\n',
+    'utf8'
+  )
+
+  const first = waking.buildWakingBlock(dataDir, 'private_test', { now: new Date() })
+  assert.match(first, /【醒来】/)
+  assert.match(first, /读到灯塔那一章/)
+  assert.match(first, /还没弄完：想知道她有没有等到船/)
+
+  const second = waking.buildWakingBlock(dataDir, 'private_test', { now: new Date() })
+  assert.equal(second, '', '同一天同一个会话不重复注入')
+
+  const otherChat = waking.buildWakingBlock(dataDir, 'private_other', { now: new Date() })
+  assert.match(otherChat, /【醒来】/, '去重按会话各自计算')
+})
+
+test('醒来块：带上睡前的留言', (t) => {
+  const dataDir = tmp(t)
+  fs.mkdirSync(memDir(dataDir), { recursive: true })
+  fs.writeFileSync(
+    path.join(memDir(dataDir), 'notes-to-tomorrow.jsonl'),
+    JSON.stringify({ at: new Date().toISOString(), day: yesterday(), text: '明天把第三章读完' }) + '\n',
+    'utf8'
+  )
+  const block = waking.buildWakingBlock(dataDir, 'local:owner', { now: new Date() })
+  assert.match(block, /睡前你给今天留了一句：明天把第三章读完/)
+})
+
+test('她的提示词：版本只追加，能回退', (t) => {
+  const dataDir = tmp(t)
+  const v1 = prompt.save(dataDir, '说话短一点', '第一版')
+  assert.equal(v1.ok, true)
+  const v2 = prompt.save(dataDir, '说话短一点；累的时候更短', '第二版')
+  assert.equal(v2.ok, true)
+  assert.notEqual(v1.version, v2.version, '同一秒写两次也要有不同版本号')
+
+  assert.equal(prompt.load(dataDir), '说话短一点；累的时候更短')
+  const hist = prompt.history(dataDir, 5)
+  assert.equal(hist.length, 2)
+  assert.equal(hist[0].chars, '说话短一点；累的时候更短'.length)
+  assert.equal(hist[0].snapshot, v2.version)
+  assert.equal(hist[1].snapshot, v1.version)
+
+  const back = prompt.revert(dataDir, v1.version)
+  assert.equal(back.ok, true)
+  assert.equal(prompt.load(dataDir), '说话短一点')
+  assert.equal(prompt.history(dataDir, 10).length, 3, '回退本身也是一次新版本')
+})
+
+test('她的提示词：空内容和超长内容都拒绝', (t) => {
+  const dataDir = tmp(t)
+  assert.equal(prompt.save(dataDir, '   ').ok, false)
+  assert.equal(prompt.save(dataDir, 'x'.repeat(prompt.internals.MAX_CHARS + 1)).ok, false)
+  assert.equal(prompt.load(dataDir), '')
+})
+
+test('她的设置：默认值、修改持久化、改动写进经历', (t) => {
+  const dataDir = tmp(t)
+  const fresh = settings.load(dataDir)
+  assert.equal(fresh.ownTime, settings.DEFAULTS.ownTime)
+
+  const saved = settings.save(dataDir, { ownTime: '23:00-23:40' }, '挪到睡前')
+  assert.equal(saved.ownTime, '23:00-23:40')
+  assert.equal(settings.load(dataDir).ownTime, '23:00-23:40')
+
+  const rows = fs.readFileSync(path.join(memDir(dataDir), 'self-experience.jsonl'), 'utf8')
+    .trim().split('\n').map(l => JSON.parse(l))
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].kind, '决定')
+  assert.match(rows[0].text, /23:00-23:40/)
+  assert.equal(rows[0].thought, '挪到睡前')
+})

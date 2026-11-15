@@ -11,8 +11,7 @@ function readJsonl(file) {
 function dayStr(d = new Date()) { return d.toLocaleDateString('sv-SE') }
 
 export function buildWakingBlock(dataDir, chatKey, { now = new Date() } = {}) {
-  // 醒来块只给主人私聊和本机操作台；群聊不注入，避免把昨天私下的话带出去
-  if (!/private_100000000|local:owner/i.test(String(chatKey || ''))) return ''
+  // 注入范围由调用方决定：这里只按「会话 + 日期」去重，不判断该不该注入
   const dir = path.join(dataDir, 'plugin-data', 'biomimetic-memory')
   const today = dayStr(now)
   const flag = path.join(dir, 'waking-flags.json')

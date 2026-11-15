@@ -43,6 +43,24 @@ node tools/privacy-canary.mjs
 - 涉及数据格式的改动，必须向后兼容，并在 PR 里写明迁移方式
 - 提交信息用中文或英文都行，说清楚即可
 
+## 版本与发布
+
+遵循语义化版本：
+
+- **patch**（0.1.x）：修缺陷、改文档、不改数据格式
+- **minor**（0.x.0）：加字段、加命令、仍能读旧数据
+- **major**（1.0.0 起）：需要迁移，或改变 `then` / `later` 的语义
+
+发版流程：
+
+1. 更新 `CHANGELOG.md` 的 `[Unreleased]`，改成新版本号与日期
+2. `packages/core/package.json` 改版本号
+3. 打 tag：`git tag vX.Y.Z && git push origin vX.Y.Z`
+4. 在 GitHub 建 release，正文取 CHANGELOG 对应段落
+5. 需要发 npm 时，在 `packages/core` 里 `npm publish --access public`
+
+破坏性改动必须在 PR 标题里写 `BREAKING`，并在 CHANGELOG 里单独一段。
+
 ## 跑不过怎么办
 
 先看 `node --test tests/` 的具体失败项。数据相关的失败，**先备份 `WHALE_DATA_DIR` 再动手**——这个项目里，数据比代码重要。
