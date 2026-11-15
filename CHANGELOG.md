@@ -2,9 +2,22 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [0.2.0] · 2026-11-15
 
-- 待定
+### Changed
+
+- `recall()` 默认会记一次「想起」（`recalls + 1`），返回的对象里计数已是新值；只读场景传 `mark: false`
+- 包说明改为「自传层内核」，明确不含 vault、取证、合并与注入预算
+- `plugin/README.md` 说明插件是参考实现、非稳定 API，并写清 CI 覆盖范围
+
+### Added
+
+- `tools/check-syntax.mjs`：全仓 126 个 `.js/.mjs` 的 `node --check`，已进 CI
+- 测试：召回计数、虚拟时钟模拟「隔天延续」（14 组全部通过）
+
+### Fixed
+
+- demo 输出「这条被你想起过 0 次」但现在这次本身就是第 1 次想起；现在显示 1
 
 ## [0.1.0] · 2026-11-15
 

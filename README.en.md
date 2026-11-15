@@ -65,7 +65,7 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | --- | --- |
 | Let DSH read and write experiences through commands | [Standalone DSH skill and install notes](examples/dsh-plugin/dsh-whale-memory/README.md) |
 | Add tools to your own agent | [CLI adapter](adapters/README.md) — emits JSON; the host decides when to call it |
-| Use it directly from JavaScript | [Core package](packages/core/README.md) and [porting guide](docs/porting.md); `npm install whale-memory-core` |
+| Use it directly from JavaScript | [Self-layer core](packages/core/README.md) (`npm install whale-memory-core`) and [porting guide](docs/porting.md) |
 | Inspect the data format | [Schema](docs/schema.md) and [fictional samples](examples/samples/) |
 | Study the full QQ Agent integration | [Plugin source](plugin/biomimetic-memory/) (recall, context injection, host tools; some paths need local adaptation) |
 | Understand why the project focuses on the character's own life | [Project principles](docs/项目原则.md) and [roadmap](docs/计划-合并版-v2.md) (Chinese) |

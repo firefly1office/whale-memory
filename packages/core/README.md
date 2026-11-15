@@ -1,10 +1,25 @@
 # whale-memory/core
 
-不依赖 QQ Agent 的记忆内核，纯 ESM、只用 Node 内置模块。
+**自传层**内核：只管"她自己的经历"这一层，不是完整的记忆系统。纯 ESM、只用 Node 内置模块。
 
 ```js
 import * as exp from 'whale-memory-core/self-experience'
 ```
+
+## 包含什么、不包含什么
+
+包含：
+
+- `then` / `later` 两层经历，改主意不覆盖旧想法
+- 召回（相关度 × 重要度）、想起计数、两段式渲染
+- 醒来块、她自己的提示词 overlay、她自己的设置
+
+不包含（这些在 `plugin/biomimetic-memory/` 里，属于 QQ Agent 的完整引擎）：
+
+- vault 存储与索引、evidence-policy 取证、consolidator 合并、注入预算
+- 跨会话可见性判断、宿主工具注册
+
+如果你要的是"一个 agent 的自传记忆"，这个包够用；如果你要的是"完整记忆系统"，看 [`docs/porting.md`](../../docs/porting.md) 里的边界说明，或直接读插件源码。
 
 包名 `whale-memory-core`，入口：`whale-memory-core`（命名导出）以及五个子路径：`/self-experience`、`/self-memory`、`/waking`、`/self-prompt`、`/self-settings`。
 

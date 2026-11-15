@@ -137,7 +137,8 @@ export function currentView(dir, id) {
 }
 
 // 相关度 + 重要度：重要的先被想起
-export function recall(dir, query, { limit = 3, minOverlap = 1 } = {}) {
+// mark=true 时，被取回的条目会记一次"想起"（计数 +1，内容不动）
+export function recall(dir, query, { limit = 3, minOverlap = 1, mark = true } = {}) {
   const rows = loadAll(dir)
   const q = String(query || '')
   const score = (r) => {
@@ -151,10 +152,17 @@ export function recall(dir, query, { limit = 3, minOverlap = 1 } = {}) {
     const w = r.weight === 'important' ? 3 : r.weight === 'minor' ? 0.5 : 1
     return n * w
   }
-  return rows.map((r) => ({ r, s: score(r) }))
+  const picked = rows.map((r) => ({ r, s: score(r) }))
     .filter((x) => (q ? x.s >= minOverlap : true))
     .sort((a, b) => b.s - a.s || String(b.r.at).localeCompare(String(a.r.at)))
     .slice(0, limit).map((x) => x.r)
+
+  if (!mark || !picked.length) return picked
+
+  // 记一笔之后再读回，返回的对象里计数已经是新的
+  for (const r of picked) { try { markRecalled(dir, r.id) } catch { /* 坏文件时不阻断召回 */ } }
+  const byId = new Map(loadAll(dir).map((r) => [r.id, r]))
+  return picked.map((r) => byId.get(r.id) || r)
 }
 
 // 「当时 / 现在」两段式：模板拼，不调模型；没有的字段就如实说没有

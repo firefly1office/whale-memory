@@ -99,3 +99,27 @@ test('她的设置：默认值、修改持久化、改动写进经历', (t) => {
   assert.match(rows[0].text, /23:00-23:40/)
   assert.equal(rows[0].thought, '挪到睡前')
 })
+test('隔天延续：用虚拟时钟模拟两天，不靠真等', (t) => {
+  const dataDir = tmp(t)
+  const mem = path.join(dataDir, 'plugin-data', 'biomimetic-memory')
+  fs.mkdirSync(mem, { recursive: true })
+
+  // 11 月 10 日写的经历
+  fs.writeFileSync(
+    path.join(mem, 'self-experience.jsonl'),
+    JSON.stringify({ id: 'd1', day: '2026-11-10', then: { text: '那天读到灯塔最后一页' } }) + '\n',
+    'utf8'
+  )
+
+  // 11 月 11 日醒来：应该看见 10 号那条
+  const day11 = waking.buildWakingBlock(dataDir, 'private_test', { now: new Date('2026-11-11T09:00:00+08:00') })
+  assert.match(day11, /读了灯塔最后一页|读到灯塔最后一页/)
+
+  // 同日再来一次：不重复
+  const day11again = waking.buildWakingBlock(dataDir, 'private_test', { now: new Date('2026-11-11T21:00:00+08:00') })
+  assert.equal(day11again, '')
+
+  // 11 月 12 日：昨天(11 号)没记录，如实说没有
+  const day12 = waking.buildWakingBlock(dataDir, 'private_test', { now: new Date('2026-11-12T09:00:00+08:00') })
+  assert.match(day12, /昨天你没有留下自己的记录/)
+})
