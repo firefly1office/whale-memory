@@ -26,8 +26,13 @@ const e = exp.addExperience(dir, {
 console.log('\n[写] id=', e.id, '| 重要度=', e.weight)
 
 // 2) 第二天她想起（相关话题触发）；mark:true 表示这次取回也记一次“想起”
-const hits = exp.recall(dir, '那本书里那个人后来怎样了', { limit: 1, mark: true })
-console.log('\n[想起]\n' + exp.renderTwoPart(hits[0]))
+// 查询要用能命中的短锚点；长问句会被“≥8 字要求 60% 命中”的门槛挡住（这是故意的）
+const hits = exp.recall(dir, '烤肉', { limit: 1, mark: true })
+if (!hits.length) {
+  console.log('\n[想起] 这次什么都没想起来（查询和记录没有足够重叠）')
+} else {
+  console.log('\n[想起]\n' + exp.renderTwoPart(hits[0]))
+}
 
 // 3) 她改主意：只往 later 追加，不动"当时"
 exp.reviseExperience(dir, { id: e.id, thought: '现在觉得那个人其实是在护着朋友', reason: '读到后面那段' })
