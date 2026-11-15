@@ -2,6 +2,12 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.5.1] · 2026-11-15
+
+### Fixed
+
+- Windows 下多进程同时追加事件时，锁目录并发 mkdir/rm 会短暂返回 EPERM/ENOENT，导致并发用例失败；现在把这类错误当成「忙」重试，直到超时。提示词锁同样处理。
+
 ## [0.5.0] · 2026-11-15
 
 ### Changed
