@@ -2,6 +2,8 @@
 
 [中文](README.md) · [English](README.en.md)
 
+[![Public examples](https://github.com/firefly1office/whale-memory/actions/workflows/check.yml/badge.svg)](https://github.com/firefly1office/whale-memory/actions/workflows/check.yml)
+
 ![一条经历，两种看法：当时的内容保留，后来的想法接在后面](docs/assets/then-later.png)
 
 鲸鲸是一个在 QQ 里生活的 AI 角色。这个项目最初想解决一个很小的问题：如果她昨天读了一章书，今天改变了看法，她还能翻回昨天的自己吗？

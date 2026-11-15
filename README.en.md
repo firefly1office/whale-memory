@@ -2,6 +2,8 @@
 
 [中文](README.md) · [English](README.en.md)
 
+[![Public examples](https://github.com/firefly1office/whale-memory/actions/workflows/check.yml/badge.svg)](https://github.com/firefly1office/whale-memory/actions/workflows/check.yml)
+
 ![One experience, two views: what she wrote then stays; what she thinks later is appended](docs/assets/then-later.png)
 
 Whale-memory is the memory layer behind 鲸鲸 (Jingjing), an AI character who lives in QQ. It started from a small question: if she read a chapter yesterday and changed her mind today, can she still find the person she was yesterday?
