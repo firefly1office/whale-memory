@@ -36,8 +36,12 @@ test('醒来块：给昨天的时间线，同一天只给一次', (t) => {
   assert.match(first, /读到灯塔那一章/)
   assert.match(first, /还没弄完：想知道她有没有等到船/)
 
+  const previewAgain = waking.buildWakingBlock(dataDir, 'private_test', { now: new Date() })
+  assert.match(previewAgain, /【醒来】/, '没确认展示之前不消耗今天的额度')
+
+  waking.consumeWaking(dataDir, 'private_test', { now: new Date() })
   const second = waking.buildWakingBlock(dataDir, 'private_test', { now: new Date() })
-  assert.equal(second, '', '同一天同一个会话不重复注入')
+  assert.equal(second, '', '确认展示后同一天同一会话不再出')
 
   const otherChat = waking.buildWakingBlock(dataDir, 'private_other', { now: new Date() })
   assert.match(otherChat, /【醒来】/, '去重按会话各自计算')
@@ -114,6 +118,7 @@ test('隔天延续：用虚拟时钟模拟两天，不靠真等', (t) => {
   // 11 月 11 日醒来：应该看见 10 号那条
   const day11 = waking.buildWakingBlock(dataDir, 'private_test', { now: new Date('2026-11-11T09:00:00+08:00') })
   assert.match(day11, /读了灯塔最后一页|读到灯塔最后一页/)
+  waking.consumeWaking(dataDir, 'private_test', { now: new Date('2026-11-11T09:00:00+08:00') })
 
   // 同日再来一次：不重复
   const day11again = waking.buildWakingBlock(dataDir, 'private_test', { now: new Date('2026-11-11T21:00:00+08:00') })

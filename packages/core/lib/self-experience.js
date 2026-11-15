@@ -25,7 +25,7 @@ function readAll(dir, { rewriting = false } = {}) {
 
 function atomicWrite(dir, rows) {
   const file = path.join(dir, FILE)
-  const tmp = file + '.tmp-' + Date.now()
+  const tmp = file + '.tmp-' + Date.now() + '-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
   fs.writeFileSync(tmp, rows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
   fs.renameSync(tmp, file)
 }
@@ -155,11 +155,13 @@ export function currentView(dir, id) {
 }
 
 // 相关度 + 重要度：重要的先被想起
-// mark=true 时，被取回的条目会记一次"想起"（计数 +1，内容不动）
-export function recall(dir, query, { limit = 3, minOverlap = 1, mark = true } = {}) {
+// 相关度 × 重要度：重要的先被想起
+// 阈值比较的是「原始重叠数」，重要度只影响排序，不影响过线门槛
+// mark=false（默认）：只读；mark=true 才记一次"想起"（会重写文件，单写者场景用）
+export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false } = {}) {
   const rows = loadAll(dir)
   const q = String(query || '')
-  const score = (r) => {
+  const overlap = (r) => {
     const s = (r.then.text + ' ' + r.then.thought + ' ' + (r.then.feeling || []).join(' '))
     let n = 0
     const big = new Set()
@@ -167,11 +169,14 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = true } = 
     for (let i = 0; i + 2 <= qc.length; i++) big.add(qc.slice(i, i + 2))
     const t = s.replace(/[\s\p{P}\p{S}]+/gu, '')
     for (const g of big) if (t.includes(g)) n++
-    const w = r.weight === 'important' ? 3 : r.weight === 'minor' ? 0.5 : 1
-    return n * w
+    return n
   }
-  const picked = rows.map((r) => ({ r, s: score(r) }))
-    .filter((x) => (q ? x.s >= minOverlap : true))
+  const weightOf = (r) => (r.weight === 'important' ? 3 : r.weight === 'minor' ? 0.5 : 1)
+  const picked = rows.map((r) => {
+    const n = overlap(r)
+    return { r, n, s: n * weightOf(r) }
+  })
+    .filter((x) => (q ? x.n >= minOverlap : true))
     .sort((a, b) => b.s - a.s || String(b.r.at).localeCompare(String(a.r.at)))
     .slice(0, limit).map((x) => x.r)
 

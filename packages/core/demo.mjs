@@ -25,8 +25,8 @@ const e = exp.addExperience(dir, {
 })
 console.log('\n[写] id=', e.id, '| 重要度=', e.weight)
 
-// 2) 第二天她想起（相关话题触发）
-const hits = exp.recall(dir, '那本书里那个人后来怎样了', { limit: 1 })
+// 2) 第二天她想起（相关话题触发）；mark:true 表示这次取回也记一次“想起”
+const hits = exp.recall(dir, '那本书里那个人后来怎样了', { limit: 1, mark: true })
 console.log('\n[想起]\n' + exp.renderTwoPart(hits[0]))
 
 // 3) 她改主意：只往 later 追加，不动"当时"

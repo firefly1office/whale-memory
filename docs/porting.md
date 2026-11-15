@@ -1,22 +1,31 @@
 # 移植指南：把「她的记忆」装进别的宿主
 
 这份文档写给非 QQ Agent 的使用者（DSH、自建 agent、别的框架）。
-结论先说：**插件本身不能直接装，但核心库和设计可以直接用。**
+结论先说：**完整引擎不随仓库分发，但核心库和设计可以直接用。**
 
-## 1. 哪些是通用的，哪些是宿主专用的
+## 1. 哪些在仓库里，哪些不在
 
-| 模块 | 通用？ | 说明 |
-|---|---|---|
-| `lib/memory-vault.js` | 半通用 | 纯文件 vault（index/events/cards），但依赖同目录若干工具库，且默认数据结构复杂；建议整体搬 |
-| `lib/evidence-policy.js` | 通用 | 证据判定：as-of、被取代、后继缺席、未来记录不返回 |
-| `lib/self-experience.js` | **通用** | 经历两层（then/later）、重要度、两段式回想 |
-| `lib/self-memory.js` | **通用** | 她自己的经历 + 日记的统一读取与渲染 |
-| `lib/waking.js` | **通用** | 醒来块：每天第一次唤醒给昨天的时间线 |
-| `lib/self-prompt.js` | **通用** | 提示词 overlay：版本只追加、可回退 |
-| `lib/self-settings.js` | **通用** | 她自己的设置（软限制归她） |
-| `lib/her-plugins.js` | 半通用 | 纯计算插件沙箱，依赖独立 node + `--permission`，宿主可换成自己的沙箱 |
-| `index.js` | 宿主专用 | QQ Agent 的 registerTool / promptSections / storage |
-| `tools/*.mjs` | 半通用 | 独立脚本，改路径即可；部分带 Windows 计划任务与 OneBot 依赖 |
+仓库里（`packages/core`，通用、可依赖）：
+
+| 模块 | 说明 |
+|---|---|
+| `self-experience.js` | 经历两层（then/later）、重要度、两段式回想、想起计数 |
+| `self-memory.js` | 她自己的经历 + 日记的统一读取与渲染 |
+| `waking.js` | 醒来块：`buildWakingBlock` 只读计算，`consumeWaking` 确认已展示 |
+| `self-prompt.js` | 提示词 overlay：版本只追加、可回退 |
+| `self-settings.js` | 她自己的设置（软限制归她） |
+
+不在仓库里（作者本机 QQ Agent 部署的一部分，与宿主强耦合）：
+
+| 模块 | 说明 |
+|---|---|
+| vault（index/events/cards） | 纯文件存储与索引，26k 行引擎的一部分 |
+| `evidence-policy.js` | 证据判定：as-of、被取代、后继缺席、未来记录不返回 |
+| consolidator | 记忆合并与去重 |
+| injection-budget | 上下文注入预算 |
+| 宿主入口 | registerTool / promptSections / storage 的具体实现 |
+
+这些的设计写在 [`architecture.md`](architecture.md) 里；要接自己的宿主，按下面的最小契约自己实现一层即可。
 
 ## 2. 宿主需要提供什么（最小契约）
 
@@ -98,9 +107,9 @@ DSH 的 skill 是 `SKILL.md + 脚本`，不需要 QQ Agent 的插件 API：
 
 ## 6. 不要照搬的部分
 
-- QQ 号、路径、OneBot 配置：插件里已脱敏，但换宿主时请重新检查
+- QQ 号、路径、OneBot 配置：换宿主时请重新检查
 - 计划任务（schtasks）：Linux/macOS 用 cron/systemd timer
-- `her-plugins` 的 `--permission`：Node 20 不支持，宿主需要 Node 22+ 或换沙箱
+- 任何需要拿到 QQ 会话键（`private_*` / `group_*`）的判断：那是宿主层的事，不要塞进核心库
 
 ## 7. 验收清单
 

@@ -14,12 +14,12 @@ import * as exp from 'whale-memory-core/self-experience'
 - 召回（相关度 × 重要度）、想起计数、两段式渲染
 - 醒来块、她自己的提示词 overlay、她自己的设置
 
-不包含（这些在 `plugin/biomimetic-memory/` 里，属于 QQ Agent 的完整引擎）：
+不包含（完整引擎与具体宿主部署耦合，不随本仓库分发）：
 
 - vault 存储与索引、evidence-policy 取证、consolidator 合并、注入预算
 - 跨会话可见性判断、宿主工具注册
 
-如果你要的是"一个 agent 的自传记忆"，这个包够用；如果你要的是"完整记忆系统"，看 [`docs/porting.md`](../../docs/porting.md) 里的边界说明，或直接读插件源码。
+如果你要的是"一个 agent 的自传记忆"，这个包够用；如果你要的是"完整记忆系统"，看 [`docs/architecture.md`](../../docs/architecture.md) 与 [`docs/porting.md`](../../docs/porting.md)。
 
 包名 `whale-memory-core`，入口：`whale-memory-core`（命名导出）以及五个子路径：`/self-experience`、`/self-memory`、`/waking`、`/self-prompt`、`/self-settings`。
 

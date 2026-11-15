@@ -19,7 +19,7 @@ labels: bug
 **环境**
 - 系统：Windows / macOS / Linux
 - Node 版本：
-- 用的是哪条路径：`adapters/cli` / `packages/core` / `examples/dsh-plugin` / `plugin/biomimetic-memory`
+- 用的是哪条路径：`adapters/cli` / `packages/core` / `examples/dsh-plugin`
 - 版本或 commit：
 
 **数据相关（重要）**

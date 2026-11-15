@@ -33,7 +33,7 @@ A record on disk is one JSON object per line:
 
 ## See an experience change its mind
 
-Node.js 22.12+. Run from the repository root; the demo uses a temporary directory, works offline, and needs no API key.
+Node.js 20+ (CI runs 20 and 22). Run from the repository root; the demo uses a temporary directory, works offline, and needs no API key.
 
 ```sh
 git clone https://github.com/firefly1office/whale-memory.git
@@ -67,8 +67,9 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | Add tools to your own agent | [CLI adapter](adapters/README.md) — emits JSON; the host decides when to call it |
 | Use it directly from JavaScript | [Self-layer core](packages/core/README.md) (`npm install whale-memory-core`) and [porting guide](docs/porting.md) |
 | Inspect the data format | [Schema](docs/schema.md) and [fictional samples](examples/samples/) |
-| Study the full QQ Agent integration | [Plugin source](plugin/biomimetic-memory/) (recall, context injection, host tools; some paths need local adaptation) |
-| Understand why the project focuses on the character's own life | [Project principles](docs/项目原则.md) and [roadmap](docs/计划-合并版-v2.md) (Chinese) |
+| Understand the design | [Architecture](docs/architecture.md): layers, evidence policy, recall and write constraints |
+
+> The full engine (vault storage, evidence policy, consolidator, injection budget — about 26k lines) is tightly coupled to one host deployment and is **not distributed with this repository**. The design is written up in [architecture.md](docs/architecture.md).
 
 ## Data and verification
 

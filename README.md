@@ -33,7 +33,7 @@
 
 ## 先看一次改主意
 
-用 Node.js 22.12 或更新版本，在仓库根目录运行下面的命令。演示使用临时目录和示例经历，可以离线运行，无需 API 密钥。
+用 Node.js 20 或更新版本（CI 跑 20 与 22），在仓库根目录运行下面的命令。演示使用临时目录和示例经历，可以离线运行，无需 API 密钥。
 
 ```sh
 git clone https://github.com/firefly1office/whale-memory.git
@@ -67,8 +67,10 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | 给自己的 Agent 接入工具 | [命令行适配器](adapters/README.md)输出 JSON，由宿主决定何时调用 |
 | 在 JavaScript 中直接读写 | [自传层内核](packages/core/README.md)（`npm install whale-memory-core`）和[宿主移植指南](docs/porting.md) |
 | 看数据结构 | [数据格式 schema](docs/schema.md) 与[虚构样本](examples/samples/) |
-| 研究 QQ Agent 的完整接入 | [插件源码](plugin/biomimetic-memory/)包含召回、上下文注入和宿主工具，部分路径和会话配置需要适配本机 |
-| 了解项目为什么重视角色自己的经历 | [项目原则](docs/项目原则.md)与[开发路线](docs/计划-合并版-v2.md) |
+| 了解整体设计 | [架构说明](docs/architecture.md)：分层、证据策略、召回与写入约束 |
+| 了解项目为什么重视角色自己的经历 | [架构说明 · 三条核心设计](docs/architecture.md#三条核心设计) |
+
+> 完整引擎（vault 存储、evidence-policy 取证、consolidator 合并、注入预算）约 26k 行，与具体宿主的部署强耦合，**不随本仓库分发**；设计思路见 [架构说明](docs/architecture.md)。
 
 ## 数据与验证
 

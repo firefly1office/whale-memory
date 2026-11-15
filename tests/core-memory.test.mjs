@@ -95,11 +95,11 @@ test('召回会记一次“想起”，计数跟着涨', (t) => {
   const dir = tmp(t)
   const row = exp.addExperience(dir, { text: '翻到灯塔那一章' })
 
-  const first = exp.recall(dir, '灯塔', { limit: 1 })
+  const first = exp.recall(dir, '灯塔', { limit: 1, mark: true })
   assert.equal(first[0].recalls, 1, '这次取回本身就是第 1 次想起')
   assert.equal(exp.renderTwoPart(first[0]).includes('想起过 1 次'), true)
 
-  const second = exp.recall(dir, '灯塔', { limit: 1 })
+  const second = exp.recall(dir, '灯塔', { limit: 1, mark: true })
   assert.equal(second[0].recalls, 2)
   assert.equal(exp.currentView(dir, row.id).recalls, 2)
 

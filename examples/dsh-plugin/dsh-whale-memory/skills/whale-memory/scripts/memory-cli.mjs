@@ -58,7 +58,8 @@ try {
     // 空 query = 最近 N 条（不是“什么都不返回”）；想看最近就用空 query，想按相关度就给词
     const q = arg('query', '') || ''
     const n = limitArg('limit', 3)
-    const rows = n === 0 ? [] : exp.recall(MEM_DIR, q, { limit: n })
+    const mark = String(arg('mark', 'false')) === 'true'
+    const rows = n === 0 ? [] : exp.recall(MEM_DIR, q, { limit: n, mark })
     out({ ok: true, items: rows.map((r) => ({ id: r.id, day: r.day, weight: r.weight, text: exp.renderTwoPart(r) })) })
   } else if (cmd === 'read') {
     const n = limitArg('limit', 8)
@@ -72,7 +73,10 @@ try {
     out(exp.reviseExperience(MEM_DIR, { id, thought, reason: arg('reason', '') || '' }))
   } else if (cmd === 'waking') {
     const chat = arg('chat', 'local:owner') || 'local:owner'
-    out({ ok: true, block: waking.buildWakingBlock(DATA, chat) })
+    const block = waking.buildWakingBlock(DATA, chat)
+    out({ ok: true, block })
+    // 打印成功即视为已展示；只想预览不占用今天的额度，加 --peek true
+    if (block && String(arg('peek', 'false')) !== 'true') waking.consumeWaking(DATA, chat)
   } else if (cmd === 'memory') {
     const q = arg('query', '') || ''
     const includeDiary = String(arg('diary', 'false')) === 'true'
@@ -100,10 +104,10 @@ try {
       ok: false,
       usage: [
         'write --text "..." [--scene .. --feeling a,b --thought .. --unfinished .. --quote .. --source .. --weight important|normal|minor --kind 读书]',
-        'recall --query "..." [--limit 3]   （空 query = 最近 N 条）',
+        'recall --query "..." [--limit 3] [--mark true]   （空 query = 最近 N 条；默认只读）',
         'read [--limit 8]',
         'revise --id ... --thought "..." [--reason ..]',
-        'waking [--chat private:100000000]',
+        'waking [--chat private:100000000] [--peek true]   （默认打印即记为已展示）',
         'memory --query "..." [--diary true --limit 4]',
         'prompt get|set --text ...|history|revert --version ...',
         'settings get|set --json {...}',
