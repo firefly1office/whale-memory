@@ -67,6 +67,7 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | Add tools to your own agent | [CLI adapter](adapters/README.md) — emits JSON; the host decides when to call it |
 | Use it directly from JavaScript | [Self-layer core](packages/core/README.md) (`npm install whale-memory-core`) and [porting guide](docs/porting.md) |
 | Inspect the data format | [Schema](docs/schema.md) and [fictional samples](examples/samples/) |
+| See another host surface yesterday | [First day, still connected the next](examples/first-day/): two processes, no recall command |
 | Understand the design | [Architecture](docs/architecture.md): layers, evidence policy, recall and write constraints |
 | Check evidence rules | [Evidence policy (runnable subset)](docs/evidence.md): as-of, supersession, absence |
 
