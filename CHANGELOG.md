@@ -146,7 +146,7 @@
 
 ### Breaking
 
-- **`plugin/` 移出公开仓库**。该目录自带 `build-status=blocked-not-for-install`（指定构建未经扫描裁定，历史上出现过 Defender 告警），不应随 MIT 公开仓分发。完整引擎（约 26k 行）与具体宿主部署强耦合，改为在 [`docs/architecture.md`](docs/architecture.md) 里写清设计。
+- **`plugin/` 移出公开仓库**。该目录自带的构建自检标记写着「不可安装」（指定构建未经扫描裁定，历史上出现过 Defender 告警），不应随 MIT 公开仓分发。完整引擎（约 26k 行）与具体宿主部署强耦合，改为在 [`docs/architecture.md`](docs/architecture.md) 里写清设计。
 - `recall()` 默认 `mark: false`：**读操作不再写盘**。要记「想起」请显式传 `mark: true`，或调用 `markRecalled`。
 - `buildWakingBlock()` 改为纯只读；确认真的注入了，再调用新的 `consumeWaking()` 记「已展示」。CLI 的 `waking` 默认打印即消费，`--peek true` 可只看不消费。
 
