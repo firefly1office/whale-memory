@@ -66,6 +66,7 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | 让 DSH 通过命令读写经历 | [可独立复制的 DSH skill 和安装说明](examples/dsh-plugin/dsh-whale-memory/README.md) |
 | 给自己的 Agent 接入工具 | [命令行适配器](adapters/README.md)输出 JSON，由宿主决定何时调用 |
 | 在 JavaScript 中直接读写 | [内核说明](packages/core/README.md)和[宿主移植指南](docs/porting.md) |
+| 看数据结构 | [数据格式 schema](docs/schema.md) 与[虚构样本](examples/samples/) |
 | 研究 QQ Agent 的完整接入 | [插件源码](plugin/biomimetic-memory/)包含召回、上下文注入和宿主工具，部分路径和会话配置需要适配本机 |
 | 了解项目为什么重视角色自己的经历 | [项目原则](docs/项目原则.md)与[开发路线](docs/计划-合并版-v2.md) |
 

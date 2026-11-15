@@ -1,4 +1,41 @@
 {
-  "private": true,
-  "type": "module"
+  "name": "whale-memory-core",
+  "version": "0.1.0",
+  "description": "Autobiographical memory core: then / later, append-only. For AI companions and agents that get to have their own life.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./self-experience": "./lib/self-experience.js",
+    "./self-memory": "./lib/self-memory.js",
+    "./waking": "./lib/waking.js",
+    "./self-prompt": "./lib/self-prompt.js",
+    "./self-settings": "./lib/self-settings.js"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "demo.mjs",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "demo": "node demo.mjs"
+  },
+  "keywords": [
+    "ai-companion",
+    "agent-memory",
+    "long-term-memory",
+    "autobiographical-memory",
+    "llm"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/firefly1office/whale-memory.git",
+    "directory": "packages/core"
+  },
+  "sideEffects": false
 }

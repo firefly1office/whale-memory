@@ -1,0 +1,19 @@
+{
+  "experiences": [
+    { "id": "e_lighthouse", "text": "翻到灯塔那一章，守灯人整晚没睡", "thought": "她是不是怕黑", "day": "2026-11-14" },
+    { "id": "e_folding", "text": "学会一种新的折纸，折了三次才像样", "thought": "慢一点反而快", "day": "2026-11-13" },
+    { "id": "e_pier", "text": "走到码头，看船进港", "thought": "岸上有人在等", "day": "2026-11-12" },
+    { "id": "e_rain", "text": "下雨天没带伞，躲在书店门口", "thought": "雨停之前不打算走", "day": "2026-11-11" },
+    { "id": "e_tea", "text": "泡了一杯茶，忘了喝，凉了", "thought": "下次先喝再忙", "day": "2026-11-10" }
+  ],
+  "cases": [
+    { "query": "灯塔", "expect": "e_lighthouse" },
+    { "query": "折纸怎么折", "expect": "e_folding" },
+    { "query": "码头上的船", "expect": "e_pier" },
+    { "query": "下雨没带伞", "expect": "e_rain" },
+    { "query": "茶凉了", "expect": "e_tea" },
+    { "query": "量子力学与广义相对论", "expect": "empty" },
+    { "query": "我昨天买了什么股票", "expect": "empty" },
+    { "query": "深海热泉的化能合成", "expect": "empty" }
+  ]
+}

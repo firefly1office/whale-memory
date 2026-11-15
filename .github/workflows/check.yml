@@ -19,3 +19,5 @@ jobs:
         run: node --test tests/public-cli.test.mjs tests/core-memory.test.mjs
       - name: privacy canary
         run: node tools/privacy-canary.mjs
+      - name: recall eval
+        run: node tools/eval-recall.mjs
