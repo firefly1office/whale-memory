@@ -47,6 +47,17 @@ node demo.mjs
 
 不需要配置文件、不需要 API key、不联网。演示会在临时目录里建一份数据，结束时会输出目录位置，方便检查记录。
 
+## 路径约定（容易踩）
+
+不同模块接受的目录不一样：
+
+| 传什么 | 模块 |
+| --- | --- |
+| **记忆目录** `<data>/plugin-data/biomimetic-memory` | `self-experience`（`addExperience` / `loadAll` / `recall`）、`self-memory`、`recall-events`、`later-events` |
+| **数据根目录** `<data>` | `waking`、`self-prompt`、`self-settings` |
+
+传错不会报错，只会写到另一个位置。CLI 已经替你处理好了：`exp.*` 收 `MEM_DIR`，其余收 `DATA`。
+
 ## 数据
 
 一条经历一行 JSON，格式见 [`docs/schema.md`](../../docs/schema.md)。三条虚构样本在 [`examples/samples/`](../../examples/samples/)。
