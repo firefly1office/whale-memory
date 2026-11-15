@@ -174,20 +174,44 @@ export function currentView(dir, id) {
   return rows.find((r) => r.id === id) || null
 }
 
+// 高频但不携带信息的词：不参与重叠计算，避免「今天/什么/我的」把不相关的东西拉进来
+const STOP = new Set([
+  '什么', '怎么', '这个', '那个', '我的', '你的', '他的', '她的', '我们', '他们', '她们', '自己',
+  '昨天', '今天', '明天', '后天', '前天', '现在', '刚刚', '后来', '以前', '以后', '时候',
+  '是不是', '有没有', '一点', '一些', '东西', '事情', '觉得', '知道', '记得', '忘了',
+  '可能', '应该', '还是', '就是', '但是', '因为', '所以', '如果', '然后', '已经',
+  '没有', '不是', '可以', '一个', '这样', '那样', '真的', '其实', '比较', '非常', '特别',
+  '一直', '总是', '大概', '也许', '当然', '而是', '并且', '或者', '不过', '虽然', '只是',
+  '还有', '以及', '关于', '对于', '买了', '了什', '说了', '去了', '来了', '看到', '做了'
+])
+
+function queryBigrams(q) {
+  const cleaned = String(q || '').replace(/[\s\p{P}\p{S}]+/gu, '')
+  const out = new Set()
+  for (let i = 0; i + 2 <= cleaned.length; i++) {
+    const g = cleaned.slice(i, i + 2)
+    if (!STOP.has(g)) out.add(g)
+  }
+  return { cleaned, bigrams: out }
+}
+
 // 相关度 × 重要度：重要的先被想起
 // 阈值比较的是「原始重叠数」，重要度只影响排序，不影响过线门槛
+// 长查询要求按比例命中，避免「命中一个二字词就算相关」
 // mark=false（默认）：只读；mark=true 追加一条 recall 事件（不重写经历文件）
-export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false } = {}) {
+export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6 } = {}) {
   const rows = loadAll(dir)
   const q = String(query || '')
+  const { cleaned, bigrams } = queryBigrams(q)
+  const required = (q && cleaned.length >= 8)
+    ? Math.max(minOverlap, Math.ceil(bigrams.size * minRatio))
+    : minOverlap
+
   const overlap = (r) => {
     const s = (r.then.text + ' ' + r.then.thought + ' ' + (r.then.feeling || []).join(' '))
-    let n = 0
-    const big = new Set()
-    const qc = q.replace(/[\s\p{P}\p{S}]+/gu, '')
-    for (let i = 0; i + 2 <= qc.length; i++) big.add(qc.slice(i, i + 2))
     const t = s.replace(/[\s\p{P}\p{S}]+/gu, '')
-    for (const g of big) if (t.includes(g)) n++
+    let n = 0
+    for (const g of bigrams) if (t.includes(g)) n++
     return n
   }
   const weightOf = (r) => (r.weight === 'important' ? 3 : r.weight === 'minor' ? 0.5 : 1)
@@ -195,7 +219,7 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false } =
     const n = overlap(r)
     return { r, n, s: n * weightOf(r) }
   })
-    .filter((x) => (q ? x.n >= minOverlap : true))
+    .filter((x) => (q ? x.n >= required : true))
     .sort((a, b) => b.s - a.s || String(b.r.at).localeCompare(String(a.r.at)))
     .slice(0, limit).map((x) => x.r)
 
