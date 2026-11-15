@@ -128,3 +128,57 @@ test('隔天延续：用虚拟时钟模拟两天，不靠真等', (t) => {
   const day12 = waking.buildWakingBlock(dataDir, 'private_test', { now: new Date('2026-11-12T09:00:00+08:00') })
   assert.match(day12, /昨天你没有留下自己的记录/)
 })
+
+test('提示词护栏：重复内容不写、控制字符清理', (t) => {
+  const dataDir = tmp(t)
+  const first = prompt.save(dataDir, '说话短一点')
+  assert.equal(first.ok, true)
+
+  const again = prompt.save(dataDir, '说话短一点')
+  assert.equal(again.ok, true)
+  assert.equal(again.noop, true)
+  assert.equal(prompt.history(dataDir, 10).length, 1, '重复保存不产生新版本')
+
+  const cleaned = prompt.save(dataDir, '说\u200b话\u0000短一点')
+  assert.equal(cleaned.noop, true, '清掉不可见字符后与当前一致')
+})
+
+test('提示词护栏：篡改能被发现', (t) => {
+  const dataDir = tmp(t)
+  const saved = prompt.save(dataDir, '说话短一点')
+  assert.equal(prompt.verify(dataDir).ok, true)
+
+  fs.writeFileSync(path.join(dataDir, 'plugin-data', 'biomimetic-memory', 'prompt-overlay', 'prompt-overlay.md'), '被改过了', 'utf8')
+  const v = prompt.verify(dataDir)
+  assert.equal(v.ok, false)
+  assert.notEqual(v.activeHash, v.versionHash)
+  void saved
+})
+
+test('提示词护栏：锁住时写入报错而不是覆盖', (t) => {
+  const dataDir = tmp(t)
+  prompt.save(dataDir, '第一版')
+  const lock = path.join(dataDir, 'plugin-data', 'biomimetic-memory', 'prompt-overlay', '.lock')
+  fs.mkdirSync(lock, { recursive: true })
+  const res = prompt.save(dataDir, '第二版', '', { timeoutMs: 80 })
+  assert.equal(res.ok, false)
+  assert.match(res.error, /锁/)
+  fs.rmSync(lock, { recursive: true, force: true })
+  assert.equal(prompt.load(dataDir), '第一版', '失败时不能动生效文件')
+})
+
+test('提示词护栏：拼接默认段，截断要报告', (t) => {
+  const dataDir = tmp(t)
+  prompt.save(dataDir, '补充一条：累的时候少说两句')
+
+  const short = prompt.render('默认提示词。', dataDir)
+  assert.equal(short.appended, true)
+  assert.equal(short.truncated, false)
+  assert.match(short.text, /默认提示词。/)
+  assert.match(short.text, /累的时候少说两句/)
+
+  const hugeBase = 'x'.repeat(prompt.internals.MAX_APPEND_TOTAL)
+  const capped = prompt.render(hugeBase, dataDir)
+  assert.equal(capped.truncated, true)
+  assert.match(capped.note, /截断/)
+})

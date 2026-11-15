@@ -68,7 +68,8 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | 在 JavaScript 中直接读写 | [自传层内核](packages/core/README.md)（`npm install whale-memory-core`）和[宿主移植指南](docs/porting.md) |
 | 看数据结构 | [数据格式 schema](docs/schema.md) 与[虚构样本](examples/samples/) |
 | 了解整体设计 | [架构说明](docs/architecture.md)：分层、证据策略、召回与写入约束 |
-| 了解项目为什么重视角色自己的经历 | [架构说明 · 三条核心设计](docs/architecture.md#三条核心设计) |
+| 看她在不在长 | [指标口径](docs/metrics.md) 与 `node tools/metrics.mjs --data=<dir>` |
+| 了解存储要往哪走 | [存储语义设计稿](docs/storage-events.md)：经历是事实，想起是事件 |
 
 > 完整引擎（vault 存储、evidence-policy 取证、consolidator 合并、注入预算）约 26k 行，与具体宿主的部署强耦合，**不随本仓库分发**；设计思路见 [架构说明](docs/architecture.md)。
 
