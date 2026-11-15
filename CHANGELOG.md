@@ -6,6 +6,9 @@
 
 ### Added
 
+- `docs/composition.md`：和向量 / RAG / BM25 的分工与三条边界；检索层只给 id，`then/later` 负责叙事。
+- `examples/with-vector/`：一个不依赖任何服务的玩具向量库 + 组合演示，跑 `node examples/with-vector/host.mjs` 就能看到「向量找候选 → renderTwoPart 渲染 → 改主意后再渲染」。
+- `tests/with-vector.test.mjs` 守住组合示例的输出。
 - `examples/first-day/`：用一个外部角色的视角跑通「第一天读故事、关掉应用、第二天宿主自己把昨天递回来」。两个独立进程，不输入 recall 命令；`tests/first-day.test.mjs` 守住这段验收。
 
 ## [0.9.0] · 2026-11-15
