@@ -6,9 +6,10 @@
 
 ```
 <WHALE_DATA_DIR>/plugin-data/biomimetic-memory/
-  self-experience.jsonl   她的经历
+  self-experience.jsonl   她的经历（then / later）
+  recall-events.jsonl     想起事件（0.5.0 起；只追加，计数由此派生）
   autobiography.jsonl     她的日记（默认只在一对一使用）
-  self-prompt.json        她自己的提示词 overlay（版本只追加）
+  prompt-overlay/         她自己的提示词（版本只追加）
   self-settings.json      她自己的设置
 ```
 
@@ -57,6 +58,19 @@
 2. 文件损坏（有不合法 JSON 行）时：**读取跳过坏行，改写直接报错**；新经历用追加写，坏行原样留住。
 3. 行尾必须是真实换行；不允许把 `\n` 写成两个字符。
 4. 日记单独一个文件，读取时默认不加载；宿主决定什么时候打开。
+
+## 想起是事件（0.5.0 起）
+
+「想起一次」不再写进经历行，而是追加到 `recall-events.jsonl`：
+
+```json
+{"id":"exp_mwggkzwbwp10","at":"2026-11-15T07:20:00.000Z","query":"灯塔","chatKey":"private_100000000#p_x"}
+```
+
+- 读取时由事件派生：`recalls` = 该 id 的事件数，`lastRecalledAt` = 最大 `at`
+- 旧文件里的 `recalls` / `lastRecalledAt` 仍然可读；只要事件文件里出现该 id，就以事件为准
+- 迁移：`node tools/migrate-recall-events.mjs --data=<dir>`（默认 dry-run，`--apply` 才写，先备份、校验、可回滚）
+- 追加带锁；多进程并发追加不会丢行
 
 ## 写入上限（超了报错，不静默截断）
 

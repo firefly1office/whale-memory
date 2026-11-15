@@ -1,6 +1,7 @@
 // 她自己的经历 v2：写下时拍下"当时"，回想分「当时 / 现在」两段；重要的写细，次要的简写
 import fs from 'node:fs'
 import path from 'node:path'
+import * as recallEvents from './recall-events.js'
 
 const FILE = 'self-experience.jsonl'
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
@@ -73,7 +74,16 @@ function normalize(r) {
 }
 
 export function loadAll(dir) {
-  return readAll(dir).map(normalize).filter((r) => r && r.then && r.then.text)
+  const rows = readAll(dir).map(normalize).filter((r) => r && r.then && r.then.text)
+  // 想起次数：有事件文件就以事件为准；没有事件时才退回旧字段
+  let counts = new Map()
+  try { counts = recallEvents.countByExp(dir) } catch { /* 事件文件坏了也不影响读经历 */ }
+  if (!counts.size) return rows
+  return rows.map((r) => {
+    const c = counts.get(r.id)
+    if (!c) return r
+    return { ...r, recalls: c.count, lastRecalledAt: c.lastAt || r.lastRecalledAt || '' }
+  })
 }
 
 // 写下时的"当时"：她写的 + 系统能自动带的状态（情绪/时间/场合）
@@ -136,16 +146,11 @@ export function reviseExperience(dir, { id, thought, reason = '' }) {
   return { ok: true, entry: cur }
 }
 
-// 想起时记一笔（不改内容）
+// 想起时记一笔：往 recall-events.jsonl 追加一条事件，不动经历正文
 export function markRecalled(dir, id) {
-  const rows = readAll(dir, { rewriting: true })
-  const i = rows.findIndex((r) => r.id === id)
-  if (i < 0) return false
-  const cur = normalize(rows[i])
-  cur.recalls = Number(cur.recalls || 0) + 1
-  cur.lastRecalledAt = new Date().toISOString()
-  rows[i] = cur
-  writeAll(dir, rows)
+  const exists = readAll(dir).map(normalize).some((r) => r && r.id === id)
+  if (!exists) return false
+  recallEvents.append(dir, { id })
   return true
 }
 

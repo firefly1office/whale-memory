@@ -4,6 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { countByExp } from '../packages/core/lib/recall-events.js'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 
@@ -31,16 +32,25 @@ export function computeMetrics(dataDir) {
   const experiences = exp.rows.map((r) => {
     const then = r.then && typeof r.then === 'object' ? r.then : { text: r.text, thought: r.thought }
     return {
+      id: r.id || '',
       day: r.day || '',
       weight: r.weight || 'normal',
       kind: r.kind || '其它',
       hasLater: Array.isArray(r.later) && r.later.length > 0,
       laterCount: Array.isArray(r.later) ? r.later.length : 0,
-      recalls: Number(r.recalls || 0),
+      legacyRecalls: Number(r.recalls || 0),
       unfinished: Boolean(then && then.unfinished),
       quoted: Boolean(then && then.quote && then.quote.text)
     }
   }).filter((r) => r.day || r.weight)
+
+  // 想起次数以事件为准；没有事件的旧记录才用行内字段
+  let eventCounts = new Map()
+  try { eventCounts = countByExp(mem) } catch { }
+  for (const r of experiences) {
+    const c = eventCounts.get(r.id)
+    r.recalls = c ? c.count : r.legacyRecalls
+  }
 
   const total = experiences.length
   const revised = experiences.filter((r) => r.hasLater).length

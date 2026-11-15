@@ -2,6 +2,20 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.5.0] · 2026-11-15
+
+### Changed
+
+- 「想起」从经历行里拆出来，改为追加到 `recall-events.jsonl` 的**事件**。`markRecalled()` 不再重写经历正文；`recalls` / `lastRecalledAt` 在读取时由事件派生。
+- 旧数据里的 `recalls` / `lastRecalledAt` 仍可读：事件文件里没有该 id 时回退到旧字段。
+- 事件追加带单写者锁（`recall-events.jsonl.lock`，mkdir 独占），多进程并发追加不丢行。
+
+### Added
+
+- `lib/recall-events.js`：`append` / `readAll` / `countByExp` / `list`
+- `tools/migrate-recall-events.mjs`：dry-run、`--apply`、写前备份、等价校验、`rollback()`
+- 测试 4 组：事件追加与坏行、`markRecalled` 不改正文、迁移与回滚、4 进程并发各 25 条不丢
+
 ## [0.4.0] · 2026-11-15
 
 ### Added

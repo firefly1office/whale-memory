@@ -1,6 +1,6 @@
-# 存储语义（设计稿）：经历是事实，想起是事件
+# 存储语义：经历是事实，想起是事件
 
-状态：**已定语义，尚未实现**。当前版本（0.4.x）仍是 `recalls` 字段 + 改写式 `markRecalled`；实现前不要依赖本文的 API。
+状态：**0.5.0 已实现**。`recalls` 字段仍可读，但新写入一律走 `recall-events.jsonl`；迁移工具见 `tools/migrate-recall-events.mjs`。
 
 ## 要解决的问题
 
@@ -55,16 +55,16 @@ lastRecalledAt = max(at) of those
 ## 并发
 
 - 追加写在 POSIX 上小于 PIPE_BUF 基本原子；Windows 上不保证
-- 实现时给追加加可选锁（`recall-events.lock`），默认单写者不加锁
+- 实现里给追加加了锁（`recall-events.jsonl.lock`，mkdir 独占，20ms 轮询，默认 3 秒超时）
 - 文档里继续写明：**同一目录不要多进程并发写**
 
-## 实现清单（下一轮）
+## 实现清单（0.5.0 已完成）
 
-- [ ] `lib/recall-events.js`：append / countByExp / list
-- [ ] `self-experience.js`：读时合并事件计数；`markRecalled` 改为追加事件
-- [ ] `tools/migrate-recall-events.mjs`：备份、迁移、dry-run、回滚
-- [ ] 测试：并发追加不丢、迁移前后计数一致、旧文件无 `recalls` 时照常工作
-- [ ] 版本策略：0.5.0，明确旧 `recalls` 字段仍可读
+- [x] `lib/recall-events.js`：append / readAll / countByExp / list
+- [x] `self-experience.js`：读时合并事件计数；`markRecalled` 改为追加事件，不再重写正文
+- [x] `tools/migrate-recall-events.mjs`：备份、dry-run、apply、等价校验、回滚
+- [x] 测试：并发 4 进程 × 25 条不丢、迁移前后计数一致、坏行跳过、回滚字节一致
+- [x] 版本策略：0.5.0，旧 `recalls` 字段仍可读
 
 ## 相关
 
