@@ -34,6 +34,15 @@ function writeAll(dir, rows) {
   atomicWrite(dir, rows)
 }
 
+// 字段上限：写的时候超了就报错，不静默截断
+export const LIMITS = { text: 2000, scene: 500, thought: 1000, unfinished: 300, feelings: 8, kind: 20 }
+
+function tooLong(name, value, max) {
+  const n = String(value || '').length
+  if (n > max) throw new Error(`${name} 太长（${n}/${max} 字），删一些或拆成两条再写。`)
+  return String(value || '')
+}
+
 function normalize(r) {
   if (!r) return null
   if (r.then && typeof r.then === 'object') {
@@ -49,10 +58,10 @@ function normalize(r) {
     kind: r.kind || '其它',
     weight: WEIGHTS.has(r.weight) ? r.weight : 'normal',
     then: {
-      text: String(r.text || '').slice(0, 600),
+      text: String(r.text || ''),
       scene: '',
       feeling: [],
-      thought: String(r.thought || '').slice(0, 300),
+      thought: String(r.thought || ''),
       unfinished: '',
       quote: null,
       state: null
@@ -69,6 +78,15 @@ export function loadAll(dir) {
 
 // 写下时的"当时"：她写的 + 系统能自动带的状态（情绪/时间/场合）
 export function addExperience(dir, { text, scene = '', feeling = [], thought = '', unfinished = '', quote = null, weight = 'normal', kind = '其它', state = null, source = 'own-time' }) {
+  if (!String(text || '').trim()) throw new Error('text 不能是空的。')
+  const safeText = tooLong('text', text, LIMITS.text)
+  const safeScene = tooLong('scene', scene, LIMITS.scene)
+  const safeThought = tooLong('thought', thought, LIMITS.thought)
+  const safeUnfinished = tooLong('unfinished', unfinished, LIMITS.unfinished)
+  const safeKind = tooLong('kind', kind || '其它', LIMITS.kind)
+  const feelings = (Array.isArray(feeling) ? feeling : [feeling]).map((f) => String(f || '').trim()).filter(Boolean)
+  if (feelings.length > LIMITS.feelings) throw new Error(`feeling 最多 ${LIMITS.feelings} 个，现在是 ${feelings.length} 个。`)
+
   fs.mkdirSync(dir, { recursive: true })
   const now = new Date()
   const id = 'exp_' + now.getTime().toString(36) + Math.random().toString(36).slice(2, 6)
@@ -78,15 +96,15 @@ export function addExperience(dir, { text, scene = '', feeling = [], thought = '
     day: now.toLocaleDateString('sv-SE'),
     author: 'self',
     source,
-    kind: String(kind || '其它').slice(0, 20),
+    kind: safeKind,
     weight: WEIGHTS.has(weight) ? weight : 'normal',
     then: {
-      text: String(text || '').slice(0, 600),
-      scene: String(scene || '').slice(0, 300),
-      feeling: (Array.isArray(feeling) ? feeling : [feeling]).map((f) => String(f || '').trim()).filter(Boolean).slice(0, 4),
-      thought: String(thought || '').slice(0, 300),
-      unfinished: String(unfinished || '').slice(0, 200),
-      quote: quote && quote.text ? { text: String(quote.text).slice(0, 300), source: String(quote.source || '').slice(0, 120) } : null,
+      text: safeText,
+      scene: safeScene,
+      feeling: feelings,
+      thought: safeThought,
+      unfinished: safeUnfinished,
+      quote: quote && quote.text ? { text: tooLong('quote', quote.text, 500), source: tooLong('quote.source', quote.source || '', 120) } : null,
       state: state && typeof state === 'object' ? { at: now.toISOString(), ...state } : { at: now.toISOString() }
     },
     later: [],

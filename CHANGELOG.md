@@ -2,6 +2,22 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.2.1] · 2026-11-15
+
+### Fixed
+
+- `--limit 0` 不再回落到默认条数（原来 `Number(x) || 8` 把 0 当成假值），现在 0 = 一条都不要
+- `--limit` 为负数或非整数时报错，不再出现"负数返回全部"的意外行为
+- `--text` 为空白（空格、全角空格）时拒绝写入
+- 超长文本不再静默截断：`text` > 2000 / `thought` > 1000 / `scene` > 500 / `unfinished` > 300 字，或 `feeling` > 8 个，直接报错并给出实际长度；读取旧记录也不再截断
+- 非法 `--weight`（如 `--weight 爆炸`）报错，不再静默存成 `normal`
+
+### Added
+
+- `tools/run-tests.mjs`：自动跑 `tests/*.test.mjs`，新加测试文件不用再改 CI
+- schema 文档补「写入上限」「召回语义（空 query = 最近 N 条）」
+- 边界测试 3 组，测试总数 17
+
 ## [0.2.0] · 2026-11-15
 
 ### Changed

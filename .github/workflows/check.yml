@@ -18,7 +18,7 @@ jobs:
       - name: syntax check
         run: node tools/check-syntax.mjs
       - name: tests
-        run: node --test tests/public-cli.test.mjs tests/core-memory.test.mjs tests/core-aux.test.mjs
+        run: node tools/run-tests.mjs
       - name: privacy canary
         run: node tools/privacy-canary.mjs
       - name: recall eval
