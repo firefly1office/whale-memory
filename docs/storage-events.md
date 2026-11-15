@@ -58,6 +58,10 @@ lastRecalledAt = max(at) of those
 - 实现里给追加加了锁（`recall-events.jsonl.lock`，mkdir 独占，20ms 轮询，默认 3 秒超时）
 - 文档里继续写明：**同一目录不要多进程并发写**
 
+## 为什么暂时不按月分片
+
+0.7.0 起事件计数在进程内缓存（按 mtime + size 失效），单次 `loadAll` 在 2 万条事件时约十几毫秒，先不引入分片：分片会破坏「一个文件只追加」的简单性，也要求读取端兼容多文件。等真实数据到十万条量级再考虑，届时先加派生索引，不动原始文件。
+
 ## 实现清单（0.5.0 已完成）
 
 - [x] `lib/recall-events.js`：append / readAll / countByExp / list
