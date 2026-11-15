@@ -80,4 +80,4 @@ node --test tests/public-cli.test.mjs
 node tools/privacy-canary.mjs
 ```
 
-本仓库采用 [MIT 许可证](LICENSE)。
+本仓库采用 [MIT 许可证](LICENSE)。参与贡献前请读 [CONTRIBUTING.md](CONTRIBUTING.md)。

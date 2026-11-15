@@ -80,4 +80,4 @@ node --test tests/public-cli.test.mjs
 node tools/privacy-canary.mjs
 ```
 
-MIT licensed — see [LICENSE](LICENSE).
+MIT licensed — see [LICENSE](LICENSE). Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md).

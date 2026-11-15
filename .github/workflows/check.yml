@@ -5,13 +5,17 @@ permissions:
 jobs:
   check:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        node: ['20', '22']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-      - run: node --test tests/public-cli.test.mjs
-      - run: node tools/privacy-canary.mjs
+          node-version: ${{ matrix.node }}
+      - name: tests
+        run: node --test tests/public-cli.test.mjs tests/core-memory.test.mjs
+      - name: privacy canary
+        run: node tools/privacy-canary.mjs
