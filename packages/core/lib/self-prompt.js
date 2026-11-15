@@ -33,15 +33,19 @@ function atomicWrite(file, body) {
 }
 
 // 单写者锁：另一个进程正在写时等一会儿；超过 timeout 报错，不静默覆盖
+// Windows 上并发 mkdir/rm 同一路径会短暂返回 EPERM/ENOENT，当成“忙”重试
+const BUSY = new Set(['EEXIST', 'EPERM', 'ENOENT', 'EBUSY', 'EACCES'])
+
 function withLock(dir, fn, { timeoutMs = 2000 } = {}) {
   const lock = path.join(dir, '.lock')
   const start = Date.now()
   for (;;) {
     try {
+      fs.mkdirSync(dir, { recursive: true })
       fs.mkdirSync(lock)
       break
     } catch (e) {
-      if (e.code !== 'EEXIST') throw e
+      if (!BUSY.has(e.code)) throw e
       try {
         const st = fs.statSync(lock)
         if (Date.now() - st.mtimeMs > 10000) { fs.rmSync(lock, { recursive: true, force: true }); continue }

@@ -15,15 +15,19 @@ function ensureDir(memDir) {
 }
 
 // 单写者锁：多进程追加时排队；超时报错，不静默丢事件
+// Windows 上并发 mkdir/rm 同一路径会短暂返回 EPERM/ENOENT，当成“忙”重试
+const BUSY = new Set(['EEXIST', 'EPERM', 'ENOENT', 'EBUSY', 'EACCES'])
+
 function withLock(memDir, fn, { timeoutMs = 3000 } = {}) {
   const lock = eventsFile(memDir) + '.lock'
   const start = Date.now()
   for (;;) {
     try {
+      fs.mkdirSync(memDir, { recursive: true })
       fs.mkdirSync(lock)
       break
     } catch (e) {
-      if (e.code !== 'EEXIST') throw e
+      if (!BUSY.has(e.code)) throw e
       try {
         const st = fs.statSync(lock)
         if (Date.now() - st.mtimeMs > 10000) { fs.rmSync(lock, { recursive: true, force: true }); continue }
