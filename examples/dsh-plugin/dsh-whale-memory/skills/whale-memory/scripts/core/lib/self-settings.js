@@ -1,6 +1,7 @@
 // 她自己的设置：软限制归她，硬熔断归系统
 import fs from 'node:fs'
 import path from 'node:path'
+import { addExperience } from './self-experience.js'
 
 export const DEFAULTS = {
   ownTime: '21:00-21:40',
@@ -25,15 +26,13 @@ export function save(dataDir, patch, reason = '') {
   const next = { ...cur, ...patch, updatedAt: new Date().toISOString() }
   fs.writeFileSync(f, JSON.stringify(next, null, 1), 'utf8')
   try {
-    const dir = path.join(dataDir, 'plugin-data', 'biomimetic-memory')
-    fs.appendFileSync(path.join(dir, 'self-experience.jsonl'), JSON.stringify({
-      id: 'exp_set_' + Date.now().toString(36),
-      at: new Date().toISOString(),
-      day: new Date().toLocaleDateString('sv-SE'),
-      author: 'self', source: 'own-decision', kind: '决定',
+    // 走同一条追加入口：末尾没换行、文件损坏之类的问题都由 addExperience 处理
+    addExperience(path.join(dataDir, 'plugin-data', 'biomimetic-memory'), {
       text: '我把自己的设置改了：' + JSON.stringify(patch),
-      thought: String(reason || '').slice(0, 200)
-    }) + '\n', 'utf8')
-  } catch {}
+      thought: String(reason || '').slice(0, 200),
+      kind: '决定',
+      source: 'own-decision'
+    })
+  } catch { }
   return next
 }

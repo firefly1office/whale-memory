@@ -32,6 +32,7 @@ export interface Experience {
   later: LaterEntry[]
   recalls?: number
   lastRecalledAt?: string
+  matchedIn?: Array<'then' | 'quote' | 'later'>
   status?: string
   legacy?: boolean
 }

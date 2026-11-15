@@ -38,12 +38,14 @@ for (const c of fixture.cases) {
 
 fs.rmSync(dir, { recursive: true, force: true })
 
-const total = hits + emptyTotal
-const pass = hits + emptyCorrect
+const total = fixture.cases.length
+const positivesTotal = total - emptyTotal
+const pass = details.filter((d) => d.pass).length
 const summary = {
   cases: total,
   pass,
-  top1Accuracy: Number((hits / (total - emptyTotal)).toFixed(3)),
+  positives: positivesTotal,
+  top1Accuracy: Number((hits / Math.max(1, positivesTotal)).toFixed(3)),
   emptyAccuracy: Number((emptyCorrect / Math.max(1, emptyTotal)).toFixed(3)),
   details
 }
@@ -57,5 +59,6 @@ if (asJson) {
   console.log(`\n用例 ${summary.cases} · 通过 ${summary.pass} · 首位命中率 ${summary.top1Accuracy} · 空查询正确率 ${summary.emptyAccuracy}`)
 }
 
-const ok = summary.top1Accuracy >= 0.8 && summary.emptyAccuracy === 1 && summary.pass === summary.cases
+// 任何一条用例不过，CI 就该红；准确率只作信息展示
+const ok = pass === total
 process.exit(ok ? 0 : 1)

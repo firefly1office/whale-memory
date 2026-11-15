@@ -1,6 +1,7 @@
 // 她自己的经历 v2：写下时拍下"当时"，回想分「当时 / 现在」两段；重要的写细，次要的简写
 import fs from 'node:fs'
 import path from 'node:path'
+import crypto from 'node:crypto'
 import * as recallEvents from './recall-events.js'
 import * as laterEvents from './later-events.js'
 
@@ -45,6 +46,14 @@ function tooLong(name, value, max) {
   return String(value || '')
 }
 
+// 旧格式没有 id：用「时间 + 正文指纹」生成，避免同一分钟的多条记录撞成同一个身份
+function legacyId(r) {
+  const stamp = String(r.at || Date.now()).replace(/\D/g, '').slice(0, 14)
+  const body = String(r.text || '') + '\u0000' + String(r.thought || '') + '\u0000' + String(r.at || '')
+  const fp = crypto.createHash('sha1').update(body).digest('hex').slice(0, 8)
+  return 'exp_legacy_' + stamp + '_' + fp
+}
+
 function normalize(r) {
   if (!r) return null
   if (r.then && typeof r.then === 'object') {
@@ -52,7 +61,7 @@ function normalize(r) {
   }
   // 旧格式：text/thought 在顶层
   return {
-    id: r.id || ('exp_legacy_' + (r.at || Date.now()).toString().replace(/\D/g, '').slice(0, 12)),
+    id: r.id || legacyId(r),
     at: r.at || '',
     day: r.day || String(r.at || '').slice(0, 10),
     author: 'self',
@@ -210,18 +219,35 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, mi
     : minOverlap
 
   const measure = (r) => {
-    const s = (r.then.text + ' ' + r.then.thought + ' ' + (r.then.feeling || []).join(' '))
-    const t = s.replace(/[\s\p{P}\p{S}]+/gu, '')
-    let n = 0
-    for (const g of bigrams) if (t.includes(g)) n++
+    const fields = []
+    const matched = new Set()
+    const scan = (text, label) => {
+      const t = String(text || '').replace(/[\s\p{P}\p{S}]+/gu, '')
+      if (!t) return
+      let any = false
+      for (const g of bigrams) {
+        if (t.includes(g)) { matched.add(g); any = true }
+      }
+      if (any) fields.push(label)
+    }
+    // 最初写下的、原文锚、后来才明白的：都参与匹配
+    scan(r.then.text + ' ' + r.then.thought + ' ' + (r.then.feeling || []).join(' '), 'then')
+    if (r.then.quote) scan((r.then.quote.text || '') + ' ' + (r.then.quote.source || ''), 'quote')
+    scan((r.later || []).map((l) => l.thought).join(' '), 'later')
+
+    const all = [
+      r.then.text, r.then.thought, (r.then.feeling || []).join(' '),
+      r.then.quote ? r.then.quote.text : '', r.then.quote ? r.then.quote.source : '',
+      (r.later || []).map((l) => l.thought).join(' ')
+    ].join(' ').replace(/[\s\p{P}\p{S}]+/gu, '')
     // 记录自身的 bigram 规模：长记录天然更容易碰巧命中，排序时按 √长度 归一化
-    const size = Math.max(1, t.length - 1)
-    return { n, size }
+    const size = Math.max(1, all.length - 1)
+    return { n: matched.size, size, matchedIn: fields }
   }
   const weightOf = (r) => (r.weight === 'important' ? 3 : r.weight === 'minor' ? 0.5 : 1)
   const picked = rows.map((r) => {
-    const { n, size } = measure(r)
-    return { r, n, s: (n / Math.sqrt(size)) * weightOf(r) }
+    const { n, size, matchedIn } = measure(r)
+    return { r: { ...r, matchedIn }, n, s: (n / Math.sqrt(size)) * weightOf(r) }
   })
     .filter((x) => (q ? x.n >= required : true))
     .sort((a, b) => b.s - a.s || String(b.r.at).localeCompare(String(a.r.at)))

@@ -61,6 +61,8 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
 
   const ev = eventsFile(dir)
   const existing = fs.existsSync(ev) ? fs.readFileSync(ev, 'utf8') : ''
+  const eventsBackup = existing ? backup + '.events' : ''
+  if (existing) fs.copyFileSync(ev, eventsBackup)
   const prefix = existing && !existing.endsWith('\n') ? '\n' : ''
   const tmp = ev + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
   fs.writeFileSync(tmp, existing + prefix + events.map((e) => JSON.stringify(e)).join('\n') + '\n', 'utf8')
@@ -91,14 +93,21 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     return { ok: false, error: '校验不一致，已回滚经历文件；事件文件保留，请人工检查。', missing, backup }
   }
 
-  return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: events.length, backup }
+  return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: events.length, backup, eventsBackup }
 }
 
-export function rollback({ dataDir, backup }) {
+export function rollback({ dataDir, backup, eventsBackup = '' }) {
   if (!backup || !fs.existsSync(backup)) throw new Error('找不到备份文件')
   fs.copyFileSync(backup, path.join(memDir(dataDir), EXPERIENCES))
   const ev = eventsFile(memDir(dataDir))
-  if (fs.existsSync(ev)) fs.rmSync(ev)
+  const pre = eventsBackup || (backup + '.events')
+  if (fs.existsSync(pre)) {
+    // 迁移前就有事件：原样恢复，不能把迁移期间别人的修订一起删掉
+    fs.copyFileSync(pre, ev)
+    fs.rmSync(pre, { force: true })
+  } else if (fs.existsSync(ev)) {
+    fs.rmSync(ev)
+  }
   return { ok: true }
 }
 

@@ -104,10 +104,25 @@
 
 ## 召回语义
 
+匹配范围：**当时写下的**（`then.text` / `then.thought` / `then.feeling`）、**原文锚**（`then.quote.text` / `source`）、**后来才明白的**（`later[].thought`）。返回的条目带 `matchedIn`，说明命中的是 `then` / `quote` / `later` 中的哪几层——宿主可以据此告诉模型"这是她后来才想明白的"，不要把后来的判断说成当初就知道。
+
 - 给了 query：按相关度 × 重要度排序，取前 N 条
 - **空 query：返回最近 N 条**（按时间倒序），不是报错，也不是"什么都没匹配到"
-- `limit: 0`：一条都不返回
-- `limit` 为负数或非整数：报错
+- `mode: 'strict'`（默认）：长查询要求命中 ≥60% 的 bigram，宁可不召回
+- `mode: 'loose'`：至少一个实词命中即可，适合日常对话召回
+- `limit: 0`：一条都不返回；负数或非整数：报错
+
+## 备份要带哪些文件
+
+一条经历在磁盘上可能由三处组成，备份时不要只拷 `self-experience.jsonl`：
+
+```
+self-experience.jsonl   then（以及迁移前遗留的行内 later / recalls）
+later-events.jsonl      后来追加的想法
+recall-events.jsonl     想起的次数
+```
+
+读取时才会合并成「一条经历」。迁移工具回滚时也会同时恢复这些文件。
 
 ## 版本兼容
 

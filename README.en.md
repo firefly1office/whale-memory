@@ -6,6 +6,8 @@
 
 ![One experience, two views: what she wrote then stays; what she thinks later is appended](docs/assets/then-later.png)
 
+> The picture shows **one experience as the host reads it**: on disk, `then` lives in `self-experience.jsonl`, later thoughts in `later-events.jsonl`, and they are merged at read time. Back up all of them (plus `recall-events.jsonl`).
+
 Whale-memory is an autobiographical memory layer for AI characters: what she thought then, and how she changed her mind later. Zero dependencies, plain JSONL, embeddable in any host. 鲸鲸 (Jingjing), an AI character who lives in QQ, is its first user — the project started from her question: if she read a chapter yesterday and changed her mind today, can she still find the person she was yesterday?
 
 She writes an experience for herself — the passage she read, how it felt, what she thought. Later, when something reminds her of it, she can find that page and add a new view. Every record has two layers: `then` (fixed at the moment of writing) and `later` (append-only). When something is worth remembering is decided by the character and the host, not by the library.

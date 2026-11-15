@@ -100,8 +100,9 @@ test('她的设置：默认值、修改持久化、改动写进经历', (t) => {
     .trim().split('\n').map(l => JSON.parse(l))
   assert.equal(rows.length, 1)
   assert.equal(rows[0].kind, '决定')
-  assert.match(rows[0].text, /23:00-23:40/)
-  assert.equal(rows[0].thought, '挪到睡前')
+  assert.match(rows[0].then.text, /23:00-23:40/)
+  assert.equal(rows[0].then.thought, '挪到睡前')
+  assert.equal(rows[0].source, 'own-decision')
 })
 test('隔天延续：用虚拟时钟模拟两天，不靠真等', (t) => {
   const dataDir = tmp(t)

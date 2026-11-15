@@ -4,7 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { countByExp } from '../packages/core/lib/recall-events.js'
+import { loadAll } from '../packages/core/lib/self-experience.js'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 
@@ -29,29 +29,20 @@ export function computeMetrics(dataDir) {
   const notes = readJsonl(path.join(mem, 'notes-to-tomorrow.jsonl'))
   const promptHistory = readJsonl(path.join(mem, 'prompt-overlay', 'history.jsonl'))
 
-  const experiences = exp.rows.map((r) => {
-    const then = r.then && typeof r.then === 'object' ? r.then : { text: r.text, thought: r.thought }
-    return {
-      id: r.id || '',
-      day: r.day || '',
-      weight: r.weight || 'normal',
-      kind: r.kind || '其它',
-      hasLater: Array.isArray(r.later) && r.later.length > 0,
-      laterCount: Array.isArray(r.later) ? r.later.length : 0,
-      legacyRecalls: Number(r.recalls || 0),
-      chars: String((then && then.text) || '').length,
-      unfinished: Boolean(then && then.unfinished),
-      quoted: Boolean(then && then.quote && then.quote.text)
-    }
-  }).filter((r) => r.day || r.weight)
-
-  // 想起次数以事件为准；没有事件的旧记录才用行内字段
-  let eventCounts = new Map()
-  try { eventCounts = countByExp(mem) } catch { }
-  for (const r of experiences) {
-    const c = eventCounts.get(r.id)
-    r.recalls = c ? c.count : r.legacyRecalls
-  }
+  // 用合并后的视图：later 事件与想起事件都要算进来，不能只看文件里那一行
+  const loaded = loadAll(mem)
+  const experiences = loaded.map((r) => ({
+    id: r.id,
+    day: r.day || '',
+    weight: r.weight || 'normal',
+    kind: r.kind || '其它',
+    hasLater: Array.isArray(r.later) && r.later.length > 0,
+    laterCount: Array.isArray(r.later) ? r.later.length : 0,
+    recalls: Number(r.recalls || 0),
+    chars: String(r.then.text || '').length,
+    unfinished: Boolean(r.then.unfinished),
+    quoted: Boolean(r.then.quote && r.then.quote.text)
+  }))
 
   const total = experiences.length
   const avgChars = total ? Math.round(experiences.reduce((s, r) => s + r.chars, 0) / total) : 0
@@ -111,8 +102,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const e = m.experiences
     console.log(`数据目录：${m.dataDir}`)
     console.log(`经历 ${e.total} 条`)
-    console.log(`  改过主意（有 later）：${e.revised} 条 · ${e.revisedRate}%`)
-    console.log(`  被想起过：${e.recalled} 条 · ${e.recalledRate}% · 累计 ${e.totalRecalls} 次`)
+    console.log(`  有后记（later）：${e.revised} 条 · ${e.revisedRate}%`)
+    console.log(`  被取回过：${e.recalled} 条 · ${e.recalledRate}% · 累计 ${e.totalRecalls} 次`)
     console.log(`  没弄完的：${e.unfinished} 条`)
     console.log(`  带原文锚：${e.quoted} 条`)
     console.log(`  重要度：${Object.entries(e.byWeight).map(([k, v]) => k + ' ' + v).join(' / ')}`)
