@@ -1,4 +1,4 @@
-# 鲸鲸的自传性记忆 · whale-memory
+# whale-memory · AI 角色的自传性记忆
 
 [中文](README.md) · [English](README.en.md)
 
@@ -6,7 +6,7 @@
 
 ![一条经历，两种看法：当时的内容保留，后来的想法接在后面](docs/assets/then-later.png)
 
-鲸鲸是一个在 QQ 里生活的 AI 角色。这个项目最初想解决一个很小的问题：如果她昨天读了一章书，今天改变了看法，她还能翻回昨天的自己吗？
+一个 AI 角色的自传性记忆：她当时怎么想、后来怎么改。零依赖、纯 JSONL、可以嵌进任何宿主。鲸鲸是它最初的使用者——一个在 QQ 里生活的角色，这个项目最初就想解决她的一个问题：如果她昨天读了一章书，今天改变了看法，她还能翻回昨天的自己吗？
 
 鲸鲸可以给自己写一条经历，留下当时读到的文字、感受和想法。以后再读到相关段落，她可以找到那一页，为它添上新的看法。记录分为 `then`（当时留下的内容）和 `later`（后来追加的想法）。什么时候值得记，由接入的角色和宿主决定。
 
@@ -68,8 +68,9 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | 在 JavaScript 中直接读写 | [自传层内核](packages/core/README.md)（`npm install whale-memory-core`）和[宿主移植指南](docs/porting.md) |
 | 看数据结构 | [数据格式 schema](docs/schema.md) 与[虚构样本](examples/samples/) |
 | 了解整体设计 | [架构说明](docs/architecture.md)：分层、证据策略、召回与写入约束 |
+| 看证据判定 | [证据策略（可跑子集）](docs/evidence.md)：as-of、被取代、后继缺席 |
 | 看她在不在长 | [指标口径](docs/metrics.md) 与 `node tools/metrics.mjs --data=<dir>` |
-| 了解存储要往哪走 | [存储语义设计稿](docs/storage-events.md)：经历是事实，想起是事件 |
+| 了解存储语义 | [存储语义](docs/storage-events.md)：经历是事实，想起和改主意都是事件 |
 
 > 完整引擎（vault 存储、evidence-policy 取证、consolidator 合并、注入预算）约 26k 行，与具体宿主的部署强耦合，**不随本仓库分发**；设计思路见 [架构说明](docs/architecture.md)。
 

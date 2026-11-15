@@ -2,6 +2,23 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.7.0] · 2026-11-15
+
+### Added
+
+- **证据策略可跑子集** `lib/evidence-policy.js`：as-of、被取代、后继缺席。纯函数，返回 `known` 或 `unknown`，不猜。配 8 组测试与 `docs/evidence.md`。
+- `metrics` 增加平均长度与被想起条目的平均长度：短记录是否更占优，现在可观测。
+- `docs/evidence.md`：经历（then/later）与事实（fact）两层的分工。
+
+### Changed
+
+- 召回排序按 `重叠数 / √记录长度` 归一化：长记录不再因为"碰巧多命中一个词"占便宜。
+- `recall-events` 计数加进程内缓存（mtime + size 校验），同一进程连续召回不再重复解析事件文件。
+- 锁等待从空转改为 `Atomics.wait`，不烧 CPU。
+- 提示词锁改用共享 `file-lock.js`，少一份重复实现。
+- README 定位从句首的「鲸鲸」改为通用描述，鲸鲸放进示例段落。
+- 存储文档更新：改主意与想起都是事件。
+
 ## [0.6.1] · 2026-11-15
 
 ### Changed

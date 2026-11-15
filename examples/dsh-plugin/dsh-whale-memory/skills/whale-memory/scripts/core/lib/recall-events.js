@@ -62,7 +62,16 @@ export function readAll(memDir) {
   return { rows, bad }
 }
 
+// 进程内缓存：同一进程里连续 recall 不再重复解析整个事件文件
+const memo = new Map()
+
 export function countByExp(memDir) {
+  const file = eventsFile(memDir)
+  let stamp = ''
+  try { const st = fs.statSync(file); stamp = st.mtimeMs + ':' + st.size } catch { }
+  const hit = memo.get(memDir)
+  if (hit && hit.stamp === stamp) return hit.map
+
   const { rows } = readAll(memDir)
   const map = new Map()
   for (const r of rows) {
@@ -71,6 +80,7 @@ export function countByExp(memDir) {
     if (String(r.at || '') > cur.lastAt) cur.lastAt = String(r.at || '')
     map.set(r.id, cur)
   }
+  memo.set(memDir, { stamp, map })
   return map
 }
 

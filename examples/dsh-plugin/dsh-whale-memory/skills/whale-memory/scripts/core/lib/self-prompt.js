@@ -3,6 +3,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { withFileLock } from './file-lock.js'
 
 const DIR = 'prompt-overlay'
 const ACTIVE = 'prompt-overlay.md'
@@ -32,32 +33,6 @@ function atomicWrite(file, body) {
   fs.renameSync(tmp, file)
 }
 
-// 单写者锁：另一个进程正在写时等一会儿；超过 timeout 报错，不静默覆盖
-// Windows 上并发 mkdir/rm 同一路径会短暂返回 EPERM/ENOENT，当成“忙”重试
-const BUSY = new Set(['EEXIST', 'EPERM', 'ENOENT', 'EBUSY', 'EACCES'])
-
-function withLock(dir, fn, { timeoutMs = 2000 } = {}) {
-  const lock = path.join(dir, '.lock')
-  const start = Date.now()
-  for (;;) {
-    try {
-      fs.mkdirSync(dir, { recursive: true })
-      fs.mkdirSync(lock)
-      break
-    } catch (e) {
-      if (!BUSY.has(e.code)) throw e
-      try {
-        const st = fs.statSync(lock)
-        if (Date.now() - st.mtimeMs > 10000) { fs.rmSync(lock, { recursive: true, force: true }); continue }
-      } catch { /* 锁刚被释放 */ }
-      if (Date.now() - start > timeoutMs) throw new Error('提示词文件被另一个进程锁着，稍后再试。')
-      const t = Date.now()
-      while (Date.now() - t < 25) { /* 短等待 */ }
-    }
-  }
-  try { return fn() } finally { try { fs.rmSync(lock, { recursive: true, force: true }) } catch { } }
-}
-
 export function load(dataDir) {
   try {
     return clean(fs.readFileSync(path.join(base(dataDir), ACTIVE), 'utf8'))
@@ -74,7 +49,7 @@ export function save(dataDir, text, reason = '', opts = {}) {
 
   const d = base(dataDir)
   try {
-    return withLock(d, () => {
+    return withFileLock(path.join(d, '.lock'), () => {
       const baseStamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 23)
       let stamp = baseStamp
       let n = 1

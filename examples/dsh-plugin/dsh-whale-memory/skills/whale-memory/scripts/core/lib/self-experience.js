@@ -207,17 +207,19 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, mi
     ? Math.max(minOverlap, Math.ceil(bigrams.size * minRatio))
     : minOverlap
 
-  const overlap = (r) => {
+  const measure = (r) => {
     const s = (r.then.text + ' ' + r.then.thought + ' ' + (r.then.feeling || []).join(' '))
     const t = s.replace(/[\s\p{P}\p{S}]+/gu, '')
     let n = 0
     for (const g of bigrams) if (t.includes(g)) n++
-    return n
+    // 记录自身的 bigram 规模：长记录天然更容易碰巧命中，排序时按 √长度 归一化
+    const size = Math.max(1, t.length - 1)
+    return { n, size }
   }
   const weightOf = (r) => (r.weight === 'important' ? 3 : r.weight === 'minor' ? 0.5 : 1)
   const picked = rows.map((r) => {
-    const n = overlap(r)
-    return { r, n, s: n * weightOf(r) }
+    const { n, size } = measure(r)
+    return { r, n, s: (n / Math.sqrt(size)) * weightOf(r) }
   })
     .filter((x) => (q ? x.n >= required : true))
     .sort((a, b) => b.s - a.s || String(b.r.at).localeCompare(String(a.r.at)))

@@ -39,6 +39,7 @@ export function computeMetrics(dataDir) {
       hasLater: Array.isArray(r.later) && r.later.length > 0,
       laterCount: Array.isArray(r.later) ? r.later.length : 0,
       legacyRecalls: Number(r.recalls || 0),
+      chars: String((then && then.text) || '').length,
       unfinished: Boolean(then && then.unfinished),
       quoted: Boolean(then && then.quote && then.quote.text)
     }
@@ -53,6 +54,9 @@ export function computeMetrics(dataDir) {
   }
 
   const total = experiences.length
+  const avgChars = total ? Math.round(experiences.reduce((s, r) => s + r.chars, 0) / total) : 0
+  const recalledRows = experiences.filter((r) => r.recalls > 0)
+  const recalledAvgChars = recalledRows.length ? Math.round(recalledRows.reduce((s, r) => s + r.chars, 0) / recalledRows.length) : 0
   const revised = experiences.filter((r) => r.hasLater).length
   const recalled = experiences.filter((r) => r.recalls > 0).length
   const unfinished = experiences.filter((r) => r.unfinished).length
@@ -79,6 +83,8 @@ export function computeMetrics(dataDir) {
       recalled,
       recalledRate: pct(recalled, total),
       totalRecalls: experiences.reduce((s, r) => s + r.recalls, 0),
+      avgChars,
+      recalledAvgChars,
       unfinished,
       quoted,
       byWeight,

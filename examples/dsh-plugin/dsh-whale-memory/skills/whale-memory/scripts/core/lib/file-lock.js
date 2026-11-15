@@ -18,9 +18,14 @@ export function withFileLock(lockPath, fn, { timeoutMs = 3000 } = {}) {
         if (Date.now() - st.mtimeMs > 10000) { fs.rmSync(lockPath, { recursive: true, force: true }); continue }
       } catch { /* 锁刚被释放 */ }
       if (Date.now() - start > timeoutMs) throw new Error('文件被另一个进程锁着，稍后再试。')
-      const t = Date.now()
-      while (Date.now() - t < 20) { /* 短等待 */ }
+      sleep(20)
     }
   }
   try { return fn() } finally { try { fs.rmSync(lockPath, { recursive: true, force: true }) } catch { } }
+}
+
+// 阻塞式小睡，不空转 CPU；Node 主线程允许 Atomics.wait
+const sleepBuf = new Int32Array(new SharedArrayBuffer(4))
+function sleep(ms) {
+  try { Atomics.wait(sleepBuf, 0, 0, ms) } catch { const t = Date.now(); while (Date.now() - t < ms) { } }
 }
