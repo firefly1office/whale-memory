@@ -1,0 +1,1 @@
+export function withFileLock<T>(lockPath: string, fn: () => T, opts?: { timeoutMs?: number }): T

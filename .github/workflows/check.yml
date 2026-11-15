@@ -25,3 +25,6 @@ jobs:
         run: node tools/privacy-canary.mjs
       - name: recall eval
         run: node tools/eval-recall.mjs
+      - name: type declarations
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
+        run: npm run types

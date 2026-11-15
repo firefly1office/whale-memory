@@ -21,7 +21,7 @@ let synced = 0
 
 fs.mkdirSync(DST_LIB, { recursive: true })
 
-for (const name of fs.readdirSync(SRC_LIB).filter((f) => f.endsWith('.js'))) {
+for (const name of fs.readdirSync(SRC_LIB).filter((f) => f.endsWith('.js') || f.endsWith('.d.ts'))) {
   const srcFile = path.join(SRC_LIB, name)
   const dstFile = path.join(DST_LIB, name)
   const src = fs.readFileSync(srcFile)

@@ -2,6 +2,19 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.8.0] · 2026-11-15
+
+### Added
+
+- **类型声明**：`index.d.ts` + 每个子路径的 `.d.ts`，`package.json` 用 `types` 条件导出。`types/smoke.mts` 在 CI 里跑 `tsc --strict`，保证声明和实现对得上。
+- **经历 → 证据的桥** `evidence-from-experience.js`：`moodFacts()`（then.state）、`quoteFacts()`（then.quote）、`factsFromExperiences()`、`ask()`。只搬已有出处的记录，不推断。
+- 桥的 3 组测试；`docs/evidence.md` 补桥的用法。
+
+### Changed
+
+- `index.js` 额外导出 `evidencePolicy` / `evidenceFromExperience` 命名空间。
+- 根 `package.json` 增加 `npm run types`。
+
 ## [0.7.0] · 2026-11-15
 
 ### Added

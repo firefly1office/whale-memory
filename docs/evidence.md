@@ -46,6 +46,23 @@ render(verdict) // "闷 · 2026-11-10（日记）" 或 "没有记录：截至该
 3. 查询时传 `at`（通常是"现在"或对话里的某个时间点）
 4. 拿 `render()` 的结果给模型，别自己拼"应该是"
 
+## 现成的桥：从她的经历抽 fact
+
+`evidence-from-experience.js` 只抽有出处的两样东西，不推断：
+
+```js
+import * as bridge from 'whale-memory-core/evidence-from-experience'
+
+const facts = bridge.factsFromExperiences(experiences)
+// 情绪快照 → { slot: 'mood', value: '闷', at, source: 'then.state' }
+// 原文锚   → { slot: 'quote:《灯塔》第2章', value: '灯还亮着', at, source: 'then.quote' }
+
+bridge.ask(experiences, { slot: 'mood', at: '2026-11-11T00:00:00+08:00' })
+// known / unknown，不猜
+```
+
+没有被记录的情绪、没有原文锚的想法，不会变成 fact——桥只搬已经存在的东西。
+
 ---
 
 ## English
