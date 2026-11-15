@@ -6,8 +6,9 @@
 
 ```
 <WHALE_DATA_DIR>/plugin-data/biomimetic-memory/
-  self-experience.jsonl   她的经历（then / later）
-  recall-events.jsonl     想起事件（0.5.0 起；只追加，计数由此派生）
+  self-experience.jsonl   她的经历（then；later 已迁到事件）
+  later-events.jsonl      改主意事件（0.6.0 起；只追加）
+  recall-events.jsonl     想起事件（0.5.0 起；只追加）
   autobiography.jsonl     她的日记（默认只在一对一使用）
   prompt-overlay/         她自己的提示词（版本只追加）
   self-settings.json      她自己的设置
@@ -59,6 +60,19 @@
 3. 行尾必须是真实换行；不允许把 `\n` 写成两个字符。
 4. 日记单独一个文件，读取时默认不加载；宿主决定什么时候打开。
 
+## 改主意是事件（0.6.0 起）
+
+`reviseExperience()` 不再读全量、不再重写经历文件，而是往 `later-events.jsonl` 追加：
+
+```json
+{"id":"exp_mwggkzwbwp10","at":"2026-11-15T08:10:51.340Z","day":"2026-11-15","thought":"现在觉得，他是在护着朋友","reason":""}
+```
+
+- 读取时合并：`later` = 行内旧数组 + 事件，按 `at` 排序
+- 孤儿事件（id 对应的经历不存在）在读取时忽略
+- 迁移：`node tools/migrate-later-events.mjs --data=<dir>`（默认 dry-run，`--apply` 才写，先备份、校验、可回滚）
+- 经历文件自此真正只追加：`addExperience` 追加一行，没有任何路径会再重写它
+
 ## 想起是事件（0.5.0 起）
 
 「想起一次」不再写进经历行，而是追加到 `recall-events.jsonl`：
@@ -83,6 +97,8 @@
 | `feeling` | 8 个 |
 | `quote.text` | 500 字 |
 | `kind` | 20 字 |
+| `later[].thought` | 1000 字 |
+| `later[].reason` | 200 字 |
 
 空白的 `text` 直接拒绝（`{ok:false, error:"text 不能是空的。"}`）。超长时报错并给出实际长度，让她自己决定删哪些、或拆成两条——记忆系统不能悄悄丢掉一半原文。
 

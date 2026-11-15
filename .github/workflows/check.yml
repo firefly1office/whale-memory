@@ -17,6 +17,8 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: syntax check
         run: node tools/check-syntax.mjs
+      - name: vendored copy check
+        run: node tools/sync-dsh-core.mjs --check
       - name: tests
         run: node tools/run-tests.mjs
       - name: privacy canary

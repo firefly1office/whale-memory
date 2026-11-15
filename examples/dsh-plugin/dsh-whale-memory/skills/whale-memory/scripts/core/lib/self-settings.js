@@ -20,6 +20,7 @@ export function load(dataDir) {
 
 export function save(dataDir, patch, reason = '') {
   const f = path.join(dataDir, 'plugin-data', 'biomimetic-memory', 'self-settings.json')
+  fs.mkdirSync(path.dirname(f), { recursive: true })
   const cur = load(dataDir)
   const next = { ...cur, ...patch, updatedAt: new Date().toISOString() }
   fs.writeFileSync(f, JSON.stringify(next, null, 1), 'utf8')

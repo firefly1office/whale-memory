@@ -3,6 +3,7 @@
 // 参数是记忆目录本身（<data>/plugin-data/biomimetic-memory），与 self-experience 一致
 import fs from 'node:fs'
 import path from 'node:path'
+import { withFileLock } from './file-lock.js'
 
 const FILE = 'recall-events.jsonl'
 
@@ -14,31 +15,7 @@ function ensureDir(memDir) {
   fs.mkdirSync(memDir, { recursive: true })
 }
 
-// 单写者锁：多进程追加时排队；超时报错，不静默丢事件
-// Windows 上并发 mkdir/rm 同一路径会短暂返回 EPERM/ENOENT，当成“忙”重试
-const BUSY = new Set(['EEXIST', 'EPERM', 'ENOENT', 'EBUSY', 'EACCES'])
 
-function withLock(memDir, fn, { timeoutMs = 3000 } = {}) {
-  const lock = eventsFile(memDir) + '.lock'
-  const start = Date.now()
-  for (;;) {
-    try {
-      fs.mkdirSync(memDir, { recursive: true })
-      fs.mkdirSync(lock)
-      break
-    } catch (e) {
-      if (!BUSY.has(e.code)) throw e
-      try {
-        const st = fs.statSync(lock)
-        if (Date.now() - st.mtimeMs > 10000) { fs.rmSync(lock, { recursive: true, force: true }); continue }
-      } catch { }
-      if (Date.now() - start > timeoutMs) throw new Error('recall-events 被另一个进程锁着，稍后再试。')
-      const t = Date.now()
-      while (Date.now() - t < 20) { }
-    }
-  }
-  try { return fn() } finally { try { fs.rmSync(lock, { recursive: true, force: true }) } catch { } }
-}
 
 export function append(memDir, { id, query = '', chatKey = '', backfilled = false } = {}, opts = {}) {
   if (!String(id || '').trim()) throw new Error('id 不能为空')
@@ -51,7 +28,7 @@ export function append(memDir, { id, query = '', chatKey = '', backfilled = fals
   if (backfilled) row.backfilled = true
 
   ensureDir(memDir)
-  return withLock(memDir, () => {
+  return withFileLock(eventsFile(memDir) + '.lock', () => {
     const file = eventsFile(memDir)
     let prefix = ''
     try {

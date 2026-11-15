@@ -2,6 +2,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import * as recallEvents from './recall-events.js'
+import * as laterEvents from './later-events.js'
 
 const FILE = 'self-experience.jsonl'
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
@@ -36,7 +37,7 @@ function writeAll(dir, rows) {
 }
 
 // 字段上限：写的时候超了就报错，不静默截断
-export const LIMITS = { text: 2000, scene: 500, thought: 1000, unfinished: 300, feelings: 8, kind: 20 }
+export const LIMITS = { text: 2000, scene: 500, thought: 1000, unfinished: 300, feelings: 8, kind: 20, laterThought: 1000, laterReason: 200 }
 
 function tooLong(name, value, max) {
   const n = String(value || '').length
@@ -75,14 +76,27 @@ function normalize(r) {
 
 export function loadAll(dir) {
   const rows = readAll(dir).map(normalize).filter((r) => r && r.then && r.then.text)
+  if (!rows.length) return rows
+
   // 想起次数：有事件文件就以事件为准；没有事件时才退回旧字段
   let counts = new Map()
   try { counts = recallEvents.countByExp(dir) } catch { /* 事件文件坏了也不影响读经历 */ }
-  if (!counts.size) return rows
+
+  // 改主意：旧 later 数组 + later-events 事件，按时间合并
+  let laterMap = new Map()
+  try { laterMap = laterEvents.groupByExp(dir) } catch { }
+
   return rows.map((r) => {
     const c = counts.get(r.id)
-    if (!c) return r
-    return { ...r, recalls: c.count, lastRecalledAt: c.lastAt || r.lastRecalledAt || '' }
+    const extra = laterMap.get(r.id) || []
+    const merged = [...(r.later || []), ...extra]
+      .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')))
+    const next = { ...r, later: merged }
+    if (c) {
+      next.recalls = c.count
+      next.lastRecalledAt = c.lastAt || r.lastRecalledAt || ''
+    }
+    return next
   })
 }
 
@@ -133,24 +147,25 @@ export function addExperience(dir, { text, scene = '', feeling = [], thought = '
   return row
 }
 
-// 改主意 / 回头想：只往 later 里加，不动"当时"
+// 改主意 / 回头想：只追加一条 later 事件，不读全量、不重写经历文件
 export function reviseExperience(dir, { id, thought, reason = '' }) {
-  const rows = readAll(dir, { rewriting: true })
-  const i = rows.findIndex((r) => r.id === id)
-  if (i < 0) return { ok: false, error: '找不到这条经历' }
-  const cur = normalize(rows[i])
-  cur.later = Array.isArray(cur.later) ? cur.later : []
-  cur.later.push({ at: new Date().toISOString(), day: new Date().toLocaleDateString('sv-SE'), thought: String(thought || '').slice(0, 300), reason: String(reason || '').slice(0, 200) })
-  rows[i] = cur
-  writeAll(dir, rows)
-  return { ok: true, entry: cur }
+  if (!String(id || '').trim()) return { ok: false, error: '需要 id' }
+  if (!String(thought || '').trim()) return { ok: false, error: 'thought 不能是空的。' }
+  try {
+    const safeThought = tooLong('thought', thought, LIMITS.laterThought)
+    const safeReason = tooLong('reason', reason, LIMITS.laterReason)
+    const row = laterEvents.append(dir, { id: String(id), thought: safeThought, reason: safeReason })
+    return { ok: true, id: row.id, at: row.at }
+  } catch (e) {
+    return { ok: false, error: String(e && e.message ? e.message : e) }
+  }
 }
 
 // 想起时记一笔：往 recall-events.jsonl 追加一条事件，不动经历正文
+// 不做存在性检查：孤儿事件在 loadAll 合并时自然被忽略
 export function markRecalled(dir, id) {
-  const exists = readAll(dir).map(normalize).some((r) => r && r.id === id)
-  if (!exists) return false
-  recallEvents.append(dir, { id })
+  if (!String(id || '').trim()) return false
+  try { recallEvents.append(dir, { id: String(id) }) } catch { return false }
   return true
 }
 
@@ -159,10 +174,9 @@ export function currentView(dir, id) {
   return rows.find((r) => r.id === id) || null
 }
 
-// 相关度 + 重要度：重要的先被想起
 // 相关度 × 重要度：重要的先被想起
 // 阈值比较的是「原始重叠数」，重要度只影响排序，不影响过线门槛
-// mark=false（默认）：只读；mark=true 才记一次"想起"（会重写文件，单写者场景用）
+// mark=false（默认）：只读；mark=true 追加一条 recall 事件（不重写经历文件）
 export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false } = {}) {
   const rows = loadAll(dir)
   const q = String(query || '')
@@ -187,10 +201,12 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false } =
 
   if (!mark || !picked.length) return picked
 
-  // 记一笔之后再读回，返回的对象里计数已经是新的
-  for (const r of picked) { try { markRecalled(dir, r.id) } catch { /* 坏文件时不阻断召回 */ } }
-  const byId = new Map(loadAll(dir).map((r) => [r.id, r]))
-  return picked.map((r) => byId.get(r.id) || r)
+  // 记完就地 +1，不回读全量；下一次读取自然会对上
+  const at = new Date().toISOString()
+  for (const r of picked) {
+    try { recallEvents.append(dir, { id: r.id, query: q }) } catch { /* 坏文件时不阻断召回 */ }
+  }
+  return picked.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at }))
 }
 
 // 「当时 / 现在」两段式：模板拼，不调模型；没有的字段就如实说没有

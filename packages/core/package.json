@@ -1,6 +1,6 @@
 {
   "name": "whale-memory-core",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Self-layer autobiographical memory core: then / later, append-only. Vault, evidence and consolidation live in the QQ Agent plugin.",
   "type": "module",
   "main": "./index.js",
@@ -11,7 +11,9 @@
     "./waking": "./lib/waking.js",
     "./self-prompt": "./lib/self-prompt.js",
     "./self-settings": "./lib/self-settings.js",
-    "./recall-events": "./lib/recall-events.js"
+    "./recall-events": "./lib/recall-events.js",
+    "./later-events": "./lib/later-events.js",
+    "./file-lock": "./lib/file-lock.js"
   },
   "files": [
     "index.js",

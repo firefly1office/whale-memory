@@ -2,6 +2,31 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.6.0] · 2026-11-15
+
+### Changed
+
+- **改主意也变成事件**：`reviseExperience()` 只往 `later-events.jsonl` 追加，不再读全量、不再重写 `self-experience.jsonl`。经历文件自此真正 append-only，并发改写不再丢更新，也不会再出现 `EPERM: rename`。
+- `loadAll()` 合并「行内 later + later 事件」，按 `at` 排序；孤儿事件在读取时忽略。
+- `recall(mark:true)` 记完就地 +1，不再回读全量（原先一次召回读 4 遍全量）。
+- `markRecalled()` 不再做存在性检查，直接追加事件。
+
+### Added
+
+- `lib/later-events.js`、`tools/migrate-later-events.mjs`（dry-run / apply / 备份 / 等价校验 / rollback）
+- `tools/sync-dsh-core.mjs`：把 `packages/core/lib` 同步到 DSH 示例副本；`--check` 进 CI，副本漂移直接红
+- 边界测试参数化：两条 CLI 都跑空白/超长/非法 weight/limit/空 query
+- 并发测试：3 进程各改 20 次，60 条 later 一条不丢
+- 根 `package.json`：`npm test` / `npm run check` / `npm run demo` / `npm run eval` / `npm run metrics`
+- `examples/samples/sample-experiences.jsonl` 真正进仓库（此前被 `.gitignore` 的 `*.jsonl` 挡住）
+
+### Fixed
+
+- `revise --thought` 超长不再静默截成 300 字：超过 1000 字直接报错，文件字节不变
+- `revise --reason` 超过 200 字报错
+- `porting.md` 里不存在的 `renderSelfProfileBlock` 改成 `self-prompt.render` / `self-memory.renderBlock`
+- `packages/core/README` 不再手写死版本号
+
 ## [0.5.1] · 2026-11-15
 
 ### Fixed

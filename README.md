@@ -77,11 +77,12 @@ node adapters/cli/memory-cli.mjs read --limit 1
 
 经历保存在 `<WHALE_DATA_DIR>/plugin-data/biomimetic-memory/`。同一目录中的记录由调用进程读取。接入群聊时，宿主需要校验调用者和会话可见范围，尤其是开放日记读取前。CLI 适合受信的本机进程。
 
-`tools/` 中包含开发和运维脚本。有些会连接运行中的宿主、读取对话或调用模型。初次体验只需上面的演示。以下两项检查使用虚构数据，分别验证两份 CLI 的写入与修订，以及一次指定范围的检索。
+`tools/` 中包含开发和运维脚本。有些会连接运行中的宿主、读取对话或调用模型。初次体验只需上面的演示。完整检查一条命令：
 
 ```sh
-node --test tests/public-cli.test.mjs
-node tools/privacy-canary.mjs
+npm install   # 没有依赖，只是初始化
+npm test      # 27+ 组测试，两条 CLI 都跑
+npm run check # 语法 + 副本一致性 + 测试 + 金丝雀 + 召回评测
 ```
 
 本仓库采用 [MIT 许可证](LICENSE)。参与贡献前请读 [CONTRIBUTING.md](CONTRIBUTING.md)；变更见 [CHANGELOG.md](CHANGELOG.md)；隐私与安全问题见 [SECURITY.md](SECURITY.md)。

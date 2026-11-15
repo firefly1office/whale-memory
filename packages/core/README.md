@@ -37,7 +37,7 @@ import * as exp from 'whale-memory-core/self-experience'
 npm install whale-memory-core
 ```
 
-已发布在 npm：`whale-memory-core@0.1.0`（[npmjs.com](https://www.npmjs.com/package/whale-memory-core)）。也可以从仓库本地安装：`npm install ./packages/core`。
+已发布在 npm：`whale-memory-core`（[npmjs.com](https://www.npmjs.com/package/whale-memory-core)，最新版本以 npm 为准）。也可以从仓库本地安装：`npm install ./packages/core`。
 
 ## 运行示例
 

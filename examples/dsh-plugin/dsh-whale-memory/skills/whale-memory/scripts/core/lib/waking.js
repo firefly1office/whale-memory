@@ -10,9 +10,10 @@ function readJsonl(file) {
 
 function dayStr(d = new Date()) { return d.toLocaleDateString('sv-SE') }
 
+// 只读：算出「今天该给她看什么」，不写任何文件
+// 调用方确认真的把这段注入了，再调 consumeWaking 记「已展示」
 export function buildWakingBlock(dataDir, chatKey, { now = new Date() } = {}) {
-  // 醒来块只给主人私聊和本机操作台；群聊不注入，避免把昨天私下的话带出去
-  if (!/private_100000000|local:owner/i.test(String(chatKey || ''))) return ''
+  // 注入范围由调用方决定：这里只按「会话 + 日期」判断是否已经展示过
   const dir = path.join(dataDir, 'plugin-data', 'biomimetic-memory')
   const today = dayStr(now)
   const flag = path.join(dir, 'waking-flags.json')
@@ -20,8 +21,6 @@ export function buildWakingBlock(dataDir, chatKey, { now = new Date() } = {}) {
   try { flags = JSON.parse(fs.readFileSync(flag, 'utf8')) } catch {}
   const key = chatKey + '|' + today
   if (flags[key]) return ''
-  flags[key] = new Date().toISOString()
-  try { fs.writeFileSync(flag, JSON.stringify(flags), 'utf8') } catch {}
 
   const rows = readJsonl(path.join(dir, 'self-experience.jsonl')).map((r) => {
     if (r.then) return { day: r.day, text: r.then.text, unfinished: r.then.unfinished, weight: r.weight, later: r.later || [] }
@@ -44,6 +43,18 @@ export function buildWakingBlock(dataDir, chatKey, { now = new Date() } = {}) {
   for (const r of unfinished) lines.push('- 你还没弄完：' + String(r.unfinished).slice(0, 50))
   lines.push('（这些是记录，不是别人告诉你的。要不要接着想，你自己定。）')
   return lines.join('\n')
+}
+
+// 确认已展示：写入 flags，之后同一天同一会话不会再出
+export function consumeWaking(dataDir, chatKey, { now = new Date() } = {}) {
+  const dir = path.join(dataDir, 'plugin-data', 'biomimetic-memory')
+  fs.mkdirSync(dir, { recursive: true })
+  const flag = path.join(dir, 'waking-flags.json')
+  let flags = {}
+  try { flags = JSON.parse(fs.readFileSync(flag, 'utf8')) } catch {}
+  flags[chatKey + '|' + dayStr(now)] = new Date().toISOString()
+  fs.writeFileSync(flag, JSON.stringify(flags), 'utf8')
+  return true
 }
 
 export function leaveNote(dataDir, text) {

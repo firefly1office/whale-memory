@@ -49,7 +49,7 @@
 - 读取：跳过坏行；`recall(mark:false)` 只读不写
 - 想记"想起了一次"：显式 `mark:true` 或调用 `markRecalled`
 
-单写者是当前约束：同一目录不要多进程并发写。要并发，先上锁或改成事件日志 + 派生索引。
+`later` 和「想起」都是追加事件（`later-events.jsonl` / `recall-events.jsonl`），经历正文只追加；追加走锁，多进程写同一目录不会丢行。`then` 仍然不可变。
 
 ## 召回怎么工作
 

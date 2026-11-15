@@ -1,6 +1,8 @@
 // 她自己的经历 v2：写下时拍下"当时"，回想分「当时 / 现在」两段；重要的写细，次要的简写
 import fs from 'node:fs'
 import path from 'node:path'
+import * as recallEvents from './recall-events.js'
+import * as laterEvents from './later-events.js'
 
 const FILE = 'self-experience.jsonl'
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
@@ -25,13 +27,22 @@ function readAll(dir, { rewriting = false } = {}) {
 
 function atomicWrite(dir, rows) {
   const file = path.join(dir, FILE)
-  const tmp = file + '.tmp-' + Date.now()
+  const tmp = file + '.tmp-' + Date.now() + '-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
   fs.writeFileSync(tmp, rows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
   fs.renameSync(tmp, file)
 }
 
 function writeAll(dir, rows) {
   atomicWrite(dir, rows)
+}
+
+// 字段上限：写的时候超了就报错，不静默截断
+export const LIMITS = { text: 2000, scene: 500, thought: 1000, unfinished: 300, feelings: 8, kind: 20, laterThought: 1000, laterReason: 200 }
+
+function tooLong(name, value, max) {
+  const n = String(value || '').length
+  if (n > max) throw new Error(`${name} 太长（${n}/${max} 字），删一些或拆成两条再写。`)
+  return String(value || '')
 }
 
 function normalize(r) {
@@ -49,10 +60,10 @@ function normalize(r) {
     kind: r.kind || '其它',
     weight: WEIGHTS.has(r.weight) ? r.weight : 'normal',
     then: {
-      text: String(r.text || '').slice(0, 600),
+      text: String(r.text || ''),
       scene: '',
       feeling: [],
-      thought: String(r.thought || '').slice(0, 300),
+      thought: String(r.thought || ''),
       unfinished: '',
       quote: null,
       state: null
@@ -64,11 +75,42 @@ function normalize(r) {
 }
 
 export function loadAll(dir) {
-  return readAll(dir).map(normalize).filter((r) => r && r.then && r.then.text)
+  const rows = readAll(dir).map(normalize).filter((r) => r && r.then && r.then.text)
+  if (!rows.length) return rows
+
+  // 想起次数：有事件文件就以事件为准；没有事件时才退回旧字段
+  let counts = new Map()
+  try { counts = recallEvents.countByExp(dir) } catch { /* 事件文件坏了也不影响读经历 */ }
+
+  // 改主意：旧 later 数组 + later-events 事件，按时间合并
+  let laterMap = new Map()
+  try { laterMap = laterEvents.groupByExp(dir) } catch { }
+
+  return rows.map((r) => {
+    const c = counts.get(r.id)
+    const extra = laterMap.get(r.id) || []
+    const merged = [...(r.later || []), ...extra]
+      .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')))
+    const next = { ...r, later: merged }
+    if (c) {
+      next.recalls = c.count
+      next.lastRecalledAt = c.lastAt || r.lastRecalledAt || ''
+    }
+    return next
+  })
 }
 
 // 写下时的"当时"：她写的 + 系统能自动带的状态（情绪/时间/场合）
 export function addExperience(dir, { text, scene = '', feeling = [], thought = '', unfinished = '', quote = null, weight = 'normal', kind = '其它', state = null, source = 'own-time' }) {
+  if (!String(text || '').trim()) throw new Error('text 不能是空的。')
+  const safeText = tooLong('text', text, LIMITS.text)
+  const safeScene = tooLong('scene', scene, LIMITS.scene)
+  const safeThought = tooLong('thought', thought, LIMITS.thought)
+  const safeUnfinished = tooLong('unfinished', unfinished, LIMITS.unfinished)
+  const safeKind = tooLong('kind', kind || '其它', LIMITS.kind)
+  const feelings = (Array.isArray(feeling) ? feeling : [feeling]).map((f) => String(f || '').trim()).filter(Boolean)
+  if (feelings.length > LIMITS.feelings) throw new Error(`feeling 最多 ${LIMITS.feelings} 个，现在是 ${feelings.length} 个。`)
+
   fs.mkdirSync(dir, { recursive: true })
   const now = new Date()
   const id = 'exp_' + now.getTime().toString(36) + Math.random().toString(36).slice(2, 6)
@@ -78,15 +120,15 @@ export function addExperience(dir, { text, scene = '', feeling = [], thought = '
     day: now.toLocaleDateString('sv-SE'),
     author: 'self',
     source,
-    kind: String(kind || '其它').slice(0, 20),
+    kind: safeKind,
     weight: WEIGHTS.has(weight) ? weight : 'normal',
     then: {
-      text: String(text || '').slice(0, 600),
-      scene: String(scene || '').slice(0, 300),
-      feeling: (Array.isArray(feeling) ? feeling : [feeling]).map((f) => String(f || '').trim()).filter(Boolean).slice(0, 4),
-      thought: String(thought || '').slice(0, 300),
-      unfinished: String(unfinished || '').slice(0, 200),
-      quote: quote && quote.text ? { text: String(quote.text).slice(0, 300), source: String(quote.source || '').slice(0, 120) } : null,
+      text: safeText,
+      scene: safeScene,
+      feeling: feelings,
+      thought: safeThought,
+      unfinished: safeUnfinished,
+      quote: quote && quote.text ? { text: tooLong('quote', quote.text, 500), source: tooLong('quote.source', quote.source || '', 120) } : null,
       state: state && typeof state === 'object' ? { at: now.toISOString(), ...state } : { at: now.toISOString() }
     },
     later: [],
@@ -105,29 +147,25 @@ export function addExperience(dir, { text, scene = '', feeling = [], thought = '
   return row
 }
 
-// 改主意 / 回头想：只往 later 里加，不动"当时"
+// 改主意 / 回头想：只追加一条 later 事件，不读全量、不重写经历文件
 export function reviseExperience(dir, { id, thought, reason = '' }) {
-  const rows = readAll(dir, { rewriting: true })
-  const i = rows.findIndex((r) => r.id === id)
-  if (i < 0) return { ok: false, error: '找不到这条经历' }
-  const cur = normalize(rows[i])
-  cur.later = Array.isArray(cur.later) ? cur.later : []
-  cur.later.push({ at: new Date().toISOString(), day: new Date().toLocaleDateString('sv-SE'), thought: String(thought || '').slice(0, 300), reason: String(reason || '').slice(0, 200) })
-  rows[i] = cur
-  writeAll(dir, rows)
-  return { ok: true, entry: cur }
+  if (!String(id || '').trim()) return { ok: false, error: '需要 id' }
+  if (!String(thought || '').trim()) return { ok: false, error: 'thought 不能是空的。' }
+  try {
+    const safeThought = tooLong('thought', thought, LIMITS.laterThought)
+    const safeReason = tooLong('reason', reason, LIMITS.laterReason)
+    const row = laterEvents.append(dir, { id: String(id), thought: safeThought, reason: safeReason })
+    return { ok: true, id: row.id, at: row.at }
+  } catch (e) {
+    return { ok: false, error: String(e && e.message ? e.message : e) }
+  }
 }
 
-// 想起时记一笔（不改内容）
+// 想起时记一笔：往 recall-events.jsonl 追加一条事件，不动经历正文
+// 不做存在性检查：孤儿事件在 loadAll 合并时自然被忽略
 export function markRecalled(dir, id) {
-  const rows = readAll(dir, { rewriting: true })
-  const i = rows.findIndex((r) => r.id === id)
-  if (i < 0) return false
-  const cur = normalize(rows[i])
-  cur.recalls = Number(cur.recalls || 0) + 1
-  cur.lastRecalledAt = new Date().toISOString()
-  rows[i] = cur
-  writeAll(dir, rows)
+  if (!String(id || '').trim()) return false
+  try { recallEvents.append(dir, { id: String(id) }) } catch { return false }
   return true
 }
 
@@ -136,11 +174,13 @@ export function currentView(dir, id) {
   return rows.find((r) => r.id === id) || null
 }
 
-// 相关度 + 重要度：重要的先被想起
-export function recall(dir, query, { limit = 3, minOverlap = 1 } = {}) {
+// 相关度 × 重要度：重要的先被想起
+// 阈值比较的是「原始重叠数」，重要度只影响排序，不影响过线门槛
+// mark=false（默认）：只读；mark=true 追加一条 recall 事件（不重写经历文件）
+export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false } = {}) {
   const rows = loadAll(dir)
   const q = String(query || '')
-  const score = (r) => {
+  const overlap = (r) => {
     const s = (r.then.text + ' ' + r.then.thought + ' ' + (r.then.feeling || []).join(' '))
     let n = 0
     const big = new Set()
@@ -148,13 +188,25 @@ export function recall(dir, query, { limit = 3, minOverlap = 1 } = {}) {
     for (let i = 0; i + 2 <= qc.length; i++) big.add(qc.slice(i, i + 2))
     const t = s.replace(/[\s\p{P}\p{S}]+/gu, '')
     for (const g of big) if (t.includes(g)) n++
-    const w = r.weight === 'important' ? 3 : r.weight === 'minor' ? 0.5 : 1
-    return n * w
+    return n
   }
-  return rows.map((r) => ({ r, s: score(r) }))
-    .filter((x) => (q ? x.s >= minOverlap : true))
+  const weightOf = (r) => (r.weight === 'important' ? 3 : r.weight === 'minor' ? 0.5 : 1)
+  const picked = rows.map((r) => {
+    const n = overlap(r)
+    return { r, n, s: n * weightOf(r) }
+  })
+    .filter((x) => (q ? x.n >= minOverlap : true))
     .sort((a, b) => b.s - a.s || String(b.r.at).localeCompare(String(a.r.at)))
     .slice(0, limit).map((x) => x.r)
+
+  if (!mark || !picked.length) return picked
+
+  // 记完就地 +1，不回读全量；下一次读取自然会对上
+  const at = new Date().toISOString()
+  for (const r of picked) {
+    try { recallEvents.append(dir, { id: r.id, query: q }) } catch { /* 坏文件时不阻断召回 */ }
+  }
+  return picked.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at }))
 }
 
 // 「当时 / 现在」两段式：模板拼，不调模型；没有的字段就如实说没有

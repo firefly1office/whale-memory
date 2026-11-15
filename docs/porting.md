@@ -102,7 +102,7 @@ DSH 的 skill 是 `SKILL.md + 脚本`，不需要 QQ Agent 的插件 API：
    - `self_experience_write` / `read` / `revise`
    - `self_prompt_read` / `set` / `history`
    - `self_settings_read` / `set`
-3. 在每轮系统提示里调用 `renderTwoPart` / `renderSelfProfileBlock` 的等价实现
+3. 在每轮系统提示里调用 `renderTwoPart` / `self-prompt.render` / `self-memory.renderBlock` 的等价实现
 4. 用 DSH 的定时任务跑「她自己的时间」与每日备份
 
 ## 6. 不要照搬的部分

@@ -66,14 +66,19 @@ test('文件里有坏行时，新经历仍能写入且坏行原样保留', (t) =
   assert.equal(good.length, 2, '旧的有效行 + 新行')
 })
 
-test('损坏文件会让改写操作报错，不静默覆盖', (t) => {
+test('改主意是追加事件：坏行不被碰，正文不重写', (t) => {
   const dir = tmp(t)
   const file = path.join(dir, 'self-experience.jsonl')
-  fs.writeFileSync(file, '{"id":"good","then":{"text":"旧的"}}\n{"broken":\n', 'utf8')
+  const original = '{"id":"good","then":{"text":"旧的"}}\n{"broken":\n'
+  fs.writeFileSync(file, original, 'utf8')
 
-  assert.throws(() => exp.reviseExperience(dir, { id: 'good', thought: '新的' }), /损坏/)
-  const raw = fs.readFileSync(file, 'utf8')
-  assert.ok(raw.includes('{"broken":'), '报错后文件不能被改')
+  const res = exp.reviseExperience(dir, { id: 'good', thought: '新的' })
+  assert.equal(res.ok, true)
+  assert.equal(fs.readFileSync(file, 'utf8'), original, '经历文件一个字节都不该动')
+
+  const view = exp.currentView(dir, 'good')
+  assert.equal(view.then.text, '旧的')
+  assert.equal(view.later.at(-1).thought, '新的')
 })
 
 test('日记默认不出现，显式打开才出现', (t) => {

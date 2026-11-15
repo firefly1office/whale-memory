@@ -70,7 +70,9 @@ try {
     const id = arg('id')
     const thought = arg('thought')
     if (!id || typeof thought !== 'string' || !thought.trim()) throw new Error('需要 --id 与 --thought（不能是空白）')
-    out(exp.reviseExperience(MEM_DIR, { id, thought, reason: arg('reason', '') || '' }))
+    const res = exp.reviseExperience(MEM_DIR, { id, thought, reason: arg('reason', '') || '' })
+    out(res)
+    if (!res.ok) process.exitCode = 1
   } else if (cmd === 'waking') {
     const chat = arg('chat', 'local:owner') || 'local:owner'
     const block = waking.buildWakingBlock(DATA, chat)

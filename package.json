@@ -1,0 +1,19 @@
+{
+  "name": "whale-memory",
+  "private": true,
+  "version": "0.6.0",
+  "description": "Autobiographical memory for an AI companion: then / later, append-only",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node tools/run-tests.mjs",
+    "check": "node tools/check-syntax.mjs && node tools/sync-dsh-core.mjs --check && node tools/run-tests.mjs && node tools/privacy-canary.mjs && node tools/eval-recall.mjs",
+    "demo": "node packages/core/demo.mjs",
+    "eval": "node tools/eval-recall.mjs",
+    "metrics": "node tools/metrics.mjs",
+    "sync": "node tools/sync-dsh-core.mjs"
+  },
+  "license": "MIT"
+}
