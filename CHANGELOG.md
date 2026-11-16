@@ -11,6 +11,12 @@
 - `tests/with-vector.test.mjs` 守住组合示例的输出。
 - `examples/first-day/`：用一个外部角色的视角跑通「第一天读故事、关掉应用、第二天宿主自己把昨天递回来」。两个独立进程，不输入 recall 命令；`tests/first-day.test.mjs` 守住这段验收。
 
+### Added（2026-11-16）
+
+- CLI `export --out <目录>` / `import --from <目录> [--force true]`：把整份记忆打包成带 manifest 和 SHA-256 的目录；导入先校验、默认不覆盖、覆盖前备份。两个 CLI 都支持，`tests/export-import.test.mjs` 守住。
+- `docs/limits.md`：实测规模（2k / 10k 条）、明文存储、单条删除不支持、并发与断电边界。
+- `docs/injection.md`：什么时候把记忆递回去的七条规则、最小实现和反例。
+
 ## [0.10.1] · 2026-11-16
 
 ### Fixed

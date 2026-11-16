@@ -72,6 +72,8 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | 看别人的宿主怎么接 | [第一天的故事，第二天还接得上](examples/first-day/)：两个进程，隔天自动递回，不输入 recall |
 | 用向量/RAG 找、用它来讲 | [和检索层怎么组合](docs/composition.md)：检索层只给 id，`then/later` 负责叙事 |
 | 备份与换机器 | [备份与搬家](docs/backup.md)：三个文件缺一不可，恢复后怎么校验 |
+| 撑多大、做不到什么 | [上限与不保证](docs/limits.md)：实测规模、明文存储、删除语义 |
+| 什么时候递回记忆 | [注入时机](docs/injection.md)：七条规则、可抄的实现和反例 |
 | 了解整体设计 | [架构说明](docs/architecture.md)：分层、证据策略、召回与写入约束 |
 | 看证据判定 | [证据策略（可跑子集）](docs/evidence.md)：as-of、被取代、后继缺席 |
 | 看她在不在长 | [指标口径](docs/metrics.md) 与 `node tools/metrics.mjs --data=<dir>` |

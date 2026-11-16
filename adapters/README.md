@@ -16,6 +16,7 @@ export WHALE_DATA_DIR=/path/to/data
 node adapters/cli/memory-cli.mjs write --text "..." --feeling "轻松" --weight important
 node adapters/cli/memory-cli.mjs recall --query "那本书里那个人" --limit 2
 node adapters/cli/memory-cli.mjs waking --chat "local:owner"
+node adapters/cli/memory-cli.mjs export --out D:\备份
 ```
 
 也可以每条命令带 `--data /path/to/data`，优先于环境变量。`/path/to/data` 是下面有 `plugin-data/` 的数据根目录。
