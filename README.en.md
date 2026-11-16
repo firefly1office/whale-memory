@@ -71,7 +71,7 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | Inspect the data format | [Schema](docs/schema.md) and [fictional samples](examples/samples/) |
 | See another host surface yesterday | [First day, still connected the next](examples/first-day/): two processes, no recall command |
 | Vector/RAG for finding, this for telling | [Composing with a retrieval layer](docs/composition.md): retrieval returns ids; `then/later` holds the narrative |
-| Backup and move machines | [Backup & migration](docs/backup.md): three files, and how to verify after restore |
+| Backup and move machines | [Backup & migration](docs/backup.md): four files, and how to verify after restore |
 | How far it goes, what it won't do | [Limits & non-guarantees](docs/limits.md): measured scale, plaintext storage, deletion semantics |
 | When to hand a memory back | [Injection timing](docs/injection.md): seven rules, a minimal implementation, anti-patterns |
 | Understand the design | [Architecture](docs/architecture.md): layers, evidence policy, recall and write constraints |

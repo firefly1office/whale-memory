@@ -11,34 +11,55 @@ export function eventsFile(memDir) {
   return path.join(memDir, FILE)
 }
 
-export function append(memDir, { id, choice, note = '' } = {}, opts = {}) {
-  if (!String(id || '').trim()) throw new Error('id 不能为空')
-  if (!CHOICES.has(choice)) throw new Error('choice 只能是 done / shelved / reopen')
+function makeRow({ id, choice, note }) {
   const now = new Date()
-  const row = {
+  return {
     id: String(id),
     at: now.toISOString(),
     day: now.toLocaleDateString('sv-SE'),
     choice,
     note: String(note || '').slice(0, 200)
   }
+}
 
+// 调用前必须已经持有锁；append 和 decide 共用这一层，避免同一次选择被锁外读到两次
+function appendUnlocked(memDir, row) {
+  const file = eventsFile(memDir)
+  let prefix = ''
+  try {
+    const st = fs.statSync(file)
+    if (st.size) {
+      const fd = fs.openSync(file, 'r')
+      const buf = Buffer.alloc(1)
+      fs.readSync(fd, buf, 0, 1, st.size - 1)
+      fs.closeSync(fd)
+      if (buf[0] !== 10) prefix = '\n'
+    }
+  } catch { }
+  fs.appendFileSync(file, prefix + JSON.stringify(row) + '\n', 'utf8')
+  return row
+}
+
+export function append(memDir, { id, choice, note = '' } = {}, opts = {}) {
+  if (!String(id || '').trim()) throw new Error('id 不能为空')
+  if (!CHOICES.has(choice)) throw new Error('choice 只能是 done / shelved / reopen')
+  const row = makeRow({ id, choice, note })
+  fs.mkdirSync(memDir, { recursive: true })
+  return withFileLock(eventsFile(memDir) + '.lock', () => appendUnlocked(memDir, row), opts)
+}
+
+// 在同一个锁里「重读最近状态 → 判断 → 追加」：
+// 两个进程同时提交同一选择，第二个会看到第一个的结果并返回 noop，不会写出第二条
+export function decide(memDir, { id, choice, note = '' } = {}, opts = {}) {
+  if (!String(id || '').trim()) throw new Error('id 不能为空')
+  if (!CHOICES.has(choice)) throw new Error('choice 只能是 done / shelved / reopen')
   fs.mkdirSync(memDir, { recursive: true })
   return withFileLock(eventsFile(memDir) + '.lock', () => {
-    const file = eventsFile(memDir)
-    let prefix = ''
-    try {
-      const st = fs.statSync(file)
-      if (st.size) {
-        const fd = fs.openSync(file, 'r')
-        const buf = Buffer.alloc(1)
-        fs.readSync(fd, buf, 0, 1, st.size - 1)
-        fs.closeSync(fd)
-        if (buf[0] !== 10) prefix = '\n'
-      }
-    } catch { }
-    fs.appendFileSync(file, prefix + JSON.stringify(row) + '\n', 'utf8')
-    return row
+    const rows = readAll(memDir).rows.filter((r) => r.id === String(id))
+    const last = rows[rows.length - 1] || null
+    if (last && last.choice === choice) return { row: last, noop: true }
+    if (choice === 'reopen' && !last) return { row: null, noop: true }
+    return { row: appendUnlocked(memDir, makeRow({ id, choice, note })), noop: false }
   }, opts)
 }
 

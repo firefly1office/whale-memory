@@ -1,5 +1,5 @@
 // 类型冒烟：CI 里用 tsc --strict 跑这个文件，保证 .d.ts 与导出对得上
-import { selfExperience, evidencePolicy, evidenceFromExperience, selfPrompt, waking } from '../packages/core/index.js'
+import { selfExperience, evidencePolicy, evidenceFromExperience, selfPrompt, waking, unfinishedEvents } from '../packages/core/index.js'
 
 const rows = selfExperience.loadAll('/tmp/whale')
 const made = selfExperience.addExperience('/tmp/whale', { text: '灯塔', weight: 'important' })
@@ -17,5 +17,6 @@ if (firstCtx) console.log(firstCtx.text, firstCtx.raw.then.text)
 
 const pending = selfExperience.pendingLegacyEvents('/tmp/whale')
 const back = selfExperience.setUnfinishedState('/tmp/whale', { id: made.id, choice: 'shelved' })
-console.log(pending.length, made.matchedLater?.length, made.formerId, back.ok)
+const lastChoice = unfinishedEvents.latestByExp('/tmp/whale').get(made.id)?.choice
+console.log(pending.length, made.matchedLater?.length, made.formerId, back.ok, lastChoice)
 console.log(rows.length, made.then.text, verdict.status, facts.length, answer.status, block, prompt.ok)

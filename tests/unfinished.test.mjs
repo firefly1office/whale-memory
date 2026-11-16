@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import * as exp from '../packages/core/lib/self-experience.js'
 import * as waking from '../packages/core/lib/waking.js'
@@ -49,7 +49,7 @@ test('想通：次日移出未完列表，翻读显示已想通，后记数不�
   assert.equal(view.later.length, 0, '结案不是后记，不能算改主意')
   assert.equal(Number(view.recalls || 0), 0)
   const text = exp.renderTwoPart(view)
-  assert.match(text, /已经想通了：想知道船有没有回来/)
+  assert.match(text, /后来想通了：想知道船有没有回来/)
 })
 
 test('暂放：次日不提醒，也不自动催；翻读显示先放下', (t) => {
@@ -64,7 +64,7 @@ test('暂放：次日不提醒，也不自动催；翻读显示先放下', (t) =
   const view = exp.currentView(memOf(dataDir), row.id)
   assert.equal(view.unfinishedState.choice, 'shelved')
   assert.equal(view.later.length, 0)
-  assert.match(exp.renderTwoPart(view), /先放下了，还没有想通/)
+  assert.match(exp.renderTwoPart(view), /先放下了，还没想通/)
 })
 
 test('再接着想：恢复进入未完列表，翻读看得出中间放下过', (t) => {
@@ -76,7 +76,7 @@ test('再接着想：恢复进入未完列表，翻读看得出中间放下过',
   assert.match(block, /你还没弄完：想知道船有没有回来/)
   const view = exp.currentView(memOf(dataDir), row.id)
   assert.equal(view.unfinishedState.choice, 'reopen')
-  assert.match(exp.renderTwoPart(view), /中间放下过，后来又决定接着想/)
+  assert.match(exp.renderTwoPart(view), /放下过，后来又决定接着想/)
   assert.deepEqual(view.unfinishedState.history, ['shelved', 'reopen'])
 })
 
@@ -87,8 +87,8 @@ test('想通之后再拾起：措辞是「本来觉得想通了」，不是「�
   exp.setUnfinishedState(memOf(dataDir), { id: row.id, choice: 'reopen' })
   const view = exp.currentView(memOf(dataDir), row.id)
   const text = exp.renderTwoPart(view)
-  assert.match(text, /本来觉得想通了，后来又决定接着想/)
-  assert.doesNotMatch(text, /中间放下过/)
+  assert.match(text, /想通过一次，后来又决定接着想/)
+  assert.doesNotMatch(text, /放下过，后来又决定接着想/)
 })
 test('按 id 操作：相同未完文字的另一条不受影响', (t) => {
   const dataDir = tmp(t)
@@ -138,6 +138,58 @@ test('旧 id 有歧义：不落到任何一条', (t) => {
   assert.match(res.error, /好几条旧经历共用/)
 })
 
+test('先想通再暂放：文案看得出想通过', (t) => {
+  const dataDir = tmp(t)
+  const row = seed(dataDir)
+  exp.setUnfinishedState(memOf(dataDir), { id: row.id, choice: 'done' })
+  exp.setUnfinishedState(memOf(dataDir), { id: row.id, choice: 'shelved' })
+  const text = exp.renderTwoPart(exp.currentView(memOf(dataDir), row.id))
+  assert.match(text, /想通过一次，后来又决定先放下/)
+})
+
+test('多次重提：按最近一次之前的状态渲染', (t) => {
+  const dataDir = tmp(t)
+  const row = seed(dataDir)
+  for (const c of ['shelved', 'reopen', 'done', 'reopen']) exp.setUnfinishedState(memOf(dataDir), { id: row.id, choice: c })
+  const view = exp.currentView(memOf(dataDir), row.id)
+  assert.deepEqual(view.unfinishedState.history, ['shelved', 'reopen', 'done', 'reopen'])
+  assert.match(exp.renderTwoPart(view), /想通过一次，后来又决定接着想/)
+})
+
+test('没有文字后记时，不说她没想过', (t) => {
+  const dataDir = tmp(t)
+  const row = seed(dataDir)
+  exp.setUnfinishedState(memOf(dataDir), { id: row.id, choice: 'done' })
+  const text = exp.renderTwoPart(exp.currentView(memOf(dataDir), row.id))
+  assert.match(text, /还没有文字后记/)
+  assert.doesNotMatch(text, /还没回头想过/)
+})
+
+test('两个进程同时提交同一选择，只记一次', async (t) => {
+  const dataDir = tmp(t)
+  const mem = memOf(dataDir)
+  const cli = path.join(root, 'adapters/cli/memory-cli.mjs')
+  const row = seed(dataDir)
+  const lock = path.join(mem, 'unfinished-events.jsonl.lock')
+  fs.mkdirSync(lock, { recursive: true })
+
+  const start = () => new Promise((resolve, reject) => {
+    const p = spawn(process.execPath, [cli, 'unfinished', '--id', row.id, '--state', 'done', '--data', dataDir], { stdio: ['ignore', 'pipe', 'pipe'] })
+    let out = '', err = ''
+    p.stdout.on('data', (b) => { out += b })
+    p.stderr.on('data', (b) => { err += b })
+    p.on('error', reject)
+    p.on('close', (code) => code === 0 ? resolve(out) : reject(new Error(err + out)))
+  })
+  const both = Promise.all([start(), start()])
+  await new Promise((resolve) => setTimeout(resolve, 700))
+  fs.rmdirSync(lock)
+  await both
+
+  const view = exp.currentView(mem, row.id)
+  assert.deepEqual(view.unfinishedState.history, ['done'])
+  assert.equal(unfinishedEvents.readAll(mem).rows.length, 1)
+})
 test('CLI：unfinished 命令落盘，read 能读回状态', (t) => {
   const dataDir = tmp(t)
   const cli = path.join(root, 'adapters/cli/memory-cli.mjs')

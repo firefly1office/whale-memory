@@ -1,6 +1,6 @@
 # 备份与搬家
 
-她的一条经历在磁盘上可能由三个文件拼成。只拷 `self-experience.jsonl`，会丢掉后记和想起次数。
+她的一条经历在磁盘上可能由四个文件拼成。只拷 `self-experience.jsonl`，会丢掉后记、想起次数和「这件事放下了没有」。
 
 ## 要备份什么
 
@@ -50,6 +50,7 @@ node adapters/cli/memory-cli.mjs read --data=<data> --limit 3
 - `self-experience.jsonl` 里没有残留的 `later` 字段（迁移后应清掉）
 - `later-events.jsonl` 的条数 = 所有经历的后记总数
 - `recall-events.jsonl` 的条数 = 所有经历的 `recalls` 之和
+- `unfinished-events.jsonl` 里的每个 id 都能在经历里找到
 
 对不上就先别删旧备份。
 

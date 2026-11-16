@@ -8,16 +8,32 @@
 node examples/first-day/run.mjs
 ```
 
-**想自己试「想通 / 暂放」**：加上 `--keep true` 保留数据目录，再按输出的路径跑：
+默认数据是临时目录，跑完删掉；想接着试「想通 / 暂放」，加 `--keep true` 保留：
 
 ```sh
-node examples/first-day/choose.mjs --data <数据根目录> --state done
-node examples/first-day/choose.mjs --data <数据根目录> --state shelved
+node examples/first-day/run.mjs --keep true
 ```
 
-`done` 之后，次日醒来块的「你还没弄完」会消失；`shelved` 不会催；再看 `read` 能翻回当时的未完成内容。
+输出末尾会打印数据目录和三条可复制的命令。
 
-输出会依次出现：
+**二选一，不要在同一目录上顺序都跑。** 想两种都试，就各开一个数据目录：
+
+```sh
+# 目录 A：想通
+node examples/first-day/choose.mjs --data <目录A> --state done
+
+# 目录 B：暂放
+node examples/first-day/choose.mjs --data <目录B> --state shelved
+
+# 目录 B：暂放之后又决定接着想
+node examples/first-day/choose.mjs --data <目录B> --state reopen
+```
+
+`done` 之后，次日醒来块的「你还没弄完」会消失；`shelved` 不会催；`reopen` 会恢复。翻读会显示对应的状态，原文和当时的未完成内容都还在。
+
+> 同一目录上先 `done` 再 `shelved` 也能跑，但摘要会以“最近一次选择”为准——之前想通过这件事只会出现在历史里，不会留在【现在】那一行。
+
+## 输出会依次出现
 
 ```
 [第 1 天] 她留下了一条经历
@@ -28,17 +44,32 @@ node examples/first-day/choose.mjs --data <数据根目录> --state shelved
 [第 2 天] 她改了主意；原文没有被覆盖
 ```
 
+`choose.mjs` 的输出会同时给两段：
+
+```
+[选择] done → {"ok":true,...}
+
+[次日醒来块]
+【醒来】今天是 ...
+（想通之后，这里不再有「你还没弄完」）
+
+[翻读这条]
+【当时】...
+【现在】...
+- 当时没弄完的这件事：后来想通了：想知道第二天她下塔了没有（...）
+```
+
 ## 两个独立进程
 
-`run.mjs` 用两个 `node` 子进程跑第 1 天和第 2 天，中间不共享内存——模拟真的关掉应用再打开。数据是临时目录，跑完删掉。
+`run.mjs` 用两个 `node` 子进程跑第 1 天和第 2 天，中间不共享内存——模拟真的关掉应用再打开。`choose.mjs` 也是独立进程，写入后退出，再由下一次读回。
 
 ## 这个例子没有证明什么
 
 - 没有证明宿主「总是」判断得对：这里只按话题命中决定递不递
 - 没有证明检索质量：用的是 `mode: 'loose'`，宁可多递
-- 没有接模型：角色「改主意」是写死的
+- 没有接模型：角色「改主意」和「想通/暂放」都是脚本预设的
 
-它证明的只有一件事：**别人的宿主可以把「她自己的昨天」在第二天递回来，且不需要她先写一条检索命令。**
+它证明的只有一件事：**别人的宿主可以把「她自己的昨天」在第二天递回来，且不需要她先写一条检索命令；她也可以明确决定放下。**
 
 ## 接自己的角色时
 
@@ -46,6 +77,6 @@ node examples/first-day/choose.mjs --data <数据根目录> --state shelved
 2. 关掉进程
 3. 第 2 天：在你的对话入口里调 `recall(dir, 用户这句话, { mode: 'loose' })`
 4. 命中就 `renderTwoPart()` 塞进上下文；没命中就不塞，别硬凑
-5. 她想改口时调 `reviseExperience()`，原文不会被覆盖
+5. 她想改口时调 `reviseExperience()`；想放下时调 `setUnfinishedState()`。两者都不覆盖原文。
 
 卡住的地方通常不是存储，是**什么时候该递**——这个判断属于宿主，例子只给了一个最笨的版本。

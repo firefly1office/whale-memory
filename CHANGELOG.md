@@ -2,6 +2,22 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.11.2] · 2026-11-16
+
+### Fixed
+
+- `setUnfinishedState` 的“重读 → 判断 → 追加”移进同一把文件锁：两个进程同时提交同一选择只记一次，不会出现 `["done","done"]`。新增并发回归测试。
+- `packages/core/index.d.ts` 补上 `unfinishedEvents` 导出：`import { unfinishedEvents } from 'whale-memory-core'` 在 TypeScript 里不再报 TS2305。
+- `renderTwoPart` 的结案文案按“最近一次选择之前的那一次”渲染，不再用 `history.includes` 猜：`done → shelved` 会写“想通过一次，后来又决定先放下”；`shelved → reopen → done → reopen` 会写“想通过一次，后来又决定接着想”。
+- 文案去矛盾：「这件没弄完的事已经想通了」→「当时没弄完的这件事：后来想通了」；「本来觉得想通了」→「想通过一次」；没有文字后记时不再说“还没回头想过”，改为“还没有文字后记”。
+
+### Docs
+
+- DSH 适配 README：安装 A/B 各给一条从已知目录出发的路径；自检每条命令都带 `--data`，并写明数据目录不能放在 skill / `node_modules` / 仓库克隆里；`waking` 自检加 `--peek true`，说明当天看不到次日效果。
+- `examples/first-day/README.md`：`--keep true` 与“默认删掉”不再矛盾；done / shelved 写明二选一、两种各开一个目录；补 `reopen` 与两段输出示例。
+- `docs/backup.md` 四件套与校验项；`docs/limits.md` 事件增长补 `unfinished-events.jsonl`；`docs/storage-events.md` 重写为当前语义（0.5.0 的旧描述已移除）。
+- 根 README 增加“想让她放下旧念头”入口，备份说明改为四个文件。
+
 ## [0.11.1] · 2026-11-16
 
 ### Added

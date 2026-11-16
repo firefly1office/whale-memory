@@ -246,12 +246,10 @@ export function setUnfinishedState(dir, { id, choice, note = '' } = {}) {
     const row = rowsById(dir, target.id)
     if (!row || !row.then || !row.then.unfinished) return { ok: false, error: '这条经历没有「还没弄完」的内容，不需要结案。' }
 
-    const latest = unfinishedEvents.latestByExp(dir).get(target.id)
-    if (latest && latest.choice === choice) return { ok: true, id: target.id, at: latest.at, noop: true }
-    if (choice === 'reopen' && !latest) return { ok: true, id: target.id, at: '', noop: true }
-
-    const event = unfinishedEvents.append(dir, { id: target.id, choice, note: tooLong('note', note, 200) })
-    return { ok: true, id: target.id, at: event.at, choice, noop: false }
+    // 重读、判断、追加都在同一把锁里：两个进程同时提交同一选择，只有一个会写
+    const decided = unfinishedEvents.decide(dir, { id: target.id, choice, note: tooLong('note', note, 200) })
+    if (decided.noop) return { ok: true, id: target.id, at: decided.row ? decided.row.at : '', choice, noop: true }
+    return { ok: true, id: target.id, at: decided.row.at, choice, noop: false }
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) }
   }
@@ -367,20 +365,19 @@ export function renderTwoPart(entry, { now = new Date() } = {}) {
     const shown = hits.length + 1
     if (later.length > shown) lines.push('- （后来一共回头想过 ' + later.length + ' 次，这里没列出的 ' + (later.length - shown) + ' 次可以用 read 看）')
   } else {
-    lines.push('- 之后你还没回头想过')
+    lines.push('- 还没有文字后记')
   }
   const st = entry.unfinishedState
   if (st && t.unfinished) {
     const when2 = st.day || String(st.at || '').slice(0, 10)
-    if (st.choice === 'done') {
-      lines.push('- 这件没弄完的事已经想通了：' + t.unfinished + '（' + when2 + '）')
-    } else if (st.choice === 'shelved') {
-      lines.push('- 这件没弄完的事先放下了，还没有想通：' + t.unfinished + '（' + when2 + '）')
-    } else if (st.choice === 'reopen') {
-      const history = st.history || []
-      if (history.includes('shelved')) lines.push('- 这件事中间放下过，后来又决定接着想：' + t.unfinished + '（' + when2 + '）')
-      else if (history.includes('done')) lines.push('- 这件事本来觉得想通了，后来又决定接着想：' + t.unfinished + '（' + when2 + '）')
-    }
+    const history = st.history || []
+    // 只看最近一次决定之前的那一次，不用 includes 猜
+    const prev = history.length >= 2 ? history[history.length - 2] : ''
+    let phrase = ''
+    if (st.choice === 'done') phrase = prev === 'shelved' ? '放下过，后来想通了' : '后来想通了'
+    else if (st.choice === 'shelved') phrase = prev === 'done' ? '想通过一次，后来又决定先放下' : '先放下了，还没想通'
+    else if (st.choice === 'reopen') phrase = prev === 'done' ? '想通过一次，后来又决定接着想' : '放下过，后来又决定接着想'
+    if (phrase) lines.push('- 当时没弄完的这件事：' + phrase + '：' + t.unfinished + '（' + when2 + '）')
   }
   lines.push('', '以上是那天留下的全部；没留下的，我不记得。')
   return lines.join('\n')
