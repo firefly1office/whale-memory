@@ -55,6 +55,8 @@ test('事后联想：两头都看得见；另一头封存了的，连理由也�
   const key = exp.currentView(dir, 'exp_key')
   assert.deepEqual(key.links.map((l) => l.id).sort(), ['exp_first', 'exp_hurt'])
   assert.equal(key.links.find((l) => l.id === 'exp_hurt').sealed, true)
+  assert.equal(key.links.find((l) => l.id === 'exp_hurt').reason, undefined, '封存的另一头，原始 links 里也不能带理由')
+  assert.equal(key.links.find((l) => l.id === 'exp_hurt').text, undefined, '封存的另一头，原始 links 里也不能带正文')
   const text = exp.renderTwoPart(key)
   assert.match(text, /你后来把它和这些事连在一起：.*「第一天去灯塔书店上班」——都是被人接住的感觉/)
   assert.match(text, /（一件你封存了的事）/)
