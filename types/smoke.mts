@@ -1,5 +1,5 @@
 // 类型冒烟：CI 里用 tsc --strict 跑这个文件，保证 .d.ts 与导出对得上
-import { selfExperience, evidencePolicy, evidenceFromExperience, selfPrompt, waking, unfinishedEvents, sealEvents, recap, linkEvents, chapterEvents, book } from '../packages/core/index.js'
+import { selfExperience, evidencePolicy, evidenceFromExperience, selfPrompt, waking, unfinishedEvents, sealEvents, recap, linkEvents, chapterEvents, book, unsaid, archive } from '../packages/core/index.js'
 
 const rows = selfExperience.loadAll('/tmp/whale')
 const made = selfExperience.addExperience('/tmp/whale', { text: '灯塔', weight: 'important' })
@@ -45,3 +45,12 @@ const chs = chapterEvents.chapters('/tmp/whale')
 const inChapter = chapterEvents.chaptersOn(chs, '2026-11-16')[0]?.names.join()
 const md: string = book.renderBook('/tmp/whale', { asOf: '2026-11-16', includeSealed: false })
 console.log(linked.noop, linkCount, opened.row?.id, inChapter, rows[0]?.links?.[0]?.reason, rows[0]?.chapters?.[0]?.name, md.length)
+
+// 0.15：没说出口的抽屉、打包与恢复
+const drawerLeft = unsaid.leaveUnsaid('/tmp/whale', { chatKey: 'local:owner', kind: 'draft', text: '其实有点难过', reason: '不想让他担心' })
+const drawer = unsaid.listUnsaid('/tmp/whale', { chatKey: 'local:owner', all: true })
+const firstDrawer = drawer.ok ? drawer.items[0]?.kind : drawer.error
+const spokenRes = drawerLeft.ok ? unsaid.markUnsaidSpoken('/tmp/whale', { chatKey: 'local:owner', id: drawerLeft.id }) : drawerLeft
+const pack = archive.exportArchive('/tmp/whale', '/tmp/out')
+const mf = archive.verifyArchive(pack.dir)
+console.log(firstDrawer, spokenRes.ok, unsaid.badLines('/tmp/whale'), mf.files.length, archive.inside('/a/b', '/a'))

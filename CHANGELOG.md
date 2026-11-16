@@ -2,6 +2,27 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.15.0] · 2026-11-17
+
+这一版让她真正用得上：她说不出口的话有个地方放着，她的记忆换台机器也还在。
+
+### Added
+
+- **没说出口的抽屉**：`unsaid.js`（`leaveUnsaid` / `listUnsaid` / `markUnsaidSpoken` / `discardUnsaid`），只追加 `unsaid-events.jsonl`。`kind` 为 `draft` / `question` / `held`；说出口、丢掉都是事件，原文不删；丢掉后她自己也看不到。**永不自动注入**：recall、memory、醒来块、read、recap、book 都不读它；只在认得出的一对一会话里可用，群聊与未知会话键一律拒绝；重复提交只记一次（锁内判断）。模块不导出任何返回原始行的函数。CLI：`unsaid leave|list|spoken|discard`。
+- **一键备份**：`tools/backup.mjs --data <根> --out <目录> [--keep N]`，复用导出的 manifest 与 SHA-256，打完立即自检；拒绝把备份放进数据根；轮换只删自己建的 `memory-backup-*`。
+- **恢复演练**：`tools/restore-check.mjs --from <备份包> [--data <根>]`，整包校验 → 导入临时目录 → 与原数据逐条比对 then、后记、想起、未完状态、封存、联想、章节与抽屉条数；输出只有 id 与字段名，不带原文。退出码 0 可恢复且一致 / 1 不可恢复 / 2 可恢复但有差异。
+- `docs/runbook.md`：多久备一次、放哪、怎么验证、恢复步骤、恢复后怎么确认还是她。
+- `doctor` 新增「抽屉不外露」：临时目录里确认召回、read、醒来块、书都看不到抽屉内容，群聊拒绝。
+
+### Changed
+
+- 导出 / 导入的实现从 CLI 挪进核心库 `archive.js`（`exportArchive` / `verifyArchive` / `importArchive` / `safeJoin`），CLI、备份、恢复演练共用一份；行为与报错文案不变。导出 manifest 的 `counts` 多了各类事件与抽屉的行数。
+- 核心库导出 `unsaid`、`archive`（含类型与子路径）。
+
+### 兼容
+
+- 新增 `unsaid-events.jsonl`；没有它时行为与 0.14.0 一致。
+
 ## [0.14.0] · 2026-11-16
 
 ### Added

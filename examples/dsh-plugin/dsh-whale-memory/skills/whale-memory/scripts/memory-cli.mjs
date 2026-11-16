@@ -4,7 +4,6 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import crypto from 'node:crypto'
 import * as exp from './core/lib/self-experience.js'
 import * as mem from './core/lib/self-memory.js'
 import * as waking from './core/lib/waking.js'
@@ -18,6 +17,8 @@ import * as recapLib from './core/lib/recap.js'
 import * as linkEvents from './core/lib/link-events.js'
 import * as chapterEvents from './core/lib/chapter-events.js'
 import * as book from './core/lib/book.js'
+import * as archive from './core/lib/archive.js'
+import * as unsaid from './core/lib/unsaid.js'
 import { parseAsOf } from './core/lib/as-of.js'
 
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
@@ -49,116 +50,9 @@ function weightArg() {
 
 function out(obj) { console.log(JSON.stringify(obj, null, 2)) }
 
-const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest('hex')
-const stamp = () => new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-
-// 导出的文件清单：跳过锁文件和临时文件，其余按相对路径收
-function collectFiles(root) {
-  const out = []
-  const walk = (dir, rel) => {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (e.name.endsWith('.lock') || e.name.includes('.tmp-')) continue
-      const abs = path.join(dir, e.name)
-      const next = rel ? rel + '/' + e.name : e.name
-      if (e.isDirectory()) { walk(abs, next); continue }
-      if (e.isFile()) out.push({ name: next, abs })
-    }
-  }
-  walk(root, '')
-  return out.sort((a, b) => a.name.localeCompare(b.name))
-}
-
-function countLines(file) {
-  try {
-    return fs.readFileSync(file, 'utf8').split('\n').filter((l) => l.trim()).length
-  } catch { return 0 }
-}
-
-function doExport(outArg, memDir = MEM_DIR) {
-  if (!fs.existsSync(memDir)) throw new Error('没有找到记忆目录：' + memDir)
-  const target = path.resolve(outArg, 'memory-export-' + stamp())
-  const insideSource = target === memDir || target.startsWith(memDir + path.sep)
-  const sourceInsideTarget = memDir.startsWith(target + path.sep)
-  if (insideSource || sourceInsideTarget) throw new Error('导出目录不能和记忆目录互相包含：' + target)
-  if (fs.existsSync(target)) throw new Error('导出目录已存在：' + target)
-
-  const files = collectFiles(memDir)
-  fs.mkdirSync(target, { recursive: true })
-  const manifestFiles = []
-  let bytes = 0
-  for (const f of files) {
-    const content = fs.readFileSync(f.abs)
-    const dest = path.join(target, f.name)
-    fs.mkdirSync(path.dirname(dest), { recursive: true })
-    fs.writeFileSync(dest, content)
-    manifestFiles.push({ name: f.name, bytes: content.length, sha256: sha256(content) })
-    bytes += content.length
-  }
-  const manifest = {
-    format: 'whale-memory-export',
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    files: manifestFiles,
-    counts: {
-      experiences: exp.loadAll(memDir).length,
-      diaries: countLines(path.join(memDir, 'autobiography.jsonl')),
-      laterEvents: countLines(path.join(memDir, 'later-events.jsonl')),
-      recallEvents: countLines(path.join(memDir, 'recall-events.jsonl'))
-    }
-  }
-  fs.writeFileSync(path.join(target, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8')
-  return { ok: true, dir: target, files: manifestFiles.length, bytes, counts: manifest.counts }
-}
-
-// 导出包里的相对路径：正反斜杠、绝对路径、盘符相对路径、任何 '..' 段都拒绝，
-// 再用解析后的绝对路径确认确实落在 root 里面（不靠枚举写法）
-function safeJoin(root, name) {
-  const n = String(name || '')
-  if (!n || n.includes('\0')) throw new Error('导出里有可疑路径：' + JSON.stringify(name))
-  if (path.isAbsolute(n) || path.win32.isAbsolute(n) || /^[a-zA-Z]:/.test(n)) throw new Error('导出里有绝对路径：' + n)
-  if (n.split(/[\\/]+/).includes('..')) throw new Error('导出里有越界路径：' + n)
-  const rootAbs = path.resolve(root)
-  const abs = path.resolve(rootAbs, n)
-  if (abs !== rootAbs && !abs.startsWith(rootAbs + path.sep)) throw new Error('导出里有越界路径：' + n)
-  return abs
-}
-
-function doImport(fromArg, force, memDir = MEM_DIR) {
-  const src = path.resolve(fromArg)
-  const manifestFile = path.join(src, 'manifest.json')
-  if (!fs.existsSync(manifestFile)) throw new Error('不是 whale-memory 导出目录（缺 manifest.json）：' + src)
-  let manifest
-  try { manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8')) } catch {
-    throw new Error('manifest.json 读不出来：' + manifestFile)
-  }
-  if (!manifest || manifest.format !== 'whale-memory-export' || !Array.isArray(manifest.files)) {
-    throw new Error('manifest.json 格式不对：' + manifestFile)
-  }
-  // 先校验全部文件，再动目标目录：坏一个就一个字节都不写
-  for (const f of manifest.files) {
-    const name = String(f.name || '')
-    const abs = safeJoin(src, name)
-    if (!fs.existsSync(abs)) throw new Error('导出缺少文件：' + name)
-    const buf = fs.readFileSync(abs)
-    if (sha256(buf) !== f.sha256) throw new Error('文件校验不通过：' + name)
-  }
-
-  const exists = fs.existsSync(memDir) && fs.readdirSync(memDir).length > 0
-  if (exists && !force) throw new Error('目标已有数据：' + memDir + '。确认覆盖请加 --force true（会先备份）')
-  let backup = ''
-  if (exists && force) {
-    backup = memDir + '.pre-import-' + stamp()
-    fs.renameSync(memDir, backup)
-  }
-  fs.mkdirSync(memDir, { recursive: true })
-  for (const f of manifest.files) {
-    const dest = safeJoin(memDir, f.name)
-    fs.mkdirSync(path.dirname(dest), { recursive: true })
-    fs.copyFileSync(safeJoin(src, f.name), dest)
-  }
-  const loaded = exp.loadAll(memDir)
-  return { ok: true, files: manifest.files.length, restoreTo: memDir, backup, counts: { experiences: loaded.length } }
-}
+// 打包与恢复的实现在核心库 archive.js（备份工具、恢复检查也用同一份）
+function doExport(outArg, memDir = MEM_DIR) { return archive.exportArchive(memDir, outArg) }
+function doImport(fromArg, force, memDir = MEM_DIR) { return archive.importArchive(fromArg, memDir, { force }) }
 
 // 彻底忘掉：列出/删除所有可能还留着原文的地方
 // 默认只列不删；--yes true 才动手。导出目录不在数据根下，只提示，不替人删。
@@ -207,7 +101,7 @@ function doDoctor() {
 
   add('事件文件可解析', () => {
     if (!fs.existsSync(MEM_DIR)) return { ok: true, detail: '没有数据目录，跳过' }
-    const bad = [laterEvents, recallEvents, unfinishedEvents, sealEvents, linkEvents, chapterEvents].reduce((n, m) => n + m.readAll(MEM_DIR).bad, 0)
+    const bad = [laterEvents, recallEvents, unfinishedEvents, sealEvents, linkEvents, chapterEvents].reduce((n, m) => n + m.readAll(MEM_DIR).bad, 0) + unsaid.badLines(MEM_DIR)
     return { ok: bad === 0, detail: bad === 0 ? '没有坏行' : '有 ' + bad + ' 行解析失败' }
   })
 
@@ -259,6 +153,27 @@ function doDoctor() {
   add('醒来白名单', () => {
     const ok = waking.isPrivateKey('private_100000000') && waking.isPrivateKey('local:owner') && !waking.isPrivateKey('group:936614388')
     return { ok, detail: ok ? '私聊放行、群聊拦截' : '白名单判断不对' }
+  })
+
+  // 没说出口的抽屉：只有私聊里的 list 能看到；召回、醒来、read、书都看不到，群聊拒绝
+  add('抽屉不外露（临时目录）', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-doctor-'))
+    try {
+      const root = path.join(tmp, 'data')
+      const memDir = path.join(root, 'plugin-data', 'biomimetic-memory')
+      exp.addExperience(memDir, { text: '体检探针：今天读了灯塔' })
+      const probe = '体检探针抽屉原文'
+      const left = unsaid.leaveUnsaid(memDir, { chatKey: 'local:owner', kind: 'draft', text: probe })
+      const seenBy = []
+      if (JSON.stringify(exp.recall(memDir, probe, { mode: 'loose', limit: 5 })).includes(probe)) seenBy.push('recall')
+      if (JSON.stringify(exp.loadAll(memDir)).includes(probe)) seenBy.push('read')
+      if (waking.buildWakingBlock(root, 'local:owner', { now: new Date(Date.now() + 86400000) }).includes(probe)) seenBy.push('醒来块')
+      if (book.renderBook(memDir).includes(probe)) seenBy.push('book')
+      const group = unsaid.listUnsaid(memDir, { chatKey: 'group:936614388' })
+      const mine = unsaid.listUnsaid(memDir, { chatKey: 'local:owner' })
+      const ok = left.ok && !seenBy.length && !group.ok && mine.ok && mine.items.some((x) => x.text === probe)
+      return { ok, detail: ok ? '只有私聊里打开抽屉才看得到；召回、read、醒来块、书都看不到；群聊拒绝' : '抽屉外露：' + (seenBy.join('、') || (group.ok ? '群聊也能打开' : '私聊打不开')) }
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }) }
   })
 
   return { ok: checks.every((c) => c.ok), checks }
@@ -388,6 +303,18 @@ try {
       out({ ok: true, ...(asOf ? { asOf } : {}), chapters: list.map((c) => ({ ...c, experiences: rows.filter((r) => (r.chapters || []).some((x) => x.id === c.id)).length })) })
     } else throw new Error('chapter 子命令：open --name .. [--from 2026-11-01 --to ..] / rename --id .. --name .. / close --id .. [--to ..] / list [--as-of ..]')
     if (res) out({ ok: true, noop: res.noop, ...(res.row ? { chapter: res.row } : {}) })
+  } else if (cmd === 'unsaid') {
+    // 没说出口的抽屉：只在一对一会话里打开（--chat 默认 local:owner）；永不自动注入
+    const sub = process.argv[3]
+    const chatKey = arg('chat', 'local:owner') || 'local:owner'
+    let res
+    if (sub === 'leave') res = unsaid.leaveUnsaid(MEM_DIR, { chatKey, kind: arg('kind', 'draft') || 'draft', text: arg('text', '') || '', reason: arg('reason', '') || '' })
+    else if (sub === 'list') res = unsaid.listUnsaid(MEM_DIR, { chatKey, all: String(arg('all', 'false')) === 'true' })
+    else if (sub === 'spoken') res = unsaid.markUnsaidSpoken(MEM_DIR, { chatKey, id: arg('id', '') || '' })
+    else if (sub === 'discard') res = unsaid.discardUnsaid(MEM_DIR, { chatKey, id: arg('id', '') || '' })
+    else throw new Error('unsaid 子命令：leave --kind draft|question|held --text ".." [--reason ..] / list [--all true] / spoken --id .. / discard --id ..（都可带 --chat，默认 local:owner）')
+    out(res)
+    if (!res.ok) process.exitCode = 1
   } else if (cmd === 'book') {
     // 她的书：人能读的 Markdown 自传；封存的默认不收；--as-of 导出那时的她
     const md = book.renderBook(MEM_DIR, { asOf: arg('as-of', '') || null, includeSealed: String(arg('sealed', 'false')) === 'true', title: arg('title', '') || undefined })
@@ -442,6 +369,7 @@ try {
         'link --from .. --to .. --reason "..."   事后联想：她发现两件事有关，亲手连起来（必须说为什么；同一对只连一次）',
         'chapter open --name ".." [--from 2026-11-01 --to ..] | rename --id .. --name .. | close --id .. [--to ..] | list [--as-of ..]   人生章节：给一段日子起名字',
         'book [--out 她的书.md] [--as-of ..] [--sealed true] [--title ..]   导出人能读的自传（按章节；封存的默认不收）',
+        'unsaid leave --kind draft|question|held --text ".." [--reason ..] | list [--all true] | spoken --id .. | discard --id ..   没说出口的抽屉：只在一对一会话里打开，永不自动注入（--chat 默认 local:owner）',
         'export --out <目录>   把整份记忆打包（含 manifest 与校验和）',
         'import --from <导出目录> [--force true]   恢复；--force 会先备份现有目录',
         'purge [--yes true]   列出/删除记忆目录、导入前备份、迁移备份（默认只列不删）',

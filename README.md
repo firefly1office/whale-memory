@@ -87,7 +87,9 @@ node adapters/cli/memory-cli.mjs doctor
 | 她发现两件事有关 | `link --from A --to B --reason "..."`：亲手连起来，必须说为什么；不按相似度自动连 |
 | 给一段日子起名字 | `chapter open --name "灯塔书店的那个秋天" --from 2026-11-01`；改名留着旧名，翻回那天看到的是那时的叫法 |
 | 把她的自传印成书 | `book --out 她的书.md`：按章节分节，当时原样、后来接在后面；封存的不收 |
-| 备份与换机器 | [备份与搬家](docs/backup.md)：七个文件缺一不可，恢复后怎么校验 |
+| 她说不出口的话 | `unsaid leave --kind draft --text "..."`：打了没发的、想问没问的、忍住了的；只在私聊里 `unsaid list` 才看得到，永不自动注入 |
+| 一键备份、恢复演练 | `node tools/backup.mjs --data <根> --out <目录>`、`node tools/restore-check.mjs --from <备份包> --data <根>`（[运维手册](docs/runbook.md)） |
+| 备份与换机器 | [备份与搬家](docs/backup.md)：七个文件加一个抽屉，恢复后怎么校验 |
 | 撑多大、做不到什么 | [上限与不保证](docs/limits.md)：实测规模、明文存储、删除语义 |
 | 什么时候递回记忆 | [注入时机](docs/injection.md)：七条规则、可抄的实现和反例 |
 | 这些思路从哪来 | [借了谁、改了什么、刻意不做什么](docs/related-work.md)：Generative Agents、Zep、MemoryBank、A-MEM、情感引擎 |

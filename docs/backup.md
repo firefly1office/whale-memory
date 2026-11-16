@@ -1,6 +1,6 @@
 # 备份与搬家
 
-她的一条经历在磁盘上可能由七个文件拼成。只拷 `self-experience.jsonl`，会丢掉后记、想起次数、「这件事放下了没有」、「她封存了哪些」、她后来连起来的事和她给日子起的名字。
+她的一条经历在磁盘上可能由七个文件拼成，另有一个只属于她的「没说出口」抽屉。只拷 `self-experience.jsonl`，会丢掉后记、想起次数、「这件事放下了没有」、「她封存了哪些」、她后来连起来的事和她给日子起的名字。
 
 ## 要备份什么
 
@@ -13,6 +13,7 @@
   seal-events.jsonl         她封存 / 解封了哪些经历（0.13.0 起）
   link-events.jsonl         她后来把哪两件事连在了一起（0.14.0 起）
   chapter-events.jsonl      她给哪段日子起了什么名字（0.14.0 起）
+  unsaid-events.jsonl       没说出口的抽屉（0.15.0 起；永不自动注入）
   autobiography.jsonl       日记
   self-settings.json        她自己的设置
   prompt-overlay/           她改过的提示词
@@ -21,6 +22,8 @@
 `<data>` 是 QQ Agent 的数据根目录，通常是 `C:\Users\<你>\QQAgentData`。
 
 ## 备份
+
+**推荐用一键备份**（带 SHA-256、自动轮换、打完自检），以及恢复演练：见 [runbook.md](runbook.md)。下面是手动拷贝的做法。
 
 ```powershell
 $src = "$env:USERPROFILE\QQAgentData\plugin-data\biomimetic-memory"

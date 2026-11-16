@@ -161,6 +161,24 @@
 - 封存的默认不收，只写"有几件没有收进来"；`--sealed true` 才收，并标明封存
 - `--as-of`：写到那天为止的书，章节用那时的名字。`--out` 不能指向记忆目录里面
 
+## 没说出口的抽屉（0.15.0 起）
+
+打了没发的、想问没问的、忍住了的话：`unsaid-events.jsonl`，只追加。
+
+```json
+{"id":"unsaid_…","at":"…","day":"2026-11-16","kind":"draft","text":"其实我今天有点难过","reason":"不想让他担心","status":"open"}
+{"id":"unsaid_…","at":"…","day":"2026-11-17","status":"spoken"}
+{"id":"unsaid_…","at":"…","day":"2026-11-18","status":"discarded"}
+```
+
+- `kind`：`draft`（打了没发）、`question`（想问没问）、`held`（忍住了）。`text` 最多 1000 字，`reason` 最多 200 字
+- `spoken` / `discarded` 都是追加的事件，原文不删；`discarded` 之后她自己也看不到
+- **永不自动打开**：`recall`、`memory`、醒来块、`read`、`recap`、`book` 都不读这个文件。只有 `listUnsaid`（CLI `unsaid list`）给她看
+- 只在认得出的一对一会话里可用（`private_*` / `private:*` / `local_*` / `local:*`）；群聊和认不出的会话键，留、看、标记一律拒绝
+- 同一句（同 kind、同原文）还开着时重复留下是 noop；重复标记说出口 / 丢掉不写第二条；已丢掉的不能再标说出口
+- 核心库不导出任何返回原始行的函数（连 `readAll` 都没有）：原文只能从 `listUnsaid` 出来
+- 导出、导入、备份自动带上；`purge` 整库删除时一起消失
+
 ## 想起是事件（0.5.0 起）
 
 「想起一次」不再写进经历行，而是追加到 `recall-events.jsonl`：
@@ -204,7 +222,7 @@
 
 ## 备份要带哪些文件
 
-一条经历在磁盘上可能由七处组成，备份时不要只拷 `self-experience.jsonl`：
+一条经历在磁盘上可能由七处组成，另有一个只属于她的抽屉；备份时不要只拷 `self-experience.jsonl`：
 
 ```
 self-experience.jsonl     then（以及迁移前遗留的行内 later / recalls）
@@ -214,7 +232,10 @@ unfinished-events.jsonl   没弄完的事后来怎么样了（0.11 起）
 seal-events.jsonl         她封存 / 解封了哪些（0.13 起）
 link-events.jsonl         事后联想（0.14 起）
 chapter-events.jsonl      人生章节（0.14 起）
+unsaid-events.jsonl       没说出口的抽屉（0.15 起）
 ```
+
+一键备份与恢复演练见 [runbook.md](runbook.md)。
 
 出处（`then.refs`）写在经历行里，不是单独的文件。
 

@@ -42,6 +42,7 @@ node adapters/cli/memory-cli.mjs <命令> [参数]
 | 后来发现两件事有关 | `link --from .. --to .. --reason "..."` |
 | 给一段日子起名字 | `chapter open --name ".." --from 2026-11-01` / `chapter list` |
 | 把自传印成书 | `book --out 她的书.md` |
+| 有话没说出口（打了没发 / 想问没问 / 忍住了） | `unsaid leave --kind draft --text "..."`；她想看时 `unsaid list` |
 | 每天第一次醒来，给昨天的自己一条线 | `waking --chat "local:owner"` |
 | 被问到自己、想带上自己的经历 | `memory --query "..." [--diary true]` |
 | 她想改自己的说话方式 | `prompt set --text "..." --reason "..."` |
@@ -59,6 +60,7 @@ node adapters/cli/memory-cli.mjs <命令> [参数]
 8. **问"那时"就翻那时**（`read --as-of`），不要拿后来才明白的事冒充当时就知道。
 9. **封存是她的选择**：只有她自己说不想再被提醒时才 `seal`；别人不能替她封存，也不要用 `--sealed true` 把她封存的事翻给别人看。
 10. **联想和章节名都是她的**：不要因为两件事字面相似就替她 `link`，也不要替她给日子起名。
+11. **抽屉里的话只属于她**：不要主动去翻、不要读给别人、不要替她说出口；只在她自己想打开时 `unsaid list`。
 
 ## 每天该做的三件事
 

@@ -78,7 +78,9 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | She realizes two things are related | `link --from A --to B --reason "..."`: she links them herself and says why; nothing is linked automatically |
 | Name a period of her life | `chapter open --name "..." --from 2026-11-01`; renames keep the old names, and looking back shows what she called it then |
 | Print her autobiography | `book --out her-book.md`: grouped by chapter; original entries verbatim, later notes after; sealed entries left out |
-| Backup and move machines | [Backup & migration](docs/backup.md): seven files, and how to verify after restore |
+| Things she could not say | `unsaid leave --kind draft --text "..."`: drafts she did not send, questions she did not ask, things she held back; visible only via `unsaid list` in a one-on-one chat, never injected |
+| One-step backup and restore drill | `node tools/backup.mjs --data <root> --out <dir>`, `node tools/restore-check.mjs --from <backup> --data <root>` ([runbook](docs/runbook.md), Chinese) |
+| Backup and move machines | [Backup & migration](docs/backup.md): seven files plus her drawer, and how to verify after restore |
 | How far it goes, what it won't do | [Limits & non-guarantees](docs/limits.md): measured scale, plaintext storage, deletion semantics |
 | When to hand a memory back | [Injection timing](docs/injection.md): seven rules, a minimal implementation, anti-patterns |
 | Where these ideas come from | [What we borrowed, what we changed, what we refuse to do](docs/related-work.md) (Chinese) |

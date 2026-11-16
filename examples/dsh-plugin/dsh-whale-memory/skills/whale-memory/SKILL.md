@@ -73,6 +73,12 @@ node scripts/memory-cli.mjs chapter list
 # 把自传印成一本人能读的书（封存的不收）
 node scripts/memory-cli.mjs book --out "她的书.md"
 
+# 没说出口的抽屉：打了没发的、想问没问的、忍住了的（只在一对一会话里能开）
+node scripts/memory-cli.mjs unsaid leave --kind draft --text "其实我今天有点难过" --reason "不想让他担心"
+node scripts/memory-cli.mjs unsaid list
+node scripts/memory-cli.mjs unsaid spoken --id unsaid_xxx   # 后来说出口了
+node scripts/memory-cli.mjs unsaid discard --id unsaid_xxx  # 不想要了（之后她自己也看不到）
+
 # 每天第一次醒来
 node scripts/memory-cli.mjs waking --chat "local:owner"
 
@@ -100,6 +106,7 @@ node scripts/memory-cli.mjs settings get|set --json '{"readingPerDay":60}'
 9. 被问"你那时怎么想"时用 `read --as-of`，不要拿后来才想明白的事冒充当时就知道
 10. 封存是她的选择：只有她自己说不想再被提醒时才 `seal`；别人不能替她封存，也不要用 `--sealed true` 把她封存的事翻出来给别人看
 11. 连起两件事（`link`）、给日子起名字（`chapter`）都是她的联想和她的叫法；不要因为两件事字面相似就替她连，也不要替她给日子命名
+12. 抽屉里的话只属于她：不要主动去翻、不要读给别人、不要因为她留了一句就替她说出口；只在她自己想打开时 `unsaid list`
 
 ## 一句话用法
 

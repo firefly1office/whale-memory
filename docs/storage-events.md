@@ -21,6 +21,7 @@ then 写一次，永远不改；
 | 封存 / 解封 | 事件，只追加 | `seal-events.jsonl` | 追加一行 `{id, at, day, action, note?}`；锁内重读判断，重复动作不写 |
 | 事后联想 | 事件，只追加 | `link-events.jsonl` | 追加一行 `{from, to, at, day, reason}`；同一对（不分方向）只连一次 |
 | 人生章节 | 事件，只追加 | `chapter-events.jsonl` | `open` / `rename` / `close` 各一行；改名保留旧名 |
+| 没说出口的话 | 事件，只追加 | `unsaid-events.jsonl` | 留下一行 `status:open`；说出口 / 丢掉各追加一行；只在私聊里经由 `listUnsaid` 读出 |
 | 日记 | 事实，只追加 | `autobiography.jsonl` | 追加一行 |
 | 设置 | 状态，可覆盖 | `self-settings.json` | 锁 + 临时文件 + rename |
 | 提示词 | 状态/历史 | `prompt-overlay/` | 锁 + 原子写，保留版本 |
