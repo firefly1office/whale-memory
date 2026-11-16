@@ -116,11 +116,15 @@ for (const cliPath of CLIS) {
     test('import 拒绝用' + label + '跳出记忆目录（' + cliPath + '）', (t) => {
       const base = tmp(t)
       const data = path.join(base, 'data')
+      // src 和 victim 放在同一个临时根下的不同深度：
+      // 从 MEM_DIR 往上三层 = base，从 src 往上三层也 = base，伪造文件不会写出临时目录
+      // 伪造包放在更深的目录：name 相对 src 解析到 src/victim（无害），
+      // 相对 MEM_DIR 解析到 base/victim（真正的攻击目标）
       const victim = path.join(base, 'victim')
-      fs.mkdirSync(data, { recursive: true })
       fs.mkdirSync(victim, { recursive: true })
-      const name = ['..', '..', '..', path.basename(victim), 'pwned.txt'].join(sep)
-      const src = forgedExport(base, name)
+      fs.mkdirSync(data, { recursive: true })
+      const name = ['..', '..', '..', 'victim', 'pwned.txt'].join(sep)
+      const src = forgedExport(path.join(base, 'src', 'a', 'b'), name)
       const res = cli(cliPath, ['import', '--from', src, '--data', data])
       assert.equal(fs.existsSync(path.join(victim, 'pwned.txt')), false, '文件被写到了记忆目录之外')
       assert.notEqual(res.status, 0, '可疑路径应当被拒绝并以非 0 退出')
