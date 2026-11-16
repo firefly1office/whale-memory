@@ -9,6 +9,7 @@
   self-experience.jsonl     当时写下的（then）
   later-events.jsonl        后来追加的想法（0.5.0 起）
   recall-events.jsonl       想起的次数（0.5.0 起）
+  unfinished-events.jsonl   没弄完的事后来怎么样了（0.11.0 起）
   autobiography.jsonl       日记
   self-settings.json        她自己的设置
   prompt-overlay/           她改过的提示词

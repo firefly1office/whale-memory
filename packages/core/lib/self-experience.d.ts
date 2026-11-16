@@ -33,6 +33,16 @@ export interface Experience {
   recalls?: number
   lastRecalledAt?: string
   matchedIn?: Array<'then' | 'quote' | 'later'>
+  /** 没弄完的事后来怎么样了：done=想通，shelved=先放下，reopen=又接着想 */
+  unfinishedState?: {
+    id: string
+    at: string
+    day: string
+    choice: 'done' | 'shelved' | 'reopen'
+    note: string
+    /** 完整的选择历史，按追加顺序 */
+    history: Array<'done' | 'shelved' | 'reopen'>
+  }
   /** recall 返回：是哪几条后记让这条被想起 */
   matchedLater?: LaterEntry[]
   /** 0.10.0 之前的旧 id（只在唯一对应时出现）；用它也能 revise / currentView */
@@ -89,6 +99,11 @@ export interface PendingLegacyEvents {
 }
 
 export function pendingLegacyEvents(dir: string): PendingLegacyEvents[]
+
+export function setUnfinishedState(
+  dir: string,
+  opts: { id: string; choice: 'done' | 'shelved' | 'reopen'; note?: string }
+): { ok: boolean; id?: string; at?: string; choice?: string; noop?: boolean; error?: string }
 
 export interface RecallContextItem {
   id: string

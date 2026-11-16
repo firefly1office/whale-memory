@@ -39,6 +39,11 @@ node scripts/memory-cli.mjs read --limit 8
 # 改主意：旧的留在原位，只加 later
 node scripts/memory-cli.mjs revise --id exp_xxx --thought "现在觉得那样也挺好"
 
+# 那件没弄完的事后来怎么样了：
+#   done=想通了，shelved=先放下，reopen=又决定接着想
+# 只改这一条经历的状态，不改当时的正文，也不冒充后记
+node scripts/memory-cli.mjs unfinished --id exp_xxx --state done
+
 # 每天第一次醒来
 node scripts/memory-cli.mjs waking --chat "local:owner"
 
@@ -59,7 +64,8 @@ node scripts/memory-cli.mjs settings get|set --json '{"readingPerDay":60}'
 2. `--diary true` 只在一对一私聊用；群聊和别人的会话不许带
 3. 别人的私事不跨会话；只有她自己的经历和主人相关的内容可以跨
 4. 改主意用 `revise`，不要覆盖"当时"
-5. 主动发消息、改提示词、改设置，都是"她想不想"的事
+5. 那件事想通、先放下、又接着想，用 `unfinished --state`，不要写成后记
+6. 主动发消息、改提示词、改设置，都是"她想不想"的事
 
 ## 一句话用法
 

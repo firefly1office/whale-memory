@@ -1,4 +1,5 @@
 // 跑一遍「第一天读、第二天接」：两个独立进程，模拟关掉应用再打开
+// 加 --keep true 保留数据目录，方便接着跑 choose.mjs 看「想通 / 暂放」
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -7,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const dayScript = path.join(here, 'day.mjs')
+const keep = process.argv.includes('--keep') && process.argv[process.argv.indexOf('--keep') + 1] === 'true'
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-first-day-'))
 
 function run(day) {
@@ -23,5 +25,11 @@ console.log('数据目录：' + dataDir)
 run(1)
 console.log('\n（应用关闭，进程结束）\n')
 run(2)
-console.log('\n数据文件：' + fs.readdirSync(dataDir).join(', '))
-fs.rmSync(dataDir, { recursive: true, force: true })
+console.log('\n数据文件：' + fs.readdirSync(path.join(dataDir, 'plugin-data', 'biomimetic-memory')).join(', '))
+if (keep) {
+  console.log('\n数据保留在：' + dataDir)
+  console.log('接着试「想通」：node examples/first-day/choose.mjs --data "' + dataDir + '" --state done')
+  console.log('接着试「暂放」：node examples/first-day/choose.mjs --data "' + dataDir + '" --state shelved')
+} else {
+  fs.rmSync(dataDir, { recursive: true, force: true })
+}

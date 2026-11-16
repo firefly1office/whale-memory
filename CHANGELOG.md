@@ -2,6 +2,21 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.11.0] · 2026-11-16
+
+### Added
+
+- **没弄完的事可以结案**：`setUnfinishedState(dir, { id, choice })`，`choice` 为 `done`（想通）/ `shelved`（先放下）/ `reopen`（又接着想）。只追加 `unfinished-events.jsonl`，不改 `then.unfinished`，也不算后记、不加想起次数。
+- 醒来块、`currentView()`、`renderTwoPart()` 共用同一份派生状态：想通/暂放的不再进入“你还没弄完”；再拾起会恢复，翻读能看出中间放下过。
+- CLI：`unfinished --id ... --state done|shelved|reopen`；`read` 输出带 `unfinished` 与 `unfinishedState`。
+- 核心库导出 `unfinished-events` 子路径；`isPrivateKey` 补进类型。
+- `examples/first-day/` 加了 `choose.mjs` 和 `--keep true`：读者可以自己选“想通/暂放”，再重开看两种结果。
+
+### Changed
+
+- 旧库没有 `unfinished-events.jsonl` 时行为不变。
+- 导出、导入、备份都带上新事件文件；`purge` 删的是整个记忆目录，自然覆盖。
+
 ## [0.10.2] · 2026-11-16
 
 ### Added

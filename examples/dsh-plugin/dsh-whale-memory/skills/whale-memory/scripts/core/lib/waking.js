@@ -1,6 +1,7 @@
 // 醒来块：每天第一次被唤醒时，给她一条自己的时间线
 import fs from 'node:fs'
 import path from 'node:path'
+import * as exp from './self-experience.js'
 
 function readJsonl(file) {
   try {
@@ -37,10 +38,17 @@ export function buildWakingBlock(dataDir, chatKey, { now = new Date(), allowGrou
   const dedupeKey = key + '|' + today
   if (flags[dedupeKey]) return ''
 
-  const rows = readJsonl(path.join(dir, 'self-experience.jsonl')).map((r) => {
-    if (r.then) return { day: r.day, text: r.then.text, unfinished: r.then.unfinished, weight: r.weight, later: r.later || [] }
-    return { day: r.day, text: r.text, unfinished: '', weight: r.weight || 'normal', later: [] }
-  }).filter((r) => r.text)
+  // 用合并后的视图：明确想通/暂放的不再进入未完列表；旧库没有状态事件，行为不变
+  let loaded = []
+  try { loaded = exp.loadAll(dir) } catch { }
+  const rows = loaded.map((r) => ({
+    day: r.day,
+    text: r.then.text,
+    unfinished: r.then.unfinished,
+    weight: r.weight,
+    later: r.later || [],
+    state: r.unfinishedState || null
+  })).filter((r) => r.text)
   const y = new Date(now.getTime() - 86400000).toLocaleDateString('sv-SE')
   const yRows = rows.filter((r) => r.day === y)
   const notes = readJsonl(path.join(dir, 'notes-to-tomorrow.jsonl'))
@@ -54,7 +62,7 @@ export function buildWakingBlock(dataDir, chatKey, { now = new Date(), allowGrou
     lines.push('昨天你没有留下自己的记录。')
   }
   if (lastNote && lastNote.text) lines.push('昨天睡前你给今天留了一句：' + String(lastNote.text).slice(0, 120))
-  const unfinished = rows.filter((r) => r.unfinished).slice(-2)
+  const unfinished = rows.filter((r) => r.unfinished && !(r.state && (r.state.choice === 'done' || r.state.choice === 'shelved'))).slice(-2)
   for (const r of unfinished) lines.push('- 你还没弄完：' + String(r.unfinished).slice(0, 50))
   lines.push('（这些是记录，不是别人告诉你的。要不要接着想，你自己定。）')
   return lines.join('\n')

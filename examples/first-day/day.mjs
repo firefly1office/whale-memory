@@ -13,6 +13,7 @@ const arg = (name) => {
 }
 const dataDir = arg('data')
 const day = Number(arg('day') || 1)
+const mem = path.join(dataDir, 'plugin-data', 'biomimetic-memory')
 
 if (!dataDir) {
   console.error('需要 --data=<dir>')
@@ -26,7 +27,7 @@ if (day === 1) {
     console.error('故事里找不到要留的那句')
     process.exit(1)
   }
-  const row = exp.addExperience(dataDir, {
+  const row = exp.addExperience(mem, {
     text: '读到灯塔那个故事，守灯人整晚没睡，灯一直亮着',
     scene: '晚上，读完故事',
     feeling: ['闷'],
@@ -45,7 +46,7 @@ const userLine = '昨天那本灯塔的故事，守灯人后来睡了吗？'
 console.log('[第 2 天] 用户说：' + userLine)
 
 // 宿主自己决定：这句话提到了「灯塔」相关的话题，试着把昨天递回来
-const hits = exp.recall(dataDir, userLine, { limit: 2, mode: 'loose' })
+const hits = exp.recall(mem, userLine, { limit: 2, mode: 'loose' })
 if (!hits.length) {
   console.log('[宿主] 没有相关记录，今天不递。')
   process.exit(0)
@@ -57,12 +58,12 @@ console.log('【递回来的昨天】')
 console.log(exp.renderTwoPart(yesterday))
 
 // 角色可以略过，也可以改主意。这里演示改主意：只追加，不改原文
-exp.reviseExperience(dataDir, {
+exp.reviseExperience(mem, {
   id: yesterday.id,
   thought: '现在觉得她不是怕黑，是怕那条船回来的时候没人看见灯',
   reason: '第二天又读了一遍'
 })
 console.log('[第 2 天] 她改了主意；原文没有被覆盖：')
-const view = exp.currentView(dataDir, yesterday.id)
+const view = exp.currentView(mem, yesterday.id)
 console.log('  当时：' + view.then.thought)
 console.log('  现在：' + (view.later.at(-1) ? view.later.at(-1).thought : ''))

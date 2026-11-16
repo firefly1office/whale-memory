@@ -16,5 +16,6 @@ const firstCtx = ctx[0]
 if (firstCtx) console.log(firstCtx.text, firstCtx.raw.then.text)
 
 const pending = selfExperience.pendingLegacyEvents('/tmp/whale')
-console.log(pending.length, made.matchedLater?.length, made.formerId)
+const back = selfExperience.setUnfinishedState('/tmp/whale', { id: made.id, choice: 'shelved' })
+console.log(pending.length, made.matchedLater?.length, made.formerId, back.ok)
 console.log(rows.length, made.then.text, verdict.status, facts.length, answer.status, block, prompt.ok)

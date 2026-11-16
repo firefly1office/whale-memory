@@ -1,0 +1,82 @@
+// 「这件没弄完的事」后来怎么样了：想通 / 先放下 / 再接着想
+// 一行一个 { id, at, day, choice, note? }，只追加；不改 then.unfinished，也不冒充后记
+import fs from 'node:fs'
+import path from 'node:path'
+import { withFileLock } from './file-lock.js'
+
+const FILE = 'unfinished-events.jsonl'
+export const CHOICES = new Set(['done', 'shelved', 'reopen'])
+
+export function eventsFile(memDir) {
+  return path.join(memDir, FILE)
+}
+
+export function append(memDir, { id, choice, note = '' } = {}, opts = {}) {
+  if (!String(id || '').trim()) throw new Error('id 不能为空')
+  if (!CHOICES.has(choice)) throw new Error('choice 只能是 done / shelved / reopen')
+  const now = new Date()
+  const row = {
+    id: String(id),
+    at: now.toISOString(),
+    day: now.toLocaleDateString('sv-SE'),
+    choice,
+    note: String(note || '').slice(0, 200)
+  }
+
+  fs.mkdirSync(memDir, { recursive: true })
+  return withFileLock(eventsFile(memDir) + '.lock', () => {
+    const file = eventsFile(memDir)
+    let prefix = ''
+    try {
+      const st = fs.statSync(file)
+      if (st.size) {
+        const fd = fs.openSync(file, 'r')
+        const buf = Buffer.alloc(1)
+        fs.readSync(fd, buf, 0, 1, st.size - 1)
+        fs.closeSync(fd)
+        if (buf[0] !== 10) prefix = '\n'
+      }
+    } catch { }
+    fs.appendFileSync(file, prefix + JSON.stringify(row) + '\n', 'utf8')
+    return row
+  }, opts)
+}
+
+export function readAll(memDir) {
+  let raw = ''
+  try { raw = fs.readFileSync(eventsFile(memDir), 'utf8') } catch { return { rows: [], bad: 0 } }
+  const rows = []
+  let bad = 0
+  for (const line of raw.split('\n')) {
+    if (!line.trim()) continue
+    try {
+      const r = JSON.parse(line)
+      if (r && r.id && CHOICES.has(r.choice)) rows.push(r)
+      else bad += 1
+    } catch { bad += 1 }
+  }
+  return { rows, bad }
+}
+
+// 每个经历 id 的最新状态，附带完整的选择历史（渲染"中间放下过"要用）
+export function latestByExp(memDir) {
+  const { rows } = readAll(memDir)
+  const map = new Map()
+  for (const r of rows) {
+    const cur = map.get(r.id) || { id: r.id, at: '', day: '', choice: '', note: '', history: [] }
+    cur.at = r.at
+    cur.day = r.day
+    cur.choice = r.choice
+    cur.note = r.note || ''
+    cur.history.push(r.choice)
+    map.set(r.id, cur)
+  }
+  return map
+}
+
+export function countByExp(memDir) {
+  const { rows } = readAll(memDir)
+  const map = new Map()
+  for (const r of rows) map.set(r.id, (map.get(r.id) || 0) + 1)
+  return map
+}

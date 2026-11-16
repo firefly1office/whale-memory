@@ -73,6 +73,21 @@
 - 迁移：`node tools/migrate-later-events.mjs --data=<dir>`（默认 dry-run，`--apply` 才写，先备份、校验、可回滚）
 - 经历文件自此真正只追加：`addExperience` 追加一行，没有任何路径会再重写它
 
+## 没弄完的事是事件（0.11.0 起）
+
+“这件没弄完的事后来怎么样了”单独追加到 `unfinished-events.jsonl`，不改 `then.unfinished`，也不算后记：
+
+```json
+{"id":"exp_mwggkzwbwp10","at":"2026-11-16T02:30:00.000Z","day":"2026-11-16","choice":"shelved","note":""}
+```
+
+- `choice` 只有三种：`done`（想通了）、`shelved`（先放下，还没想通）、`reopen`（又决定接着想）
+- 读取时取该 id **最后一条**事件作为当前状态；`history` 保留完整选择顺序，翻读时能看出“中间放下过”
+- 醒来块只把没有 `done` / `shelved` 的未完事项算进“你还没弄完”
+- 重复同一个选择不追加第二条；没关过的事 `reopen` 是空操作
+- 旧数据没有这个文件：行为不变，`then.unfinished` 照旧进入未完列表
+- 备份/导出要带上这个文件
+
 ## 想起是事件（0.5.0 起）
 
 「想起一次」不再写进经历行，而是追加到 `recall-events.jsonl`：

@@ -4,6 +4,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import * as recallEvents from './recall-events.js'
 import * as laterEvents from './later-events.js'
+import * as unfinishedEvents from './unfinished-events.js'
 import { queryTerms, requiredOverlap, matchedTerms, normalizeText } from './query-match.js'
 
 const FILE = 'self-experience.jsonl'
@@ -109,12 +110,22 @@ export function loadAll(dir) {
   let laterMap = new Map()
   try { laterMap = laterEvents.groupByExp(dir) } catch { }
 
+  // 没弄完的事后来怎么样了：想通 / 暂放 / 再接着想
+  let unfinishedMap = new Map()
+  try { unfinishedMap = unfinishedEvents.latestByExp(dir) } catch { }
+
   return rows.map((r) => {
     const keys = r.formerId ? [r.id, r.formerId] : [r.id]
     const extra = keys.flatMap((k) => laterMap.get(k) || [])
     const merged = [...(r.later || []), ...extra]
       .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')))
     const next = { ...r, later: merged }
+    let state = null
+    for (const k of keys) {
+      const st = unfinishedMap.get(k)
+      if (st) state = st
+    }
+    if (state && next.then && next.then.unfinished) next.unfinishedState = state
     let count = 0
     let lastAt = ''
     for (const k of keys) {
@@ -222,6 +233,36 @@ export function reviseExperience(dir, { id, thought, reason = '' }) {
   }
 }
 
+// 「这件没弄完的事」后来怎么样了：done / shelved / reopen
+// 只追加一条状态事件；不改 then.unfinished，也不写成后记
+// 重复同一个选择不写第二条；没关过的事 reopen 是空操作
+export function setUnfinishedState(dir, { id, choice, note = '' } = {}) {
+  if (!String(id || '').trim()) return { ok: false, error: '需要 id' }
+  if (!unfinishedEvents.CHOICES.has(choice)) return { ok: false, error: 'state 只能是 done / shelved / reopen' }
+  try {
+    const target = resolveId(dir, String(id))
+    if (target.ambiguous) return { ok: false, error: '这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id。' }
+    if (!target.id) return { ok: false, error: '找不到这条经历：' + id + '。先用 read 或 recall 看一下 id。' }
+    const row = rowsById(dir, target.id)
+    if (!row || !row.then || !row.then.unfinished) return { ok: false, error: '这条经历没有「还没弄完」的内容，不需要结案。' }
+
+    const latest = unfinishedEvents.latestByExp(dir).get(target.id)
+    if (latest && latest.choice === choice) return { ok: true, id: target.id, at: latest.at, noop: true }
+    if (choice === 'reopen' && !latest) return { ok: true, id: target.id, at: '', noop: true }
+
+    const event = unfinishedEvents.append(dir, { id: target.id, choice, note: tooLong('note', note, 200) })
+    return { ok: true, id: target.id, at: event.at, choice, noop: false }
+  } catch (e) {
+    return { ok: false, error: String(e && e.message ? e.message : e) }
+  }
+}
+
+// 单条：loadAll 会合并事件，这里绕开全量合并，只给存在性/未完判断用
+function rowsById(dir, id) {
+  const rows = readAll(dir).map(normalize).filter((r) => r && r.then && r.then.text)
+  return rows.find((r) => r.id === id) || rows.find((r) => r.formerId === id) || null
+}
+
 // 想起时记一笔：往 recall-events.jsonl 追加一条事件，不动经历正文
 // 不做存在性检查：孤儿事件在 loadAll 合并时自然被忽略
 export function markRecalled(dir, id) {
@@ -327,6 +368,19 @@ export function renderTwoPart(entry, { now = new Date() } = {}) {
     if (later.length > shown) lines.push('- （后来一共回头想过 ' + later.length + ' 次，这里没列出的 ' + (later.length - shown) + ' 次可以用 read 看）')
   } else {
     lines.push('- 之后你还没回头想过')
+  }
+  const st = entry.unfinishedState
+  if (st && t.unfinished) {
+    const when2 = st.day || String(st.at || '').slice(0, 10)
+    if (st.choice === 'done') {
+      lines.push('- 这件没弄完的事已经想通了：' + t.unfinished + '（' + when2 + '）')
+    } else if (st.choice === 'shelved') {
+      lines.push('- 这件没弄完的事先放下了，还没有想通：' + t.unfinished + '（' + when2 + '）')
+    } else if (st.choice === 'reopen') {
+      const history = st.history || []
+      if (history.includes('shelved')) lines.push('- 这件事中间放下过，后来又决定接着想：' + t.unfinished + '（' + when2 + '）')
+      else if (history.includes('done')) lines.push('- 这件事本来觉得想通了，后来又决定接着想：' + t.unfinished + '（' + when2 + '）')
+    }
   }
   lines.push('', '以上是那天留下的全部；没留下的，我不记得。')
   return lines.join('\n')

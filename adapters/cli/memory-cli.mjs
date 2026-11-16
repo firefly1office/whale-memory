@@ -210,7 +210,7 @@ try {
     const n = limitArg('limit', 8)
     const all = exp.loadAll(MEM_DIR)
     const rows = n === 0 ? [] : all.slice(-n)
-    const res = { ok: true, items: rows.map((r) => ({ id: r.id, day: r.day, weight: r.weight, text: r.then.text, thought: r.then.thought, later: (r.later || []).map((x) => x.thought) })) }
+    const res = { ok: true, items: rows.map((r) => ({ id: r.id, day: r.day, weight: r.weight, text: r.then.text, thought: r.then.thought, unfinished: r.then.unfinished || '', unfinishedState: r.unfinishedState || null, later: (r.later || []).map((x) => x.thought) })) }
     // 旧 id 有几条记录共用、认不出归属的事件：原样留着，提醒人来核对
     const pending = exp.pendingLegacyEvents(MEM_DIR)
     if (pending.length) res.pending = { note: '这些后记/想起记录挂在几条旧经历共用的旧 id 上，没有自动归给任何一条，请人工核对。', items: pending }
@@ -233,6 +233,13 @@ try {
     out(doImport(from, force))
   } else if (cmd === 'purge') {
     out(doPurge(String(arg('yes', 'false')) === 'true'))
+  } else if (cmd === 'unfinished') {
+    const id = arg('id')
+    const state = arg('state')
+    if (!id || !state) throw new Error('需要 --id 与 --state done|shelved|reopen')
+    const res = exp.setUnfinishedState(MEM_DIR, { id, choice: state, note: arg('note', '') || '' })
+    out(res)
+    if (!res.ok) process.exitCode = 1
   } else if (cmd === 'waking') {
     const chat = arg('chat', 'local:owner') || 'local:owner'
     const block = waking.buildWakingBlock(DATA, chat)
@@ -270,6 +277,7 @@ try {
         'recall --query "..." [--limit 3] [--mark true] [--mode strict|loose]   （空 query = 最近 N 条；默认只读，strict 宁可不召回）',
         'read [--limit 8]',
         'revise --id ... --thought "..." [--reason ..]',
+        'unfinished --id ... --state done|shelved|reopen [--note ..]   这件事想通/先放下/再接着想',
         'export --out <目录>   把整份记忆打包（含 manifest 与校验和）',
         'import --from <导出目录> [--force true]   恢复；--force 会先备份现有目录',
         'purge [--yes true]   列出/删除记忆目录、导入前备份、迁移备份（默认只列不删）',
