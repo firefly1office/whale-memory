@@ -17,10 +17,15 @@ node adapters/cli/memory-cli.mjs write --text "..." --feeling "轻松" --weight 
 node adapters/cli/memory-cli.mjs recall --query "那本书里那个人" --limit 2
 node adapters/cli/memory-cli.mjs waking --chat "local:owner"
 node adapters/cli/memory-cli.mjs unfinished --id exp_xxx --state done
+node adapters/cli/memory-cli.mjs revise --id exp_xxx --thought "现在想起来没那么难过了" --feeling "释然"
+node adapters/cli/memory-cli.mjs write --text "我好像总在等别人先开口" --kind 回想 --refs exp_aaa,exp_bbb
+node adapters/cli/memory-cli.mjs read --id exp_xxx --as-of 2026-11-15
 node adapters/cli/memory-cli.mjs export --out D:\备份
 ```
 
 也可以每条命令带 `--data /path/to/data`，优先于环境变量。`/path/to/data` 是下面有 `plugin-data/` 的数据根目录。
+
+输出是 UTF-8 的 JSON。宿主用 Node / Python 调用时按 UTF-8 解码即可；在 **Windows PowerShell 5.1** 里把输出接到 `ConvertFrom-Json` 之前，先执行一次 `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8`，否则中文会被当成本地代码页解码，JSON 解析失败（数据本身没坏）。
 
 ## 2. 直接 import（有 JS 运行时的宿主）
 

@@ -10,7 +10,21 @@ export interface LaterEntry {
   day?: string
   thought: string
   reason?: string
+  /** 她后来再想起时的感觉（0.12 起）；当时的感觉在 then.feeling 里，永远不动 */
+  feeling?: string[]
 }
+
+/** 出处 / 反向引用里的一条：指路用的一句话摘要 */
+export interface ExperienceBrief {
+  id: string
+  day?: string
+  text?: string
+  /** 出处指向的经历找不到了（例如只恢复了部分文件） */
+  missing?: boolean
+}
+
+/** 「翻回那天的自己」：2026-11-15（截到那天本地时间的最后一刻）、完整 ISO 时间或 Date */
+export type AsOf = string | Date | null
 
 export interface Experience {
   id: string
@@ -28,8 +42,16 @@ export interface Experience {
     unfinished?: string
     quote?: Quote | null
     state?: Record<string, unknown> | null
+    /** 这条是从哪几件事想到的（经历 id，写入时校验过存在） */
+    refs?: string[]
   }
   later: LaterEntry[]
+  /** 由 then.refs 派生：出处的摘要 */
+  refsInfo?: ExperienceBrief[]
+  /** 反向引用：后来有哪些回想把这条写进了出处 */
+  citedBy?: ExperienceBrief[]
+  /** 用 asOf 读出来时，截到的那一刻（ISO） */
+  viewAsOf?: string
   recalls?: number
   lastRecalledAt?: string
   matchedIn?: Array<'then' | 'quote' | 'later'>
@@ -53,7 +75,7 @@ export interface Experience {
 
 export const LIMITS: Record<string, number>
 
-export function loadAll(dir: string): Experience[]
+export function loadAll(dir: string, opts?: { asOf?: AsOf }): Experience[]
 
 export function addExperience(dir: string, opts: {
   text: string
@@ -66,18 +88,21 @@ export function addExperience(dir: string, opts: {
   kind?: string
   state?: Record<string, unknown> | null
   source?: string
+  /** 出处：数组，或逗号分隔的字符串；引用不存在的经历会抛错，整条不写 */
+  refs?: string[] | string
 }): Experience
 
-export function reviseExperience(dir: string, opts: { id: string; thought: string; reason?: string }): {
+export function reviseExperience(dir: string, opts: { id: string; thought: string; reason?: string; feeling?: string[] | string }): {
   ok: boolean
   id?: string
   at?: string
+  feeling?: string[]
   error?: string
 }
 
 export function markRecalled(dir: string, id: string): boolean
 
-export function currentView(dir: string, id: string): Experience | null
+export function currentView(dir: string, id: string, opts?: { asOf?: AsOf }): Experience | null
 
 export function recall(dir: string, query: string, opts?: {
   limit?: number
@@ -85,6 +110,8 @@ export function recall(dir: string, query: string, opts?: {
   mark?: boolean
   minRatio?: number
   mode?: 'strict' | 'loose'
+  /** 在那天的自己里找；不能和 mark 一起用 */
+  asOf?: AsOf
 }): Experience[]
 
 export function renderTwoPart(entry: Experience, opts?: { now?: Date }): string

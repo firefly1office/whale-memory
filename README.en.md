@@ -70,10 +70,13 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | Use it directly from JavaScript | [Self-layer core](packages/core/README.md) (`npm install whale-memory-core`) and [porting guide](docs/porting.md) |
 | Inspect the data format | [Schema](docs/schema.md) and [fictional samples](examples/samples/) |
 | See another host surface yesterday | [First day, still connected the next](examples/first-day/): two processes, no recall command |
+| Look back at who she was that day | `read --id <id> --as-of 2026-11-15`: only notes and choices written up to that day are visible |
+| Record how it feels now, and what a reflection is based on | `revise --feeling relieved` (the original feeling never changes); `write --refs id1,id2` (every cited experience must exist) |
 | Vector/RAG for finding, this for telling | [Composing with a retrieval layer](docs/composition.md): retrieval returns ids; `then/later` holds the narrative |
 | Backup and move machines | [Backup & migration](docs/backup.md): four files, and how to verify after restore |
 | How far it goes, what it won't do | [Limits & non-guarantees](docs/limits.md): measured scale, plaintext storage, deletion semantics |
 | When to hand a memory back | [Injection timing](docs/injection.md): seven rules, a minimal implementation, anti-patterns |
+| Where these ideas come from | [What we borrowed, what we changed, what we refuse to do](docs/related-work.md) (Chinese) |
 | Understand the design | [Architecture](docs/architecture.md): layers, evidence policy, recall and write constraints |
 | Check evidence rules | [Evidence policy (runnable subset)](docs/evidence.md): as-of, supersession, absence |
 

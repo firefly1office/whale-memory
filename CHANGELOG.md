@@ -2,6 +2,35 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.12.0] · 2026-11-16
+
+这一版回到项目最初的问题：她昨天读了一章书、今天改了看法，还能翻回昨天的自己吗？
+
+### Added
+
+- **翻回那天的自己**：`loadAll` / `currentView` / `recall` 接受 `asOf`（`2026-11-15` 截到那天本地时间的最后一刻，也可以给完整 ISO 时间）。只保留那一刻之前写下的经历、后记、结案选择和想起事件；翻读的第二段变成【那时（截至 …）】。不改任何文件；`recall` 带 `asOf` 时拒绝 `mark`。CLI：`read --as-of`、`recall --as-of`；`read --id` 只看一条并附两段式全文。
+- **后来的感觉**：`reviseExperience` 接受 `feeling`（数组或逗号分隔），写进后记事件；`then.feeling` 永远不动。翻读多一行「后来再想起的感觉」，没写感觉的后记不会被当成感觉变了。召回也匹配后来的感觉。CLI：`revise --feeling`。
+- **回想的出处**：`addExperience` 接受 `refs`，写进 `then.refs`。写入时校验：引用的经历必须存在，旧 id 落到当前 id，歧义的旧 id 和找不到的 id 整条拒绝，最多 8 条。读取时派生 `refsInfo` 与反向引用 `citedBy`，翻读两头都看得见。CLI：`write --refs`。
+- 证据桥 `feelingFacts`：她对每件事的感觉按时间成链（slot `feeling:<id>`），可以问"那时对这件事是什么感觉"；后来的感觉取代前一条，链条可查。
+- `doctor` 新增「出处完整」：出处指向找不到的经历时报出来；能力探针覆盖感觉、出处与翻回那天。
+- `examples/first-day/run.mjs --keep true` 多打印一条"翻回第 1 天的她"的现成命令。
+- `docs/related-work.md`：借了谁的思路（Generative Agents、Zep/Graphiti、MemoryBank、A-MEM、情感引擎、fading affect bias 研究、agent-soul）、我们改成了什么、哪些刻意不做（遗忘曲线、自动改写、自动连线、自动情绪标签、心情自动回落）。
+
+### Changed
+
+- 结案文案去掉连续冒号：「当时没弄完的这件事：后来想通了：X」→「当时没弄完的「X」：后来想通了（日期）」。
+
+### Docs
+
+- `docs/schema.md`：后来的感觉、出处、翻回那天的语义与上限；备份一节改为四个文件。
+- `examples/first-day/README.md`：先 done 再 shelved 的说明与 0.11.2 起的实际文案对齐。
+- `adapters/README.md`：Windows PowerShell 5.1 解析 JSON 前要先设 UTF-8 输出编码。
+- DSH skill 说明（两份）补新命令与三条硬规则：感觉由她自己说、回想要带出处、问"那时"就翻那时。
+
+### 兼容
+
+- 不新增数据文件。旧数据读出来与 0.11.2 一致；旧版本读到新数据会忽略 `later[].feeling` 和 `then.refs`。
+
 ## [0.11.2] · 2026-11-16
 
 ### Fixed

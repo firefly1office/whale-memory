@@ -3,6 +3,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { withFileLock } from './file-lock.js'
+import { before } from './as-of.js'
 
 const FILE = 'unfinished-events.jsonl'
 export const CHOICES = new Set(['done', 'shelved', 'reopen'])
@@ -80,10 +81,12 @@ export function readAll(memDir) {
 }
 
 // 每个经历 id 的最新状态，附带完整的选择历史（渲染"中间放下过"要用）
-export function latestByExp(memDir) {
+// until：按这一刻之前（含）的选择重放，「翻回那天的自己」用
+export function latestByExp(memDir, { until = null } = {}) {
   const { rows } = readAll(memDir)
   const map = new Map()
   for (const r of rows) {
+    if (!before(r, until)) continue
     const cur = map.get(r.id) || { id: r.id, at: '', day: '', choice: '', note: '', history: [] }
     cur.at = r.at
     cur.day = r.day

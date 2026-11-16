@@ -25,7 +25,8 @@ for (const cli of CLIS) {
     assert.equal(r.status, 0, r.stderr)
     const j = JSON.parse(r.stdout)
     assert.equal(j.ok, true)
-    assert.equal(j.checks.length, 5)
+    assert.equal(j.checks.length, 6)
+    assert.ok(j.checks.some((c) => c.name === '出处完整'), '0.12 起体检出处是否完整')
     for (const c of j.checks) assert.equal(c.ok, true, c.name + ': ' + c.detail)
   })
 

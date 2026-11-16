@@ -23,6 +23,8 @@ function run(day) {
 
 console.log('数据目录：' + dataDir)
 run(1)
+// 第 1 天的进程已经结束：第 2 天写下的一切都晚于这一刻，翻回第 1 天就截在这里
+const endOfDay1 = new Date().toISOString()
 console.log('\n（应用关闭，进程结束）\n')
 run(2)
 console.log('\n数据文件：' + fs.readdirSync(path.join(dataDir, 'plugin-data', 'biomimetic-memory')).join(', '))
@@ -30,6 +32,7 @@ if (keep) {
   console.log('\n数据保留在：' + dataDir)
   console.log('接着试「想通」：node examples/first-day/choose.mjs --data "' + dataDir + '" --state done')
   console.log('接着试「暂放」：node examples/first-day/choose.mjs --data "' + dataDir + '" --state shelved')
+  console.log('翻回第 1 天的她：node adapters/cli/memory-cli.mjs read --data "' + dataDir + '" --as-of ' + endOfDay1)
 } else {
   fs.rmSync(dataDir, { recursive: true, force: true })
 }

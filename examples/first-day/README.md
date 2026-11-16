@@ -31,7 +31,15 @@ node examples/first-day/choose.mjs --data <目录B> --state reopen
 
 `done` 之后，次日醒来块的「你还没弄完」会消失；`shelved` 不会催；`reopen` 会恢复。翻读会显示对应的状态，原文和当时的未完成内容都还在。
 
-> 同一目录上先 `done` 再 `shelved` 也能跑，但摘要会以“最近一次选择”为准——之前想通过这件事只会出现在历史里，不会留在【现在】那一行。
+> 同一目录上先 `done` 再 `shelved` 也能跑：【现在】那一行会按最近一次和它之前那一次来写，例如「想通过一次，后来又决定先放下」；更早的选择在 `read` 的 `unfinishedState.history` 里。
+
+**再看看第 1 天的她**：`run.mjs --keep true` 的输出最后一行就是现成的命令，`--as-of` 截在第 1 天的进程结束那一刻：
+
+```sh
+node adapters/cli/memory-cli.mjs read --data <目录A> --as-of <run.mjs 打印的时间>
+```
+
+读到的那条经历没有后记、没有结案，她还不知道第 2 天会改主意。真实使用时写日期就行（`--as-of 2026-11-15` 截到那天本地时间的最后一刻）；demo 的"两天"是几秒内跑完的，所以要用精确到毫秒的时间。
 
 ## 输出会依次出现
 

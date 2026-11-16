@@ -209,14 +209,27 @@ function doDoctor() {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-doctor-'))
     try {
       const memDir = path.join(tmp, 'mem')
-      const row = exp.addExperience(memDir, { text: '体检探针：读完灯塔那一章', unfinished: '想知道船回来没有' })
-      exp.reviseExperience(memDir, { id: row.id, thought: '船回来了' })
+      const row = exp.addExperience(memDir, { text: '体检探针：读完灯塔那一章', unfinished: '想知道船回来没有', feeling: ['闷'] })
+      // 截在这条刚写下的那一刻；后面的后记、结案必须晚于它，同一毫秒就稍等一下
+      const before = row.at
+      while (Date.now() <= Date.parse(before)) { /* 等到下一毫秒 */ }
+      exp.reviseExperience(memDir, { id: row.id, thought: '船回来了', feeling: ['松了口气'] })
       exp.setUnfinishedState(memDir, { id: row.id, choice: 'done' })
+      const echo = exp.addExperience(memDir, { text: '体检探针：回想', refs: [row.id] })
       const view = exp.currentView(memDir, row.id)
+      const past = exp.currentView(memDir, row.id, { asOf: before })
       const hit = exp.recall(memDir, '灯塔', { limit: 1 })
-      const ok = view && view.later.length === 1 && view.unfinishedState && view.unfinishedState.choice === 'done' && hit.length === 1
-      return { ok: Boolean(ok), detail: ok ? '写入、后记、结案、召回都通过' : '读回的内容不完整' }
+      const ok = view && view.later.length === 1 && view.later[0].feeling && view.unfinishedState && view.unfinishedState.choice === 'done' &&
+        hit.length === 1 && (view.citedBy || []).some((c) => c.id === echo.id) &&
+        past && past.later.length === 0 && !past.unfinishedState
+      return { ok: Boolean(ok), detail: ok ? '写入、后记与感觉、结案、出处、翻回那天、召回都通过' : '读回的内容不完整' }
     } finally { fs.rmSync(tmp, { recursive: true, force: true }) }
+  })
+
+  add('出处完整', () => {
+    if (!fs.existsSync(MEM_DIR)) return { ok: true, detail: '没有数据目录，跳过' }
+    const missing = exp.loadAll(MEM_DIR).flatMap((r) => (r.refsInfo || []).filter((x) => x.missing).map((x) => r.id + ' → ' + x.id))
+    return { ok: missing.length === 0, detail: missing.length ? '有 ' + missing.length + ' 处出处指向找不到的经历（可能是只恢复了部分文件）：' + missing.slice(0, 5).join('，') : '每条回想引用的经历都在' }
   })
 
   add('导出→导入（临时目录）', () => {
@@ -260,9 +273,10 @@ try {
       unfinished: arg('unfinished', '') || '',
       quote: arg('quote') ? { text: arg('quote'), source: arg('source', '') || '' } : null,
       weight: weightArg(),
-      kind: arg('kind', '其它') || '其它'
+      kind: arg('kind', '其它') || '其它',
+      refs: arg('refs', '') || ''
     })
-    out({ ok: true, id: row.id, day: row.day })
+    out({ ok: true, id: row.id, day: row.day, ...(row.then.refs ? { refs: row.then.refs } : {}) })
   } else if (cmd === 'recall') {
     // 空 query = 最近 N 条（不是“什么都不返回”）；想看最近就用空 query，想按相关度就给词
     const q = arg('query', '') || ''
@@ -270,13 +284,31 @@ try {
     const mark = String(arg('mark', 'false')) === 'true'
     const mode = String(arg('mode', 'strict'))
     if (mode !== 'strict' && mode !== 'loose') throw new Error('--mode 只能是 strict 或 loose')
-    const rows = n === 0 ? [] : exp.recall(MEM_DIR, q, { limit: n, mark, mode })
-    out({ ok: true, items: rows.map((r) => ({ id: r.id, day: r.day, weight: r.weight, text: exp.renderTwoPart(r) })) })
+    const asOf = arg('as-of', '') || null
+    const rows = n === 0 ? [] : exp.recall(MEM_DIR, q, { limit: n, mark, mode, asOf })
+    out({ ok: true, ...(asOf ? { asOf } : {}), items: rows.map((r) => ({ id: r.id, day: r.day, weight: r.weight, text: exp.renderTwoPart(r) })) })
   } else if (cmd === 'read') {
+    // --as-of 2026-11-15：翻回那天的自己；--id：只看这一条，并附上两段式全文
     const n = limitArg('limit', 8)
-    const all = exp.loadAll(MEM_DIR)
-    const rows = n === 0 ? [] : all.slice(-n)
-    const res = { ok: true, items: rows.map((r) => ({ id: r.id, day: r.day, weight: r.weight, text: r.then.text, thought: r.then.thought, unfinished: r.then.unfinished || '', unfinishedState: r.unfinishedState || null, later: (r.later || []).map((x) => x.thought) })) }
+    const asOf = arg('as-of', '') || null
+    const only = arg('id', '') || ''
+    const all = exp.loadAll(MEM_DIR, { asOf })
+    const picked = only ? all.filter((r) => r.id === only || r.formerId === only) : all
+    const rows = n === 0 ? [] : picked.slice(-n)
+    const feelingNow = (r) => { const l = [...(r.later || [])].reverse().find((x) => Array.isArray(x.feeling) && x.feeling.length); return l ? l.feeling : [] }
+    const res = {
+      ok: true,
+      ...(asOf ? { asOf } : {}),
+      items: rows.map((r) => ({
+        id: r.id, day: r.day, weight: r.weight, text: r.then.text, thought: r.then.thought,
+        feeling: r.then.feeling || [], feelingNow: feelingNow(r),
+        unfinished: r.then.unfinished || '', unfinishedState: r.unfinishedState || null,
+        later: (r.later || []).map((x) => x.thought),
+        refs: r.then.refs || [], citedBy: (r.citedBy || []).map((x) => x.id),
+        ...(only ? { view: exp.renderTwoPart(r) } : {})
+      }))
+    }
+    if (only && !rows.length) res.note = asOf ? '截至 ' + asOf + ' 还没有这条经历。' : '找不到这条经历：' + only
     // 旧 id 有几条记录共用、认不出归属的事件：原样留着，提醒人来核对
     const pending = exp.pendingLegacyEvents(MEM_DIR)
     if (pending.length) res.pending = { note: '这些后记/想起记录挂在几条旧经历共用的旧 id 上，没有自动归给任何一条，请人工核对。', items: pending }
@@ -285,7 +317,7 @@ try {
     const id = arg('id')
     const thought = arg('thought')
     if (!id || typeof thought !== 'string' || !thought.trim()) throw new Error('需要 --id 与 --thought（不能是空白）')
-    const res = exp.reviseExperience(MEM_DIR, { id, thought, reason: arg('reason', '') || '' })
+    const res = exp.reviseExperience(MEM_DIR, { id, thought, reason: arg('reason', '') || '', feeling: arg('feeling', '') || '' })
     out(res)
     if (!res.ok) process.exitCode = 1
   } else if (cmd === 'export') {
@@ -341,15 +373,15 @@ try {
       ok: false,
       usage: [
         '全局：--data <数据根目录>（下面有 plugin-data/；不给就用 WHALE_DATA_DIR，再不给用 ./data）',
-        'write --text "..." [--scene .. --feeling a,b --thought .. --unfinished .. --quote .. --source .. --weight important|normal|minor --kind 读书]',
-        'recall --query "..." [--limit 3] [--mark true] [--mode strict|loose]   （空 query = 最近 N 条；默认只读，strict 宁可不召回）',
-        'read [--limit 8]',
-        'revise --id ... --thought "..." [--reason ..]',
+        'write --text "..." [--scene .. --feeling a,b --thought .. --unfinished .. --quote .. --source .. --weight important|normal|minor --kind 读书 --refs id1,id2]   （--refs：这条是从哪几件事想到的，必须是已写下的经历）',
+        'recall --query "..." [--limit 3] [--mark true] [--mode strict|loose] [--as-of 2026-11-15]   （空 query = 最近 N 条；默认只读，strict 宁可不召回；--as-of 在那天的自己里找）',
+        'read [--limit 8] [--id ...] [--as-of 2026-11-15]   （--as-of：翻回那天的自己；--id：只看这一条，附两段式全文）',
+        'revise --id ... --thought "..." [--reason .. --feeling a,b]   （--feeling：现在再想起的感觉；当时的感觉不会被改）',
         'unfinished --id ... --state done|shelved|reopen [--note ..]   这件事想通/先放下/再接着想',
         'export --out <目录>   把整份记忆打包（含 manifest 与校验和）',
         'import --from <导出目录> [--force true]   恢复；--force 会先备份现有目录',
         'purge [--yes true]   列出/删除记忆目录、导入前备份、迁移备份（默认只列不删）',
-        'doctor   能力层体检：写入→读回、导出→导入、事件解析、醒来白名单（临时目录）',
+        'doctor   能力层体检：写入→读回（含感觉、出处、翻回那天）、导出→导入、事件解析、出处完整、醒来白名单（临时目录）',
         'waking [--chat private:100000000] [--peek true]   （默认打印即记为已展示）',
         'memory --query "..." [--diary true --limit 4]',
         'prompt get|set --text ...|history|revert --version ...',

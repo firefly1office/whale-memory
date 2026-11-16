@@ -17,7 +17,8 @@ export function append(memDir: string, event: {
 
 export function readAll(memDir: string): { rows: RecallEvent[]; bad: number }
 
-export function countByExp(memDir: string): Map<string, { count: number; lastAt: string }>
+/** until：只数这一刻（毫秒时间戳）之前（含）的想起 */
+export function countByExp(memDir: string, opts?: { until?: number | null }): Map<string, { count: number; lastAt: string }>
 
 export function list(memDir: string, opts?: { id?: string; limit?: number }): RecallEvent[]
 

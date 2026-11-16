@@ -6,6 +6,7 @@ import * as recallEvents from './recall-events.js'
 import * as laterEvents from './later-events.js'
 import * as unfinishedEvents from './unfinished-events.js'
 import { queryTerms, requiredOverlap, matchedTerms, normalizeText } from './query-match.js'
+import { parseAsOf, before, dayOf } from './as-of.js'
 
 const FILE = 'self-experience.jsonl'
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
@@ -29,7 +30,19 @@ function readAll(dir, { rewriting = false } = {}) {
 }
 
 // 字段上限：写的时候超了就报错，不静默截断
-export const LIMITS = { text: 2000, scene: 500, thought: 1000, unfinished: 300, feelings: 8, kind: 20, laterThought: 1000, laterReason: 200 }
+export const LIMITS = { text: 2000, scene: 500, thought: 1000, unfinished: 300, feelings: 8, feelingWord: 20, kind: 20, laterThought: 1000, laterReason: 200, refs: 8 }
+
+// 感觉词：逗号分隔的字符串或数组都收；去空白、去重；超了就报错，不静默丢
+function feelingList(feeling, { name = 'feeling', perWord = false } = {}) {
+  const raw = Array.isArray(feeling) ? feeling : String(feeling || '').split(/[,，、]/)
+  const out = []
+  for (const f of raw.map((x) => String(x || '').trim()).filter(Boolean)) {
+    if (perWord && f.length > LIMITS.feelingWord) throw new Error(`${name} 里的「${f.slice(0, 10)}…」太长（${f.length}/${LIMITS.feelingWord} 字），感觉写成词就好。`)
+    if (!out.includes(f)) out.push(f)
+  }
+  if (out.length > LIMITS.feelings) throw new Error(`${name} 最多 ${LIMITS.feelings} 个，现在是 ${out.length} 个。`)
+  return out
+}
 
 function tooLong(name, value, max) {
   const n = String(value || '').length
@@ -98,28 +111,44 @@ function identify(dir) {
   return { rows, owners, explicit }
 }
 
-export function loadAll(dir) {
-  const { rows } = identify(dir)
+// 出处的一句话摘要：只用来指路，全文用 read / currentView 看
+const brief = (r) => {
+  const s = String((r.then && r.then.text) || '')
+  return { id: r.id, day: r.day, text: [...s].length > 24 ? [...s].slice(0, 24).join('') + '…' : s }
+}
+
+// asOf：翻回那天的自己。只保留那一刻之前（含）写下的经历、后记、想起和选择；
+// 那之后发生的一律看不见。不传 asOf 就是现在的样子
+export function loadAll(dir, { asOf = null } = {}) {
+  const until = parseAsOf(asOf)
+  const { rows: all } = identify(dir)
+  const rows = until === null ? all : all.filter((r) => before(r, until))
   if (!rows.length) return rows
 
   // 想起次数：有事件文件就以事件为准；没有事件时才退回旧字段
   let counts = new Map()
-  try { counts = recallEvents.countByExp(dir) } catch { /* 事件文件坏了也不影响读经历 */ }
+  try { counts = recallEvents.countByExp(dir, { until }) } catch { /* 事件文件坏了也不影响读经历 */ }
 
   // 改主意：旧 later 数组 + later-events 事件，按时间合并
   let laterMap = new Map()
-  try { laterMap = laterEvents.groupByExp(dir) } catch { }
+  try { laterMap = laterEvents.groupByExp(dir, { until }) } catch { }
 
   // 没弄完的事后来怎么样了：想通 / 暂放 / 再接着想
   let unfinishedMap = new Map()
-  try { unfinishedMap = unfinishedEvents.latestByExp(dir) } catch { }
+  try { unfinishedMap = unfinishedEvents.latestByExp(dir, { until }) } catch { }
 
-  return rows.map((r) => {
+  const viewed = rows.map((r) => {
     const keys = r.formerId ? [r.id, r.formerId] : [r.id]
     const extra = keys.flatMap((k) => laterMap.get(k) || [])
-    const merged = [...(r.later || []), ...extra]
+    const merged = [...(r.later || []).filter((l) => before(l, until)), ...extra]
       .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')))
     const next = { ...r, later: merged }
+    if (until !== null) {
+      next.viewAsOf = new Date(until).toISOString()
+      // 旧格式行内的 recalls 没有时间，放不到那天的时间线上
+      delete next.recalls
+      delete next.lastRecalledAt
+    }
     let state = null
     for (const k of keys) {
       const st = unfinishedMap.get(k)
@@ -136,10 +165,25 @@ export function loadAll(dir) {
     }
     if (count) {
       next.recalls = count
-      next.lastRecalledAt = lastAt || r.lastRecalledAt || ''
+      next.lastRecalledAt = lastAt || (until === null ? r.lastRecalledAt : '') || ''
     }
     return next
   })
+
+  // 出处（这条是从哪几件事想到的）和反向引用（后来有哪些回想提到它）：都从 then.refs 派生
+  const byId = new Map()
+  for (const r of viewed) { byId.set(r.id, r); if (r.formerId) byId.set(r.formerId, r) }
+  for (const r of viewed) {
+    const refs = (r.then && Array.isArray(r.then.refs)) ? r.then.refs : []
+    if (!refs.length) continue
+    r.refsInfo = refs.map((id) => { const hit = byId.get(id); return hit ? brief(hit) : { id, missing: true } })
+    for (const id of refs) {
+      const target = byId.get(id)
+      if (!target || target === r) continue
+      target.citedBy = [...(target.citedBy || []), brief(r)]
+    }
+  }
+  return viewed
 }
 
 // 挂在 0.10.0 之前的旧 id 上、但这个 id 有几条旧记录共用：事件原样保留，只报告，不替她挑
@@ -168,8 +212,25 @@ function resolveId(dir, id) {
   return { id: '', ambiguous: (owners.get(id) || []).length > 1 }
 }
 
+// 出处：回想只能引用已经写下的经历。找不到、或旧 id 有歧义，就整条不写，并说清是哪一个
+function resolveRefs(dir, refs) {
+  const list = (Array.isArray(refs) ? refs : String(refs || '').split(/[,，\s]+/)).map((s) => String(s || '').trim()).filter(Boolean)
+  if (!list.length) return []
+  if (list.length > LIMITS.refs) throw new Error(`出处最多 ${LIMITS.refs} 条，现在是 ${list.length} 条。挑最主要的几件写。`)
+  const { rows, owners } = identify(dir)
+  const out = []
+  for (const x of list) {
+    const hit = rows.find((r) => r.id === x) || rows.find((r) => r.formerId === x)
+    if (!hit && (owners.get(x) || []).length > 1) throw new Error('出处里的旧 id 有几条经历共用：' + x + '。用 read 里列出的当前 id。')
+    if (!hit) throw new Error('出处里有找不到的经历：' + x + '。回想只能引用已经写下的经历。')
+    if (!out.includes(hit.id)) out.push(hit.id)
+  }
+  return out
+}
+
 // 写下时的"当时"：她写的 + 系统能自动带的状态（情绪/时间/场合）
-export function addExperience(dir, { text, scene = '', feeling = [], thought = '', unfinished = '', quote = null, weight = 'normal', kind = '其它', state = null, source = 'own-time' }) {
+// refs：这条是从哪几件事想到的（回想、归纳时用）。写入时就校验，引用不存在的经历直接拒绝
+export function addExperience(dir, { text, scene = '', feeling = [], thought = '', unfinished = '', quote = null, weight = 'normal', kind = '其它', state = null, source = 'own-time', refs = [] }) {
   if (!String(text || '').trim()) throw new Error('text 不能是空的。')
   const safeText = tooLong('text', text, LIMITS.text)
   const safeScene = tooLong('scene', scene, LIMITS.scene)
@@ -178,6 +239,7 @@ export function addExperience(dir, { text, scene = '', feeling = [], thought = '
   const safeKind = tooLong('kind', kind || '其它', LIMITS.kind)
   const feelings = (Array.isArray(feeling) ? feeling : [feeling]).map((f) => String(f || '').trim()).filter(Boolean)
   if (feelings.length > LIMITS.feelings) throw new Error(`feeling 最多 ${LIMITS.feelings} 个，现在是 ${feelings.length} 个。`)
+  const refIds = resolveRefs(dir, refs)
 
   fs.mkdirSync(dir, { recursive: true })
   const now = new Date()
@@ -202,6 +264,7 @@ export function addExperience(dir, { text, scene = '', feeling = [], thought = '
     later: [],
     status: 'kept'
   }
+  if (refIds.length) row.then.refs = refIds
   const fd = fs.openSync(path.join(dir, FILE), 'a+')
   try {
     const size = fs.fstatSync(fd).size
@@ -217,17 +280,19 @@ export function addExperience(dir, { text, scene = '', feeling = [], thought = '
 
 // 改主意 / 回头想：只追加一条 later 事件，不重写经历文件
 // 先确认这条经历真的在：id 抄错时明说找不到，不留一条谁也看不见的后记
-export function reviseExperience(dir, { id, thought, reason = '' }) {
+// feeling：她现在再想起这件事的感觉。当时的感觉留在 then.feeling 里不动；系统从不替她"淡化"
+export function reviseExperience(dir, { id, thought, reason = '', feeling = [] }) {
   if (!String(id || '').trim()) return { ok: false, error: '需要 id' }
   if (!String(thought || '').trim()) return { ok: false, error: 'thought 不能是空的。' }
   try {
     const safeThought = tooLong('thought', thought, LIMITS.laterThought)
     const safeReason = tooLong('reason', reason, LIMITS.laterReason)
+    const feelings = feelingList(feeling, { name: 'feeling', perWord: true })
     const target = resolveId(dir, String(id))
     if (target.ambiguous) return { ok: false, error: '这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id 来改。' }
     if (!target.id) return { ok: false, error: '找不到这条经历：' + id + '。先用 read 或 recall 看一下 id。' }
-    const row = laterEvents.append(dir, { id: target.id, thought: safeThought, reason: safeReason })
-    return { ok: true, id: row.id, at: row.at }
+    const row = laterEvents.append(dir, { id: target.id, thought: safeThought, reason: safeReason, feeling: feelings })
+    return { ok: true, id: row.id, at: row.at, ...(feelings.length ? { feeling: feelings } : {}) }
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) }
   }
@@ -269,8 +334,9 @@ export function markRecalled(dir, id) {
   return true
 }
 
-export function currentView(dir, id) {
-  const rows = loadAll(dir)
+// asOf：看那天的这一条（那之后的后记、选择、想起都不算）；那天还没写下就返回 null
+export function currentView(dir, id, { asOf = null } = {}) {
+  const rows = loadAll(dir, { asOf })
   return rows.find((r) => r.id === id) || rows.find((r) => r.formerId === id) || null
 }
 
@@ -279,8 +345,10 @@ export function currentView(dir, id) {
 // mode='strict'（默认）：长查询要求 ≥60% 命中，宁可不召回也不硬凑
 // mode='loose'：只要求至少一个实词命中，适合"想起来就该出现在眼前"的日常召回，宿主自行承担误召
 // mark=false（默认）：只读；mark=true 追加一条 recall 事件（不重写经历文件）
-export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict' } = {}) {
-  const rows = loadAll(dir)
+// asOf：在那天的自己里找（只读）；翻旧日子不算"想起"，所以不能和 mark 一起用
+export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null } = {}) {
+  if (mark && asOf !== null && asOf !== undefined && asOf !== '') throw new Error('翻回旧日子时不记「想起」：mark 和 asOf 不能一起用。')
+  const rows = loadAll(dir, { asOf })
   const q = String(query || '')
   const parsed = queryTerms(q)
   const { terms } = parsed
@@ -298,8 +366,9 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, mi
     take(matchedTerms(terms, r.then.text + ' ' + r.then.thought + ' ' + (r.then.feeling || []).join(' ')), 'then')
     if (r.then.quote) take(matchedTerms(terms, (r.then.quote.text || '') + ' ' + (r.then.quote.source || '')), 'quote')
     const matchedLater = []
+    const laterText = (l) => String(l.thought || '') + ' ' + (Array.isArray(l.feeling) ? l.feeling.join(' ') : '')
     for (const l of r.later || []) {
-      const hits = matchedTerms(terms, l.thought)
+      const hits = matchedTerms(terms, laterText(l))
       if (hits.size) matchedLater.push(l)
       take(hits, 'later')
     }
@@ -307,7 +376,7 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, mi
     const all = normalizeText([
       r.then.text, r.then.thought, (r.then.feeling || []).join(' '),
       r.then.quote ? r.then.quote.text : '', r.then.quote ? r.then.quote.source : '',
-      (r.later || []).map((l) => l.thought).join(' ')
+      (r.later || []).map(laterText).join(' ')
     ].join(' '))
     // 记录自身的规模：长记录天然更容易碰巧命中，排序时按 √长度 归一化
     const size = Math.max(1, all.length - 1)
@@ -335,8 +404,11 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, mi
 const laterDay = (l) => l.day || String(l.at || '').slice(0, 10)
 const sameLater = (a, b) => a === b || (a.at === b.at && a.thought === b.thought)
 
+const refLine = (x) => x.missing ? '（' + x.id + '，找不到了）' : x.day + '「' + x.text + '」'
+
 // 「当时 / 现在」两段式：模板拼，不调模型；没有的字段就如实说没有
 // 后记：这次是被哪条后记想起的，就把那条原样给她；再给最近的一条。各带各的日子，不截断
+// 翻回那天（entry.viewAsOf）时，第二段是【那时】：只有那天之前的后记和选择
 export function renderTwoPart(entry, { now = new Date() } = {}) {
   if (!entry) return ''
   const t = entry.then
@@ -348,13 +420,26 @@ export function renderTwoPart(entry, { now = new Date() } = {}) {
   if (t.scene) lines.push('- 场景：' + t.scene)
   if (t.quote && t.quote.text) lines.push('- 我读到的原文：' + t.quote.text + (t.quote.source ? '（' + t.quote.source + '）' : ''))
   lines.push('- 我写下的话：' + t.text)
+  if (Array.isArray(entry.refsInfo) && entry.refsInfo.length) lines.push('- 是从这几件事想到的：' + entry.refsInfo.map(refLine).join('；'))
   if ((t.feeling || []).length) lines.push('- 当时的感觉：' + t.feeling.join('、'))
   if (t.thought) lines.push('- 当时的想法：' + t.thought)
   if (t.unfinished) lines.push('- 还没完的：' + t.unfinished)
   if (t.state && t.state.mood) lines.push('- 记录里的情绪：' + t.state.mood)
   if (entry.legacy && !t.quote) lines.push('- （这条只留下感想，当时的原文没记）')
-  lines.push('', '【现在】')
-  lines.push('- 现在时间：' + now.toLocaleString('zh-CN', { hour12: false }))
+  // 截在一天的最后一刻就只写日期；截在一天当中就写到分钟，免得让人以为整天都算进去了
+  let asOfDay = ''
+  if (entry.viewAsOf) {
+    const d = new Date(entry.viewAsOf)
+    const endOfDay = d.getHours() === 23 && d.getMinutes() === 59 && d.getSeconds() === 59 && d.getMilliseconds() === 999
+    asOfDay = dayOf(d.getTime()) + (endOfDay ? '' : ' ' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }))
+  }
+  if (asOfDay) {
+    lines.push('', '【那时（截至 ' + asOfDay + '）】')
+    lines.push('- 这是截至 ' + asOfDay + ' 的样子；那之后写下的后记和选择不在这里')
+  } else {
+    lines.push('', '【现在】')
+    lines.push('- 现在时间：' + now.toLocaleString('zh-CN', { hour12: false }))
+  }
   lines.push('- 这条被你想起过 ' + Number(entry.recalls || 0) + ' 次' + (entry.lastRecalledAt ? '，上次是 ' + String(entry.lastRecalledAt).slice(0, 10) : ''))
   const later = Array.isArray(entry.later) ? entry.later : []
   if (later.length) {
@@ -364,8 +449,15 @@ export function renderTwoPart(entry, { now = new Date() } = {}) {
     lines.push((hits.length ? '- 最近一次回头想：' : '- 后来你想过：') + String(last.thought || '') + '（' + laterDay(last) + '）')
     const shown = hits.length + 1
     if (later.length > shown) lines.push('- （后来一共回头想过 ' + later.length + ' 次，这里没列出的 ' + (later.length - shown) + ' 次可以用 read 看）')
+    // 后来再想起时的感觉：取最近一条写了感觉的后记；她没写，就不替她说
+    const felt = [...later].reverse().find((l) => Array.isArray(l.feeling) && l.feeling.length)
+    if (felt) lines.push('- 后来再想起的感觉：' + felt.feeling.join('、') + '（' + laterDay(felt) + '）')
   } else {
     lines.push('- 还没有文字后记')
+  }
+  if (Array.isArray(entry.citedBy) && entry.citedBy.length) {
+    const shownRefs = entry.citedBy.slice(-3)
+    lines.push('- 后来有 ' + entry.citedBy.length + ' 条回想提到它：' + shownRefs.map(refLine).join('；') + (entry.citedBy.length > shownRefs.length ? '；……' : ''))
   }
   const st = entry.unfinishedState
   if (st && t.unfinished) {
@@ -377,7 +469,7 @@ export function renderTwoPart(entry, { now = new Date() } = {}) {
     if (st.choice === 'done') phrase = prev === 'shelved' ? '放下过，后来想通了' : '后来想通了'
     else if (st.choice === 'shelved') phrase = prev === 'done' ? '想通过一次，后来又决定先放下' : '先放下了，还没想通'
     else if (st.choice === 'reopen') phrase = prev === 'done' ? '想通过一次，后来又决定接着想' : '放下过，后来又决定接着想'
-    if (phrase) lines.push('- 当时没弄完的这件事：' + phrase + '：' + t.unfinished + '（' + when2 + '）')
+    if (phrase) lines.push('- 当时没弄完的「' + t.unfinished + '」：' + phrase + '（' + when2 + '）')
   }
   lines.push('', '以上是那天留下的全部；没留下的，我不记得。')
   return lines.join('\n')

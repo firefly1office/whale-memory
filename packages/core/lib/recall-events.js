@@ -4,6 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { withFileLock } from './file-lock.js'
+import { before } from './as-of.js'
 
 const FILE = 'recall-events.jsonl'
 
@@ -65,22 +66,24 @@ export function readAll(memDir) {
 // 进程内缓存：同一进程里连续 recall 不再重复解析整个事件文件
 const memo = new Map()
 
-export function countByExp(memDir) {
+// until：只数这一刻之前（含）的想起；截断查询不走缓存
+export function countByExp(memDir, { until = null } = {}) {
   const file = eventsFile(memDir)
   let stamp = ''
   try { const st = fs.statSync(file); stamp = st.mtimeMs + ':' + st.size } catch { }
-  const hit = memo.get(memDir)
+  const hit = until === null ? memo.get(memDir) : null
   if (hit && hit.stamp === stamp) return hit.map
 
   const { rows } = readAll(memDir)
   const map = new Map()
   for (const r of rows) {
+    if (!before(r, until)) continue
     const cur = map.get(r.id) || { count: 0, lastAt: '' }
     cur.count += 1
     if (String(r.at || '') > cur.lastAt) cur.lastAt = String(r.at || '')
     map.set(r.id, cur)
   }
-  memo.set(memDir, { stamp, map })
+  if (until === null) memo.set(memDir, { stamp, map })
   return map
 }
 

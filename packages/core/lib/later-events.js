@@ -1,8 +1,10 @@
 // 改主意是事件：只追加，不改 then，也不重写经历文件
-// 一行一个 { id, at, day, thought, reason? }
+// 一行一个 { id, at, day, thought, reason?, feeling? }
+// feeling 是她「后来再想起时」的感觉；当时的感觉在 then.feeling 里，永远不动
 import fs from 'node:fs'
 import path from 'node:path'
 import { withFileLock } from './file-lock.js'
+import { before } from './as-of.js'
 
 const FILE = 'later-events.jsonl'
 
@@ -10,7 +12,7 @@ export function eventsFile(memDir) {
   return path.join(memDir, FILE)
 }
 
-export function append(memDir, { id, thought, reason = '' } = {}, opts = {}) {
+export function append(memDir, { id, thought, reason = '', feeling = [] } = {}, opts = {}) {
   if (!String(id || '').trim()) throw new Error('id 不能为空')
   if (!String(thought || '').trim()) throw new Error('thought 不能为空')
   const now = new Date()
@@ -21,6 +23,7 @@ export function append(memDir, { id, thought, reason = '' } = {}, opts = {}) {
     thought: String(thought),
     reason: String(reason || '')
   }
+  if (Array.isArray(feeling) && feeling.length) row.feeling = feeling.map(String)
 
   fs.mkdirSync(memDir, { recursive: true })
   return withFileLock(eventsFile(memDir) + '.lock', () => {
@@ -57,10 +60,12 @@ export function readAll(memDir) {
   return { rows, bad }
 }
 
-export function groupByExp(memDir) {
+// until：只要这一刻之前（含）写下的后记，「翻回那天的自己」用
+export function groupByExp(memDir, { until = null } = {}) {
   const { rows } = readAll(memDir)
   const map = new Map()
   for (const r of rows) {
+    if (!before(r, until)) continue
     const list = map.get(r.id) || []
     list.push(r)
     map.set(r.id, list)

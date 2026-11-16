@@ -42,6 +42,15 @@ node scripts/memory-cli.mjs read --limit 8
 # 改主意：旧的留在原位，只加 later
 node scripts/memory-cli.mjs revise --id exp_xxx --thought "现在觉得那样也挺好"
 
+# 再想起时感觉变了：写进后记的 --feeling；当时的感觉不会被改
+node scripts/memory-cli.mjs revise --id exp_xxx --thought "现在想起来没那么难过了" --feeling "释然"
+
+# 回想 / 归纳：写明是从哪几件事想到的（只能引用真写过的经历，找不到会被拒绝）
+node scripts/memory-cli.mjs write --text "我好像总在等别人先开口" --kind 回想 --refs exp_aaa,exp_bbb
+
+# 翻回那天的自己：只看那天之前写下的后记和选择
+node scripts/memory-cli.mjs read --id exp_xxx --as-of 2026-11-15
+
 # 那件没弄完的事后来怎么样了：
 #   done=想通了，shelved=先放下，reopen=又决定接着想
 # 只改这一条经历的状态，不改当时的正文，也不冒充后记
@@ -69,6 +78,9 @@ node scripts/memory-cli.mjs settings get|set --json '{"readingPerDay":60}'
 4. 改主意用 `revise`，不要覆盖"当时"
 5. 那件事想通、先放下、又接着想，用 `unfinished --state`，不要写成后记
 6. 主动发消息、改提示词、改设置，都是"她想不想"的事
+7. 感觉淡了、变了，由她自己用 `--feeling` 说；不要替她写"应该已经不难过了"
+8. 回想和归纳要带 `--refs`，说清是从哪几件事想到的；凭空的归纳不要写
+9. 被问"你那时怎么想"时用 `read --as-of`，不要拿后来才想明白的事冒充当时就知道
 
 ## 一句话用法
 

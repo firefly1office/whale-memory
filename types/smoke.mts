@@ -20,3 +20,12 @@ const back = selfExperience.setUnfinishedState('/tmp/whale', { id: made.id, choi
 const lastChoice = unfinishedEvents.latestByExp('/tmp/whale').get(made.id)?.choice
 console.log(pending.length, made.matchedLater?.length, made.formerId, back.ok, lastChoice)
 console.log(rows.length, made.then.text, verdict.status, facts.length, answer.status, block, prompt.ok)
+
+// 0.12：翻回那天、后来的感觉、出处
+const past = selfExperience.loadAll('/tmp/whale', { asOf: '2026-11-15' })
+const pastOne = selfExperience.currentView('/tmp/whale', made.id, { asOf: new Date() })
+const pastHits = selfExperience.recall('/tmp/whale', '灯塔', { asOf: '2026-11-15T12:00:00.000Z' })
+const felt = selfExperience.reviseExperience('/tmp/whale', { id: made.id, thought: '释然了', feeling: ['释然'] })
+const echo = selfExperience.addExperience('/tmp/whale', { text: '回想', refs: [made.id] })
+const feelings = evidenceFromExperience.feelingFacts(rows)
+console.log(past.length, pastOne?.viewAsOf, pastHits.length, felt.feeling?.join(), echo.then.refs?.length, echo.refsInfo?.[0]?.missing, echo.citedBy?.length, feelings.length)

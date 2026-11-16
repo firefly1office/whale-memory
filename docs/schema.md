@@ -68,6 +68,7 @@
 {"id":"exp_mwggkzwbwp10","at":"2026-11-15T08:10:51.340Z","day":"2026-11-15","thought":"现在觉得，他是在护着朋友","reason":""}
 ```
 
+- 0.12.0 起可以带 `feeling`：她**现在再想起时**的感觉，例如 `{"id":"exp_…","at":"…","thought":"现在觉得她在等船","reason":"","feeling":["释然"]}`。当时的感觉仍在 `then.feeling`，不会被改写；没写感觉的后记不代表感觉变了，翻读时也不会替她说
 - 读取时合并：`later` = 行内旧数组 + 事件，按 `at` 排序
 - 孤儿事件（id 对应的经历不存在）在读取时忽略
 - 迁移：`node tools/migrate-later-events.mjs --data=<dir>`（默认 dry-run，`--apply` 才写，先备份、校验、可回滚）
@@ -87,6 +88,28 @@
 - 重复同一个选择不追加第二条；没关过的事 `reopen` 是空操作
 - 旧数据没有这个文件：行为不变，`then.unfinished` 照旧进入未完列表
 - 备份/导出要带上这个文件
+
+## 回想的出处（0.12.0 起）
+
+一条经历可以写明"是从哪几件事想到的"：`then.refs` 是经历 id 的数组。它属于 `then`，写下就固定。
+
+```json
+{"id":"exp_r","at":"…","kind":"回想","then":{"text":"等待的人不一定是在怕黑","refs":["exp_a","exp_b"],"…":"…"}}
+```
+
+- **写入时校验**：每个 id 都必须是已经写下的经历；找不到、或旧 id 有歧义，整条拒绝，一个字节都不写。旧 id 会落到当前 id 上；重复的只留一个；最多 8 条
+- 读取时派生两头：`refsInfo`（出处的一句话摘要）和 `citedBy`（后来有哪些经历把这条写进了出处）
+- 出处指向的经历读不到时（例如只恢复了部分文件），`refsInfo` 里标 `missing: true`，翻读写"找不到了"，`doctor` 的"出处完整"一项会报出来
+- 召回不顺着出处跳：出处只在翻读时给出，由宿主决定要不要再去读那几条
+
+## 翻回那天的自己（0.12.0 起）
+
+`loadAll(dir, { asOf })`、`currentView(dir, id, { asOf })`、`recall(dir, q, { asOf })`，CLI 是 `read --as-of` / `recall --as-of`。
+
+- `asOf` 写 `2026-11-15`：截到那天**本地时间**的最后一刻；也可以写完整的 ISO 时间
+- 只保留那一刻之前（含）写下的经历、后记、结案选择和想起事件；之后的一律看不见。返回的条目带 `viewAsOf`，翻读的第二段变成【那时（截至 …）】
+- 不改任何文件；`recall` 带 `asOf` 时不能同时 `mark`（翻旧日子不算"想起"）
+- 没有时间戳的旧记录放不到时间线上，截断时不算在"那时"里；旧格式行内的 `recalls` 也一样
 
 ## 想起是事件（0.5.0 起）
 
@@ -114,12 +137,14 @@
 | `kind` | 20 字 |
 | `later[].thought` | 1000 字 |
 | `later[].reason` | 200 字 |
+| `later[].feeling` | 8 个，每个 20 字 |
+| `then.refs` | 8 条，且都必须存在 |
 
 空白的 `text` 直接拒绝（`{ok:false, error:"text 不能是空的。"}`）。超长时报错并给出实际长度，让她自己决定删哪些、或拆成两条——记忆系统不能悄悄丢掉一半原文。
 
 ## 召回语义
 
-匹配范围：**当时写下的**（`then.text` / `then.thought` / `then.feeling`）、**原文锚**（`then.quote.text` / `source`）、**后来才明白的**（`later[].thought`）。返回的条目带 `matchedIn`，说明命中的是 `then` / `quote` / `later` 中的哪几层——宿主可以据此告诉模型"这是她后来才想明白的"，不要把后来的判断说成当初就知道。
+匹配范围：**当时写下的**（`then.text` / `then.thought` / `then.feeling`）、**原文锚**（`then.quote.text` / `source`）、**后来才明白的**（`later[].thought` 与 `later[].feeling`）。返回的条目带 `matchedIn`，说明命中的是 `then` / `quote` / `later` 中的哪几层——宿主可以据此告诉模型"这是她后来才想明白的"，不要把后来的判断说成当初就知道。
 
 - 给了 query：按相关度 × 重要度排序，取前 N 条
 - **空 query：返回最近 N 条**（按时间倒序），不是报错，也不是"什么都没匹配到"
@@ -129,13 +154,16 @@
 
 ## 备份要带哪些文件
 
-一条经历在磁盘上可能由三处组成，备份时不要只拷 `self-experience.jsonl`：
+一条经历在磁盘上可能由四处组成，备份时不要只拷 `self-experience.jsonl`：
 
 ```
-self-experience.jsonl   then（以及迁移前遗留的行内 later / recalls）
-later-events.jsonl      后来追加的想法
-recall-events.jsonl     想起的次数
+self-experience.jsonl     then（以及迁移前遗留的行内 later / recalls）
+later-events.jsonl        后来追加的想法（0.12 起可带后来的感觉）
+recall-events.jsonl       想起的次数
+unfinished-events.jsonl   没弄完的事后来怎么样了（0.11 起）
 ```
+
+出处（`then.refs`）写在经历行里，不是单独的文件。
 
 读取时才会合并成「一条经历」。迁移工具回滚时也会同时恢复这些文件。
 

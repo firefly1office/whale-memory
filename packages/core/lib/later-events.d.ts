@@ -4,15 +4,18 @@ export interface LaterEvent {
   day: string
   thought: string
   reason: string
+  /** 她后来再想起时的感觉（0.12 起） */
+  feeling?: string[]
 }
 
 export function eventsFile(memDir: string): string
 
-export function append(memDir: string, event: { id: string; thought: string; reason?: string }, opts?: { timeoutMs?: number }): LaterEvent
+export function append(memDir: string, event: { id: string; thought: string; reason?: string; feeling?: string[] }, opts?: { timeoutMs?: number }): LaterEvent
 
 export function readAll(memDir: string): { rows: LaterEvent[]; bad: number }
 
-export function groupByExp(memDir: string): Map<string, LaterEvent[]>
+/** until：只要这一刻（毫秒时间戳）之前（含）的后记 */
+export function groupByExp(memDir: string, opts?: { until?: number | null }): Map<string, LaterEvent[]>
 
 export function list(memDir: string, opts?: { id?: string; limit?: number }): LaterEvent[]
 

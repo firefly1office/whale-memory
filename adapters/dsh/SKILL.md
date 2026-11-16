@@ -33,6 +33,10 @@ node adapters/cli/memory-cli.mjs <命令> [参数]
 | 想不起某件事，先翻自己的记录 | `recall --query "..."` |
 | 列出最近的经历 | `read --limit 8` |
 | 想法变了，改主意（旧的不删） | `revise --id ... --thought "..."` |
+| 再想起时感觉变了（当时的感觉不改） | `revise --id ... --thought "..." --feeling "释然"` |
+| 回想、归纳，写明是从哪几件事想到的 | `write --text "..." --kind 回想 --refs id1,id2` |
+| 被问"你那时怎么想" | `read --id ... --as-of 2026-11-15` |
+| 那件没弄完的事想通了 / 先放下 / 又接着想 | `unfinished --id ... --state done\|shelved\|reopen` |
 | 每天第一次醒来，给昨天的自己一条线 | `waking --chat "local:owner"` |
 | 被问到自己、想带上自己的经历 | `memory --query "..." [--diary true]` |
 | 她想改自己的说话方式 | `prompt set --text "..." --reason "..."` |
@@ -45,6 +49,9 @@ node adapters/cli/memory-cli.mjs <命令> [参数]
 3. **别人的私事不跨会话**：只跨她自己（`self`）和主人。
 4. **改主意用 `revise`**，不要覆盖"当时"的记录。
 5. 主动发消息、改提示词、改设置，都是"她想不想"的事，不是流程要求。
+6. **感觉变了由她自己说**（`--feeling`），不要替她写"应该已经不难过了"。
+7. **回想要带出处**（`--refs`）；说不出是从哪几件事想到的归纳，不要写。
+8. **问"那时"就翻那时**（`read --as-of`），不要拿后来才明白的事冒充当时就知道。
 
 ## 每天该做的三件事
 

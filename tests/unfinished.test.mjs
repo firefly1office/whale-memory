@@ -49,7 +49,7 @@ test('想通：次日移出未完列表，翻读显示已想通，后记数不�
   assert.equal(view.later.length, 0, '结案不是后记，不能算改主意')
   assert.equal(Number(view.recalls || 0), 0)
   const text = exp.renderTwoPart(view)
-  assert.match(text, /后来想通了：想知道船有没有回来/)
+  assert.match(text, /当时没弄完的「想知道船有没有回来」：后来想通了（\d{4}-\d{2}-\d{2}）/)
 })
 
 test('暂放：次日不提醒，也不自动催；翻读显示先放下', (t) => {
