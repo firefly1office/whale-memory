@@ -61,6 +61,14 @@ node adapters/cli/memory-cli.mjs revise --id 返回的ID --thought "读到结尾
 node adapters/cli/memory-cli.mjs read --limit 1
 ```
 
+**先体检一次**（能力层，不是“文件在不在”）：
+
+```sh
+node adapters/cli/memory-cli.mjs doctor
+```
+
+它会真的在临时目录里写入、读回、结案、导出再导入，再检查事件文件和醒来白名单。`ok: true` 才算能用。
+
 ## 选择接入方式
 
 | 你想做什么 | 从哪里开始 |

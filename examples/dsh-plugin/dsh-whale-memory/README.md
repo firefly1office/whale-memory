@@ -45,6 +45,7 @@ $env:WHALE_DATA_DIR = "$env:LOCALAPPDATA/whale-memory-demo"
 
 ```bash
 cd skills/whale-memory/scripts
+node memory-cli.mjs doctor         # 写入/读回/结案/导出导入/白名单，全走一遍
 node memory-cli.mjs write --text "试一条" --unfinished "想知道明天会不会下雨"
 node memory-cli.mjs read --limit 1
 ```

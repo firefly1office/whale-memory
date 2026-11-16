@@ -68,6 +68,16 @@ test('提示词模板里的标签必须来自 renderTwoPart 的真实输出', (t
   assert.doesNotMatch(block, /【后来】/)
 })
 
+test('守卫只能否决，不能放行', (t) => {
+  const mem = tmp(t)
+  addExperience(mem, { text: '守灯人整晚没睡' })
+  const vetoed = surface(mem, { chatKey: 'private_100000000', text: '守灯人', guard: () => false })
+  assert.equal(vetoed.reason, 'vetoed')
+  assert.equal(vetoed.block, '')
+  const noHit = surface(mem, { chatKey: 'private_100000000', text: '我昨天买了什么股票', guard: () => true })
+  assert.equal(noHit.reason, 'no-hit')
+  assert.equal(noHit.block, '')
+})
 test('注入示例可跑，输出与规则一致', () => {
   const res = spawnSync(process.execPath, [path.join(root, 'examples/injection/host.mjs')], { cwd: root, encoding: 'utf8' })
   assert.equal(res.status, 0, res.stderr || res.stdout)

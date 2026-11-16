@@ -9,7 +9,12 @@ const DAY = 24 * 3600 * 1000
  * @returns {{ block: string, id?: string, reason: string, confirm?: () => boolean }}
  * block 为空时 reason 说明为什么没递；非空时调用方把 block 塞进上下文，再调 confirm()
  */
-export function surface(memDir, { chatKey = '', text = '', seen = {}, now = Date.now(), mode = 'strict' } = {}) {
+export function surface(memDir, { chatKey = '', text = '', seen = {}, now = Date.now(), mode = 'strict', guard } = {}) {
+  // 守卫只能否决，不能放行：guard 返回 false 就什么都不递
+  // 返回 true 也只是不拦，后面照常走完所有规则
+  if (typeof guard === 'function' && guard({ chatKey, text }) === false) {
+    return { block: '', reason: 'vetoed' }
+  }
   if (!isPrivateKey(chatKey)) return { block: '', reason: 'not-private' }
 
   const hit = recall(memDir, text, { limit: 1, mode })[0]

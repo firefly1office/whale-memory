@@ -2,6 +2,18 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.11.1] · 2026-11-16
+
+### Added
+
+- CLI `doctor`：能力层体检，不是“文件在不在”。在临时目录真的走一遍写入 → 后记 → 结案 → 召回、导出 → 导入 → 读回，再检查事件文件逐行解析和醒来白名单。`ok: true` 才算能用。
+- 注入示例加 `guard`：**只能否决，不能放行**。返回 `false` 就什么都不递；返回 `true` 也只是不拦，绕不过前面七条规则。
+
+### Docs
+
+- `docs/limits.md`：新增“能力层验证”与索引原则——原文是唯一真相，索引必须在写入时旁路生成、删掉能重建，不能成为来源。
+- README / DSH README / SKILL 补 `doctor` 自检步骤。
+
 ## [0.11.0] · 2026-11-16
 
 ### Added

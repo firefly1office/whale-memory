@@ -33,6 +33,9 @@ node scripts/memory-cli.mjs write \
 # 想起来（返回「当时/现在」两段）
 node scripts/memory-cli.mjs recall --query "那本书里那个人后来怎样" --limit 1
 
+# 先体检（写入/读回/导出导入/白名单）
+node scripts/memory-cli.mjs doctor
+
 # 列最近的经历
 node scripts/memory-cli.mjs read --limit 8
 

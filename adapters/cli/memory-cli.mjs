@@ -2,6 +2,7 @@
 // 通用 CLI 适配层：任何能执行命令的 agent（DSH、自建、其他框架）都能用
 // 用法：node memory-cli.mjs <命令> [参数]，输出 JSON 到 stdout
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import * as exp from '../../packages/core/lib/self-experience.js'
@@ -9,6 +10,9 @@ import * as mem from '../../packages/core/lib/self-memory.js'
 import * as waking from '../../packages/core/lib/waking.js'
 import * as prompt from '../../packages/core/lib/self-prompt.js'
 import * as settings from '../../packages/core/lib/self-settings.js'
+import * as laterEvents from '../../packages/core/lib/later-events.js'
+import * as recallEvents from '../../packages/core/lib/recall-events.js'
+import * as unfinishedEvents from '../../packages/core/lib/unfinished-events.js'
 
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
 
@@ -64,15 +68,15 @@ function countLines(file) {
   } catch { return 0 }
 }
 
-function doExport(outArg) {
-  if (!fs.existsSync(MEM_DIR)) throw new Error('没有找到记忆目录：' + MEM_DIR)
+function doExport(outArg, memDir = MEM_DIR) {
+  if (!fs.existsSync(memDir)) throw new Error('没有找到记忆目录：' + memDir)
   const target = path.resolve(outArg, 'memory-export-' + stamp())
-  const insideSource = target === MEM_DIR || target.startsWith(MEM_DIR + path.sep)
-  const sourceInsideTarget = MEM_DIR.startsWith(target + path.sep)
+  const insideSource = target === memDir || target.startsWith(memDir + path.sep)
+  const sourceInsideTarget = memDir.startsWith(target + path.sep)
   if (insideSource || sourceInsideTarget) throw new Error('导出目录不能和记忆目录互相包含：' + target)
   if (fs.existsSync(target)) throw new Error('导出目录已存在：' + target)
 
-  const files = collectFiles(MEM_DIR)
+  const files = collectFiles(memDir)
   fs.mkdirSync(target, { recursive: true })
   const manifestFiles = []
   let bytes = 0
@@ -90,10 +94,10 @@ function doExport(outArg) {
     exportedAt: new Date().toISOString(),
     files: manifestFiles,
     counts: {
-      experiences: exp.loadAll(MEM_DIR).length,
-      diaries: countLines(path.join(MEM_DIR, 'autobiography.jsonl')),
-      laterEvents: countLines(path.join(MEM_DIR, 'later-events.jsonl')),
-      recallEvents: countLines(path.join(MEM_DIR, 'recall-events.jsonl'))
+      experiences: exp.loadAll(memDir).length,
+      diaries: countLines(path.join(memDir, 'autobiography.jsonl')),
+      laterEvents: countLines(path.join(memDir, 'later-events.jsonl')),
+      recallEvents: countLines(path.join(memDir, 'recall-events.jsonl'))
     }
   }
   fs.writeFileSync(path.join(target, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8')
@@ -113,7 +117,7 @@ function safeJoin(root, name) {
   return abs
 }
 
-function doImport(fromArg, force) {
+function doImport(fromArg, force, memDir = MEM_DIR) {
   const src = path.resolve(fromArg)
   const manifestFile = path.join(src, 'manifest.json')
   if (!fs.existsSync(manifestFile)) throw new Error('不是 whale-memory 导出目录（缺 manifest.json）：' + src)
@@ -133,21 +137,21 @@ function doImport(fromArg, force) {
     if (sha256(buf) !== f.sha256) throw new Error('文件校验不通过：' + name)
   }
 
-  const exists = fs.existsSync(MEM_DIR) && fs.readdirSync(MEM_DIR).length > 0
-  if (exists && !force) throw new Error('目标已有数据：' + MEM_DIR + '。确认覆盖请加 --force true（会先备份）')
+  const exists = fs.existsSync(memDir) && fs.readdirSync(memDir).length > 0
+  if (exists && !force) throw new Error('目标已有数据：' + memDir + '。确认覆盖请加 --force true（会先备份）')
   let backup = ''
   if (exists && force) {
-    backup = MEM_DIR + '.pre-import-' + stamp()
-    fs.renameSync(MEM_DIR, backup)
+    backup = memDir + '.pre-import-' + stamp()
+    fs.renameSync(memDir, backup)
   }
-  fs.mkdirSync(MEM_DIR, { recursive: true })
+  fs.mkdirSync(memDir, { recursive: true })
   for (const f of manifest.files) {
-    const dest = safeJoin(MEM_DIR, f.name)
+    const dest = safeJoin(memDir, f.name)
     fs.mkdirSync(path.dirname(dest), { recursive: true })
     fs.copyFileSync(safeJoin(src, f.name), dest)
   }
-  const loaded = exp.loadAll(MEM_DIR)
-  return { ok: true, files: manifest.files.length, restoreTo: MEM_DIR, backup, counts: { experiences: loaded.length } }
+  const loaded = exp.loadAll(memDir)
+  return { ok: true, files: manifest.files.length, restoreTo: memDir, backup, counts: { experiences: loaded.length } }
 }
 
 // 彻底忘掉：列出/删除所有可能还留着原文的地方
@@ -174,6 +178,68 @@ function doPurge(yes) {
   if (!yes) return { ok: true, dryRun: true, targets: listed, note: '导出目录在数据根之外，不在这里处理，请自行确认。' }
   for (const t of targets) fs.rmSync(t.path, { recursive: true, force: true })
   return { ok: true, removed: targets.length, targets: listed, note: '已删除上面这些；导出的备份目录请自行清理。' }
+}
+
+// 能力层体检：不是“文件在不在”，是真的写进去、读回来、导出去、再导回来
+// 只读真实数据；所有写入都发生在临时目录
+function doDoctor() {
+  const checks = []
+  const add = (name, fn) => {
+    try {
+      const r = fn()
+      checks.push({ name, ok: Boolean(r.ok), detail: String(r.detail || '') })
+    } catch (e) {
+      checks.push({ name, ok: false, detail: String((e && e.message) || e) })
+    }
+  }
+
+  add('数据目录', () => {
+    if (!fs.existsSync(MEM_DIR)) return { ok: true, detail: '还没有数据（首次使用正常）：' + MEM_DIR }
+    const rows = exp.loadAll(MEM_DIR)
+    return { ok: true, detail: MEM_DIR + '，' + rows.length + ' 条经历' }
+  })
+
+  add('事件文件可解析', () => {
+    if (!fs.existsSync(MEM_DIR)) return { ok: true, detail: '没有数据目录，跳过' }
+    const bad = laterEvents.readAll(MEM_DIR).bad + recallEvents.readAll(MEM_DIR).bad + unfinishedEvents.readAll(MEM_DIR).bad
+    return { ok: bad === 0, detail: bad === 0 ? '没有坏行' : '有 ' + bad + ' 行解析失败' }
+  })
+
+  add('写入→读回（临时目录）', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-doctor-'))
+    try {
+      const memDir = path.join(tmp, 'mem')
+      const row = exp.addExperience(memDir, { text: '体检探针：读完灯塔那一章', unfinished: '想知道船回来没有' })
+      exp.reviseExperience(memDir, { id: row.id, thought: '船回来了' })
+      exp.setUnfinishedState(memDir, { id: row.id, choice: 'done' })
+      const view = exp.currentView(memDir, row.id)
+      const hit = exp.recall(memDir, '灯塔', { limit: 1 })
+      const ok = view && view.later.length === 1 && view.unfinishedState && view.unfinishedState.choice === 'done' && hit.length === 1
+      return { ok: Boolean(ok), detail: ok ? '写入、后记、结案、召回都通过' : '读回的内容不完整' }
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }) }
+  })
+
+  add('导出→导入（临时目录）', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-doctor-'))
+    try {
+      const memDir = path.join(tmp, 'mem')
+      const row = exp.addExperience(memDir, { text: '体检探针：导出导入' })
+      const out = path.join(tmp, 'out')
+      fs.mkdirSync(out, { recursive: true })
+      const e = doExport(out, memDir)
+      const memDir2 = path.join(tmp, 'mem2')
+      doImport(e.dir, false, memDir2)
+      const back = exp.currentView(memDir2, row.id)
+      return { ok: Boolean(back && back.then.text === '体检探针：导出导入'), detail: back ? '导出包能完整导回' : '导回后找不到那条经历' }
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }) }
+  })
+
+  add('醒来白名单', () => {
+    const ok = waking.isPrivateKey('private_100000000') && waking.isPrivateKey('local:owner') && !waking.isPrivateKey('group:936614388')
+    return { ok, detail: ok ? '私聊放行、群聊拦截' : '白名单判断不对' }
+  })
+
+  return { ok: checks.every((c) => c.ok), checks }
 }
 
 const cmd = process.argv[2]
@@ -233,6 +299,8 @@ try {
     out(doImport(from, force))
   } else if (cmd === 'purge') {
     out(doPurge(String(arg('yes', 'false')) === 'true'))
+  } else if (cmd === 'doctor') {
+    out(doDoctor())
   } else if (cmd === 'unfinished') {
     const id = arg('id')
     const state = arg('state')
@@ -281,6 +349,7 @@ try {
         'export --out <目录>   把整份记忆打包（含 manifest 与校验和）',
         'import --from <导出目录> [--force true]   恢复；--force 会先备份现有目录',
         'purge [--yes true]   列出/删除记忆目录、导入前备份、迁移备份（默认只列不删）',
+        'doctor   能力层体检：写入→读回、导出→导入、事件解析、醒来白名单（临时目录）',
         'waking [--chat private:100000000] [--peek true]   （默认打印即记为已展示）',
         'memory --query "..." [--diary true --limit 4]',
         'prompt get|set --text ...|history|revert --version ...',
