@@ -27,7 +27,15 @@ node adapters/cli/memory-cli.mjs export --out D:\备份
 
 输出是 UTF-8 的 JSON。宿主用 Node / Python 调用时按 UTF-8 解码即可；在 **Windows PowerShell 5.1** 里把输出接到 `ConvertFrom-Json` 之前，先执行一次 `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8`，否则中文会被当成本地代码页解码，JSON 解析失败（数据本身没坏）。
 
-## 2. 直接 import（有 JS 运行时的宿主）
+## 2. MCP（支持 MCP 的客户端：Claude Desktop、Claude Code、Cursor…）
+
+```
+npx -y -p whale-memory-core whale-memory-mcp --data /path/to/data
+```
+
+stdio、只在本机、零依赖。抽屉默认不开（`--owner true` 才开），`--readonly true` 只给读的工具；导入、导出、删除、改提示词这些留在 CLI。配置写法和工具表见 [`mcp/README.md`](mcp/README.md)。
+
+## 3. 直接 import（有 JS 运行时的宿主）
 
 ```js
 import * as exp from './packages/core/lib/self-experience.js'
@@ -40,6 +48,5 @@ import * as exp from './packages/core/lib/self-experience.js'
 
 - LangChain / LlamaIndex 的 Memory 接口
 - OpenAI Assistants 的 memory tool
-- MCP server（如果要做，CLI 已经是现成的底座）
 
 需要哪个，提 issue。做适配时不需要改内核，CLI 的命令表就是接口。

@@ -2,6 +2,24 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.16.0] · 2026-11-17
+
+这一版让她的记忆走出一个宿主：任何支持 MCP 的客户端都能接上，规矩一条不少地跟过去。
+
+### Added
+
+- **MCP 适配器**：`packages/core/bin/whale-memory-mcp.mjs`，npm 包里带 `whale-memory-mcp` 命令（`npx -y -p whale-memory-core whale-memory-mcp --data <目录>`）；仓库里也可以 `node adapters/mcp/whale-memory-mcp.mjs`。stdio、JSON-RPC 2.0、零依赖，协议版本 2025-06-18 / 2025-03-26 / 2024-11-05。
+  - 读：`memory_recall` / `memory_read` / `memory_recap` / `memory_chapters` / `memory_book` / `memory_waking`；写：`memory_write` / `memory_revise` / `memory_unfinished` / `memory_seal` / `memory_link` / `memory_chapter`。都带 `annotations` 和 `structuredContent`，`ok: false` 标 `isError`。
+  - 规矩与 CLI 一致：then 不可改；召回不到返回空并说明"没有找到"；封存的不被想起、不进书，`read` 点名照给。
+  - 抽屉 `memory_unsaid` 默认不出现，`--owner true` 才打开（按 `local:owner`）；`--readonly true` 只给读的工具，醒来块只看不占用当天那一次。
+  - 故意不提供导入、导出、删除、改提示词、改设置。
+- `tests/mcp.test.mjs`：起真子进程走 stdio，覆盖握手、工具列表、写读改、结案与醒来、封存不外露、联想章节回顾、抽屉开关与不外露、只读模式、坏输入（8 组）。另用官方 `@modelcontextprotocol/sdk` 1.32 客户端验证过握手、列工具、调用、出错与 ping。
+- `adapters/mcp/README.md`：启动、Claude Code / Claude Desktop / Cursor 配置、工具表、安全边界；`docs/limits.md` 加 MCP 一节。
+
+### 兼容
+
+- 数据格式不变；核心库 API 不变。只新增 `bin`。
+
 ## [0.15.0] · 2026-11-17
 
 这一版让她真正用得上：她说不出口的话有个地方放着，她的记忆换台机器也还在。

@@ -75,6 +75,7 @@ node adapters/cli/memory-cli.mjs doctor
 | --- | --- |
 | 让 DSH 通过命令读写经历 | [可独立复制的 DSH skill 和安装说明](examples/dsh-plugin/dsh-whale-memory/README.md) |
 | 给自己的 Agent 接入工具 | [命令行适配器](adapters/README.md)输出 JSON，由宿主决定何时调用 |
+| 接到 Claude Desktop / Claude Code / Cursor 等 MCP 客户端 | [MCP 适配器](adapters/mcp/README.md)：`npx -y -p whale-memory-core whale-memory-mcp --data <目录>`，stdio、只在本机、零依赖 |
 | 在 JavaScript 中直接读写 | [自传层内核](packages/core/README.md)（`npm install whale-memory-core`）和[宿主移植指南](docs/porting.md) |
 | 看数据结构 | [数据格式 schema](docs/schema.md) 与[虚构样本](examples/samples/) |
 | 看别人的宿主怎么接 | [第一天的故事，第二天还接得上](examples/first-day/)：两个进程，隔天自动递回，不输入 recall |

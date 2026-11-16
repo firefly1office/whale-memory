@@ -67,6 +67,7 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | --- | --- |
 | Let DSH read and write experiences through commands | [Standalone DSH skill and install notes](examples/dsh-plugin/dsh-whale-memory/README.md) |
 | Add tools to your own agent | [CLI adapter](adapters/README.md) — emits JSON; the host decides when to call it |
+| Plug into an MCP client (Claude Desktop, Claude Code, Cursor…) | [MCP adapter](adapters/mcp/README.md): `npx -y -p whale-memory-core whale-memory-mcp --data <dir>` — stdio, local only, zero dependencies |
 | Use it directly from JavaScript | [Self-layer core](packages/core/README.md) (`npm install whale-memory-core`) and [porting guide](docs/porting.md) |
 | Inspect the data format | [Schema](docs/schema.md) and [fictional samples](examples/samples/) |
 | See another host surface yesterday | [First day, still connected the next](examples/first-day/): two processes, no recall command |

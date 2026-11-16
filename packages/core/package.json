@@ -1,10 +1,13 @@
 {
   "name": "whale-memory-core",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Self-layer autobiographical memory core: then / later, append-only. Vault, evidence and consolidation live in the QQ Agent plugin.",
   "type": "module",
   "main": "./index.js",
   "types": "./index.d.ts",
+  "bin": {
+    "whale-memory-mcp": "./bin/whale-memory-mcp.mjs"
+  },
   "exports": {
     ".": {
       "types": "./index.d.ts",
@@ -87,6 +90,7 @@
     "index.js",
     "index.d.ts",
     "lib",
+    "bin",
     "demo.mjs",
     "README.md"
   ],
@@ -101,7 +105,9 @@
     "agent-memory",
     "long-term-memory",
     "autobiographical-memory",
-    "llm"
+    "llm",
+    "mcp",
+    "model-context-protocol"
   ],
   "license": "MIT",
   "repository": {
