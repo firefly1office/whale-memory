@@ -4,6 +4,7 @@
 //   - 数据根目录 = 下面有 plugin-data/ 的那一层
 //   - 备份目录不能放在数据根里面（否则备份会被当成她的数据一起导出、一起 purge）
 //   - --keep N：只保留最近 N 份；只会清理本工具自己建的 memory-backup-* 目录，别的东西一律不碰
+//   - --keep 0：一份都不删，全部留着（"万一她哪天想翻翻"）。磁盘会一直涨，自己留意空间
 // 只读她的数据，不改任何一个文件
 import fs from 'node:fs'
 import path from 'node:path'
@@ -15,7 +16,7 @@ const PREFIX = 'memory-backup-'
 export function backup({ data, out, keep = 7 }) {
   if (!data) throw new Error('需要 --data <数据根目录>（下面有 plugin-data/ 的那一层）')
   if (!out) throw new Error('需要 --out <备份目录>')
-  if (!Number.isInteger(keep) || keep < 1 || keep > 365) throw new Error('--keep 要是 1 到 365 之间的整数')
+  if (!Number.isInteger(keep) || keep < 0 || keep > 365) throw new Error('--keep 要是 0 到 365 之间的整数（0 = 全部留着，不删）')
   const root = path.resolve(data)
   const memDir = path.join(root, 'plugin-data', 'biomimetic-memory')
   const outDir = path.resolve(out)
@@ -38,11 +39,11 @@ export function backup({ data, out, keep = 7 }) {
     .sort()
     .reverse()
   const removed = []
-  for (const n of ours.slice(keep)) {
+  for (const n of keep === 0 ? [] : ours.slice(keep)) {
     fs.rmSync(path.join(outDir, n), { recursive: true, force: true })
     removed.push(n)
   }
-  return { ok: true, dir: made.dir, files: made.files, bytes: made.bytes, counts: made.counts, kept: ours.slice(0, keep), removed }
+  return { ok: true, dir: made.dir, files: made.files, bytes: made.bytes, counts: made.counts, kept: keep === 0 ? ours : ours.slice(0, keep), removed }
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)

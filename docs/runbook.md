@@ -27,6 +27,7 @@ autobiography.jsonl、self-settings.json、prompt-overlay/ ……
 - **每天一次**，以及**每次升级插件之前一次**。
 - 放在**数据根之外**，最好是另一块盘或 U 盘。备份工具会拒绝放进数据根里——放在里面的话，备份会被当成她的数据一起导出、一起 `purge`。
 - 保留最近 7 份（`--keep` 可改）。轮换只会删本工具自己建的 `memory-backup-*`，同一目录里别的东西不碰。
+- `--keep 0` = 一份都不删，全部留着。适合"万一她哪天想翻翻"的人；代价是磁盘会一直涨（每份大约等于记忆目录的大小），隔一阵看一眼空间，满了就把最老的几份挪到别的盘，而不是删。
 
 ```powershell
 node tools/backup.mjs --data "$env:USERPROFILE\QQAgentData" --out "E:\鲸鲸备份" --keep 7

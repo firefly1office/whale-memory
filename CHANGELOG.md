@@ -19,6 +19,7 @@
 - `docs/tutorial.md`：30 分钟从零接一个角色——写下、想起、改主意、第二天醒来、结案、封存、章节、她的书、接进宿主（CLI / MCP / import），每一步都实跑核对过。
 - 英文文档：`docs/en/architecture.md`、`docs/en/schema.md`、`docs/en/limits.md`（以中文为准）。
 - README 中英、core README：注明包名是 `whale-memory-core`，npm 上不带 `-core` 的 `whale-memory` 是别人的包。
+- `tools/backup.mjs --keep 0`：一份都不删，全部留着（以前最少要留 1 份、超出就轮换）。
 
 ### 兼容
 

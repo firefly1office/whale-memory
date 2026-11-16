@@ -220,3 +220,17 @@ for (const script of CLIS) {
     assert.ok(doc.checks.some((c) => c.name.startsWith('抽屉不外露')))
   })
 }
+
+test('备份 --keep 0：一份都不删，全部留着', (t) => {
+  const data = tmp(t), out = tmp(t)
+  seed(data)
+  const made = []
+  for (let i = 0; i < 4; i++) {
+    made.push(backup({ data, out, keep: 0 }))
+    const until = Date.now() + 5; while (Date.now() < until) { /* 名字按毫秒区分 */ }
+  }
+  assert.ok(made.every((m) => m.ok && m.removed.length === 0))
+  assert.equal(fs.readdirSync(out).filter((n) => n.startsWith('memory-backup-2')).length, 4)
+  assert.equal(made[3].kept.length, 4)
+  assert.throws(() => backup({ data, out, keep: -1 }), /0 到 365/)
+})
