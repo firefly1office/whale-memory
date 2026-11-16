@@ -185,7 +185,7 @@ export function buildTools(cfg) {
   )
   if (cfg.owner) tools.push({
     name: 'memory_unsaid', title: '没说出口的话', annotations: { ...WRITE, readOnlyHint: false },
-    description: '打了没发的（draft）、想问没问的（question）、忍住了的（held）先放进抽屉。leave=放进去，list=打开看，spoken=后来说出口了，discard=不要了。只有自己会看到，不会被自动提起。',
+    description: '打了没发的（draft）、想问没问的（question）、忍住了的（held）先放进抽屉。leave=放进去，list=打开看，spoken=后来说出口了，discard=不要了（之后自己也看不到，但原文还留着；真想删掉要找人来做）。只有自己会看到，不会被自动提起。',
     inputSchema: S({ action: { type: 'string', enum: ['leave', 'list', 'spoken', 'discard'] }, kind: { type: 'string', enum: ['draft', 'question', 'held'] }, text: str('leave 时：那句话'), reason: str('leave 时可选：为什么没说'), id: str('spoken / discard 时：那一条的 id'), all: { type: 'boolean', description: 'list 时：连说出口了的也看' } }, ['action']),
     run: (a) => {
       if (cfg.readonly && a.action !== 'list') throw new Error('只读模式下只能 list')
