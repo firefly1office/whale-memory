@@ -49,7 +49,7 @@
 - 读取：跳过坏行；`recall(mark:false)` 只读不写
 - 想记"想起了一次"：显式 `mark:true` 或调用 `markRecalled`
 
-`later` 和「想起」都是追加事件（`later-events.jsonl` / `recall-events.jsonl`），经历正文只追加；追加走锁，多进程写同一目录不会丢行。`then` 仍然不可变。
+`later` 和「想起」都是追加事件（`later-events.jsonl` / `recall-events.jsonl`），经历正文只追加；事件追加走文件锁，经历追加靠操作系统的整行追加（不加锁）。不要让两个宿主进程同时写同一个目录；导出、导入、purge 前先停宿主。`then` 仍然不可变。
 
 ## 召回怎么工作
 

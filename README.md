@@ -47,7 +47,7 @@ node packages/core/demo.mjs
 
 ## 写自己的第一条经历
 
-在仓库根目录运行。默认会写入当前目录的 `data/`。要长期使用，请为每个角色设置独立的 `WHALE_DATA_DIR`，并让同一目录的写入按顺序执行。
+在仓库根目录运行。默认会写入当前目录的 `data/`。要长期使用，请为每个角色设置独立的 `WHALE_DATA_DIR`，并且不要让两个宿主进程同时写同一个目录（事件追加有锁，经历追加没有；导出、导入前先停宿主）。
 
 ```sh
 node adapters/cli/memory-cli.mjs write --text "今天读了灯塔那一章" --thought "守灯人是怕黑吗"

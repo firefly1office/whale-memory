@@ -100,6 +100,19 @@ function doExport(outArg) {
   return { ok: true, dir: target, files: manifestFiles.length, bytes, counts: manifest.counts }
 }
 
+// 导出包里的相对路径：正反斜杠、绝对路径、盘符相对路径、任何 '..' 段都拒绝，
+// 再用解析后的绝对路径确认确实落在 root 里面（不靠枚举写法）
+function safeJoin(root, name) {
+  const n = String(name || '')
+  if (!n || n.includes('\0')) throw new Error('导出里有可疑路径：' + JSON.stringify(name))
+  if (path.isAbsolute(n) || path.win32.isAbsolute(n) || /^[a-zA-Z]:/.test(n)) throw new Error('导出里有绝对路径：' + n)
+  if (n.split(/[\\/]+/).includes('..')) throw new Error('导出里有越界路径：' + n)
+  const rootAbs = path.resolve(root)
+  const abs = path.resolve(rootAbs, n)
+  if (abs !== rootAbs && !abs.startsWith(rootAbs + path.sep)) throw new Error('导出里有越界路径：' + n)
+  return abs
+}
+
 function doImport(fromArg, force) {
   const src = path.resolve(fromArg)
   const manifestFile = path.join(src, 'manifest.json')
@@ -114,8 +127,7 @@ function doImport(fromArg, force) {
   // 先校验全部文件，再动目标目录：坏一个就一个字节都不写
   for (const f of manifest.files) {
     const name = String(f.name || '')
-    if (!name || path.isAbsolute(name) || name.split('/').includes('..')) throw new Error('导出里有可疑路径：' + name)
-    const abs = path.join(src, name)
+    const abs = safeJoin(src, name)
     if (!fs.existsSync(abs)) throw new Error('导出缺少文件：' + name)
     const buf = fs.readFileSync(abs)
     if (sha256(buf) !== f.sha256) throw new Error('文件校验不通过：' + name)
@@ -130,12 +142,38 @@ function doImport(fromArg, force) {
   }
   fs.mkdirSync(MEM_DIR, { recursive: true })
   for (const f of manifest.files) {
-    const dest = path.join(MEM_DIR, f.name)
+    const dest = safeJoin(MEM_DIR, f.name)
     fs.mkdirSync(path.dirname(dest), { recursive: true })
-    fs.copyFileSync(path.join(src, f.name), dest)
+    fs.copyFileSync(safeJoin(src, f.name), dest)
   }
   const loaded = exp.loadAll(MEM_DIR)
   return { ok: true, files: manifest.files.length, restoreTo: MEM_DIR, backup, counts: { experiences: loaded.length } }
+}
+
+// 彻底忘掉：列出/删除所有可能还留着原文的地方
+// 默认只列不删；--yes true 才动手。导出目录不在数据根下，只提示，不替人删。
+function doPurge(yes) {
+  const targets = []
+  const add = (p, label) => { if (fs.existsSync(p)) targets.push({ path: p, label }) }
+  add(MEM_DIR, '记忆目录')
+  const parent = path.dirname(MEM_DIR)
+  if (fs.existsSync(parent)) {
+    for (const e of fs.readdirSync(parent)) {
+      if (e.startsWith('biomimetic-memory.pre-import-')) add(path.join(parent, e), '导入前备份')
+    }
+  }
+  const bak = path.join(DATA, 'backups')
+  if (fs.existsSync(bak)) {
+    for (const e of fs.readdirSync(bak)) {
+      if (/^self-experience-pre-(later|recall)-events-.*\.jsonl(\.(events|manifest\.json))?$/.test(e)) {
+        add(path.join(bak, e), '迁移备份')
+      }
+    }
+  }
+  const listed = targets.map((t) => ({ path: t.path, label: t.label }))
+  if (!yes) return { ok: true, dryRun: true, targets: listed, note: '导出目录在数据根之外，不在这里处理，请自行确认。' }
+  for (const t of targets) fs.rmSync(t.path, { recursive: true, force: true })
+  return { ok: true, removed: targets.length, targets: listed, note: '已删除上面这些；导出的备份目录请自行清理。' }
 }
 
 const cmd = process.argv[2]
@@ -193,6 +231,8 @@ try {
     if (!from) throw new Error('需要 --from <导出目录>')
     const force = String(arg('force', 'false')) === 'true'
     out(doImport(from, force))
+  } else if (cmd === 'purge') {
+    out(doPurge(String(arg('yes', 'false')) === 'true'))
   } else if (cmd === 'waking') {
     const chat = arg('chat', 'local:owner') || 'local:owner'
     const block = waking.buildWakingBlock(DATA, chat)
@@ -232,6 +272,7 @@ try {
         'revise --id ... --thought "..." [--reason ..]',
         'export --out <目录>   把整份记忆打包（含 manifest 与校验和）',
         'import --from <导出目录> [--force true]   恢复；--force 会先备份现有目录',
+        'purge [--yes true]   列出/删除记忆目录、导入前备份、迁移备份（默认只列不删）',
         'waking [--chat private:100000000] [--peek true]   （默认打印即记为已展示）',
         'memory --query "..." [--diary true --limit 4]',
         'prompt get|set --text ...|history|revert --version ...',

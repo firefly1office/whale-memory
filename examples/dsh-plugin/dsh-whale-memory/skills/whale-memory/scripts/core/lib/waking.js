@@ -16,6 +16,11 @@ function mayShow(key, allowGroup) {
   return Boolean(key) && (allowGroup || PRIVATE_KEY.test(key))
 }
 
+// 给宿主用的同一个判断：注入记忆前先问它，别自己写"不是群就行"
+export function isPrivateKey(chatKey) {
+  return mayShow(String(chatKey || '').trim(), false)
+}
+
 // 只读：算出「今天该给她看什么」，不写任何文件
 // 调用方确认真的把这段注入了，再调 consumeWaking 记「已展示」
 // 安全默认：没有 chatKey、或不是认得出的一对一会话（未显式 allowGroup）→ 返回空

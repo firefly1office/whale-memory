@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -92,5 +93,76 @@ for (const cliPath of CLIS) {
     assert.notEqual(i.status, 0)
     assert.match(i.json.error, /校验不通过/)
     assert.equal(fs.existsSync(path.join(data2, 'plugin-data', 'biomimetic-memory', 'self-experience.jsonl')), false)
+  })
+}
+
+// ---- 边界：伪造的导出包不能把文件写到记忆目录之外 ----
+const BS = String.fromCharCode(92)
+function forgedExport(dir, name, body = 'forged') {
+  const src = path.join(dir, 'export')
+  const onDisk = path.join(src, name)
+  fs.mkdirSync(path.dirname(onDisk), { recursive: true })
+  fs.writeFileSync(onDisk, body)
+  fs.mkdirSync(src, { recursive: true })
+  fs.writeFileSync(path.join(src, 'manifest.json'), JSON.stringify({
+    format: 'whale-memory-export', version: 1,
+    files: [{ name, bytes: Buffer.byteLength(body), sha256: crypto.createHash('sha256').update(body).digest('hex') }]
+  }))
+  return src
+}
+
+for (const cliPath of CLIS) {
+  for (const [label, sep] of [['正斜杠', '/'], ['反斜杠', BS]]) {
+    test('import 拒绝用' + label + '跳出记忆目录（' + cliPath + '）', (t) => {
+      const base = tmp(t)
+      const data = path.join(base, 'data')
+      const victim = path.join(base, 'victim')
+      fs.mkdirSync(data, { recursive: true })
+      fs.mkdirSync(victim, { recursive: true })
+      const name = ['..', '..', '..', path.basename(victim), 'pwned.txt'].join(sep)
+      const src = forgedExport(base, name)
+      const res = cli(cliPath, ['import', '--from', src, '--data', data])
+      assert.equal(fs.existsSync(path.join(victim, 'pwned.txt')), false, '文件被写到了记忆目录之外')
+      assert.notEqual(res.status, 0, '可疑路径应当被拒绝并以非 0 退出')
+    })
+  }
+}
+
+// ---- 边界：purge 要删掉旁边和 backups 里的副本 ----
+for (const cliPath of CLIS) {
+  test('purge 之后数据根下不再有原文（' + cliPath + '）', (t) => {
+    const base = tmp(t)
+    const data = path.join(base, 'data')
+    const out = path.join(base, 'out')
+    fs.mkdirSync(data, { recursive: true })
+    fs.mkdirSync(out, { recursive: true })
+    const sentinel = '这条要被彻底忘掉-SENTINEL-7f3a'
+    assert.equal(cli(cliPath, ['write', '--data', data, '--text', sentinel]).status, 0)
+    const e = cli(cliPath, ['export', '--data', data, '--out', out]).json
+    assert.equal(cli(cliPath, ['import', '--data', data, '--from', e.dir, '--force', 'true']).status, 0)
+
+    // 迁移备份也要在删除范围内
+    const bakDir = path.join(data, 'backups')
+    fs.mkdirSync(bakDir, { recursive: true })
+    const bakFile = path.join(bakDir, 'self-experience-pre-later-events-2026-11-16.jsonl')
+    fs.writeFileSync(bakFile, JSON.stringify({ text: sentinel }) + '\n')
+
+    const dry = cli(cliPath, ['purge', '--data', data]).json
+    assert.equal(dry.dryRun, true)
+    assert.ok(dry.targets.some((x) => x.label === '导入前备份'), '应列出导入前备份')
+
+    const done = cli(cliPath, ['purge', '--data', data, '--yes', 'true'])
+    assert.equal(done.status, 0, done.stdout + done.stderr)
+
+    const hits = []
+    const walk = (dir) => {
+      for (const en of fs.readdirSync(dir, { withFileTypes: true })) {
+        const abs = path.join(dir, en.name)
+        if (en.isDirectory()) { walk(abs); continue }
+        if (en.isFile() && fs.readFileSync(abs, 'utf8').includes(sentinel)) hits.push(abs)
+      }
+    }
+    walk(data)
+    assert.deepEqual(hits, [])
   })
 }

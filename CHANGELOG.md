@@ -2,7 +2,7 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [0.10.2] · 2026-11-16
 
 ### Added
 
@@ -14,8 +14,15 @@
 ### Added（2026-11-16）
 
 - CLI `export --out <目录>` / `import --from <目录> [--force true]`：把整份记忆打包成带 manifest 和 SHA-256 的目录；导入先校验、默认不覆盖、覆盖前备份。两个 CLI 都支持，`tests/export-import.test.mjs` 守住。
-- `docs/limits.md`：实测规模（2k / 10k 条）、明文存储、单条删除不支持、并发与断电边界。
-- `docs/injection.md`：什么时候把记忆递回去的七条规则、最小实现和反例。
+- CLI `purge [--yes true]`：列出/删除记忆目录、`*.pre-import-*`、迁移备份；默认只列不删。导出目录不在数据根下，需要自己清理。
+- `docs/limits.md`：实测规模（2k / 10k 条，`tools/bench-recall.mjs` 可复现）、明文存储、单条删除不支持、提示词 overlay 持久生效、并发与断电边界。
+- `docs/injection.md` + `examples/injection/`：什么时候把记忆递回去的七条规则、可跑的 `surface()`（`confirm()` 之后才记「想起」）、提示词模板与真实 `renderTwoPart` 输出对齐。
+- `isPrivateKey(chatKey)`：核心库导出，醒来块和注入示例共用同一个私聊判断。
+- `tests/injection-example.test.mjs`、`tests/export-import.test.mjs` 的越界路径与 purge 用例。
+
+### Fixed（2026-11-16）
+
+- `import` 的路径校验改为解析后的绝对路径判断：反斜杠、正斜杠、绝对路径、盘符相对路径、`..` 段一律拒绝，拒绝时一个字节都不写。之前只认正斜杠，Windows 反斜杠能跳出记忆目录。
 
 ## [0.10.1] · 2026-11-16
 
