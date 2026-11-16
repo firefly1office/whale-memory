@@ -45,11 +45,24 @@ $env:WHALE_DATA_DIR = "$env:LOCALAPPDATA/whale-memory-demo"
 
 ```bash
 cd skills/whale-memory/scripts
-node memory-cli.mjs write --text "试一条" --feeling "平静"
+node memory-cli.mjs write --text "试一条" --unfinished "想知道明天会不会下雨"
 node memory-cli.mjs read --limit 1
 ```
 
-看到 `{"ok": true...}` 就通了。
+看到 `{"ok": true...}` 就通了。记下 `read` 里的 id，试一次“想通”：
+
+```bash
+node memory-cli.mjs unfinished --id <id> --state done
+node memory-cli.mjs read --limit 1   # unfinishedState.choice 应为 done
+```
+
+第二天第一次醒来：
+
+```bash
+node memory-cli.mjs waking --chat "local:owner"
+```
+
+想走完整的「第一天读、第二天接、想通/暂放」，用仓库里的 [`examples/first-day/`](../../first-day/)。
 
 ## 它不会自动做的事
 
