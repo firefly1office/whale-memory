@@ -13,6 +13,8 @@ import * as settings from '../../packages/core/lib/self-settings.js'
 import * as laterEvents from '../../packages/core/lib/later-events.js'
 import * as recallEvents from '../../packages/core/lib/recall-events.js'
 import * as unfinishedEvents from '../../packages/core/lib/unfinished-events.js'
+import * as sealEvents from '../../packages/core/lib/seal-events.js'
+import * as recapLib from '../../packages/core/lib/recap.js'
 
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
 
@@ -201,7 +203,7 @@ function doDoctor() {
 
   add('事件文件可解析', () => {
     if (!fs.existsSync(MEM_DIR)) return { ok: true, detail: '没有数据目录，跳过' }
-    const bad = laterEvents.readAll(MEM_DIR).bad + recallEvents.readAll(MEM_DIR).bad + unfinishedEvents.readAll(MEM_DIR).bad
+    const bad = laterEvents.readAll(MEM_DIR).bad + recallEvents.readAll(MEM_DIR).bad + unfinishedEvents.readAll(MEM_DIR).bad + sealEvents.readAll(MEM_DIR).bad
     return { ok: bad === 0, detail: bad === 0 ? '没有坏行' : '有 ' + bad + ' 行解析失败' }
   })
 
@@ -219,10 +221,13 @@ function doDoctor() {
       const view = exp.currentView(memDir, row.id)
       const past = exp.currentView(memDir, row.id, { asOf: before })
       const hit = exp.recall(memDir, '灯塔', { limit: 1 })
+      exp.setSealed(memDir, { id: echo.id, sealed: true })
+      const sealedGone = exp.recall(memDir, '回想', { limit: 3 }).every((r) => r.id !== echo.id)
+      const sealedKept = Boolean(exp.currentView(memDir, echo.id))
       const ok = view && view.later.length === 1 && view.later[0].feeling && view.unfinishedState && view.unfinishedState.choice === 'done' &&
         hit.length === 1 && (view.citedBy || []).some((c) => c.id === echo.id) &&
-        past && past.later.length === 0 && !past.unfinishedState
-      return { ok: Boolean(ok), detail: ok ? '写入、后记与感觉、结案、出处、翻回那天、召回都通过' : '读回的内容不完整' }
+        past && past.later.length === 0 && !past.unfinishedState && sealedGone && sealedKept
+      return { ok: Boolean(ok), detail: ok ? '写入、后记与感觉、结案、出处、翻回那天、封存、召回都通过' : '读回的内容不完整' }
     } finally { fs.rmSync(tmp, { recursive: true, force: true }) }
   })
 
@@ -285,15 +290,18 @@ try {
     const mode = String(arg('mode', 'strict'))
     if (mode !== 'strict' && mode !== 'loose') throw new Error('--mode 只能是 strict 或 loose')
     const asOf = arg('as-of', '') || null
-    const rows = n === 0 ? [] : exp.recall(MEM_DIR, q, { limit: n, mark, mode, asOf })
-    out({ ok: true, ...(asOf ? { asOf } : {}), items: rows.map((r) => ({ id: r.id, day: r.day, weight: r.weight, text: exp.renderTwoPart(r) })) })
+    const includeSealed = String(arg('sealed', 'false')) === 'true'
+    const rows = n === 0 ? [] : exp.recall(MEM_DIR, q, { limit: n, mark, mode, asOf, includeSealed })
+    out({ ok: true, ...(asOf ? { asOf } : {}), items: rows.map((r) => ({ id: r.id, day: r.day, weight: r.weight, ...(r.sealed ? { sealed: true } : {}), text: exp.renderTwoPart(r) })) })
   } else if (cmd === 'read') {
     // --as-of 2026-11-15：翻回那天的自己；--id：只看这一条，并附上两段式全文
+    // 她封存了的默认不列；--sealed true 才列，--id 点名要看的那一条照给（带封存标记）
     const n = limitArg('limit', 8)
     const asOf = arg('as-of', '') || null
     const only = arg('id', '') || ''
+    const includeSealed = String(arg('sealed', 'false')) === 'true'
     const all = exp.loadAll(MEM_DIR, { asOf })
-    const picked = only ? all.filter((r) => r.id === only || r.formerId === only) : all
+    const picked = only ? all.filter((r) => r.id === only || r.formerId === only) : all.filter((r) => includeSealed || !r.sealed)
     const rows = n === 0 ? [] : picked.slice(-n)
     const feelingNow = (r) => { const l = [...(r.later || [])].reverse().find((x) => Array.isArray(x.feeling) && x.feeling.length); return l ? l.feeling : [] }
     const res = {
@@ -305,8 +313,13 @@ try {
         unfinished: r.then.unfinished || '', unfinishedState: r.unfinishedState || null,
         later: (r.later || []).map((x) => x.thought),
         refs: r.then.refs || [], citedBy: (r.citedBy || []).map((x) => x.id),
+        ...(r.sealed ? { sealed: r.sealed } : {}),
         ...(only ? { view: exp.renderTwoPart(r) } : {})
       }))
+    }
+    if (!only && !includeSealed) {
+      const hidden = all.filter((r) => r.sealed).length
+      if (hidden) res.sealedHidden = hidden
     }
     if (only && !rows.length) res.note = asOf ? '截至 ' + asOf + ' 还没有这条经历。' : '找不到这条经历：' + only
     // 旧 id 有几条记录共用、认不出归属的事件：原样留着，提醒人来核对
@@ -340,6 +353,18 @@ try {
     const res = exp.setUnfinishedState(MEM_DIR, { id, choice: state, note: arg('note', '') || '' })
     out(res)
     if (!res.ok) process.exitCode = 1
+  } else if (cmd === 'seal' || cmd === 'unseal') {
+    // 她不想再被这件事主动提醒：封存。不删除任何东西；想回来就 unseal
+    const id = arg('id')
+    if (!id) throw new Error('需要 --id')
+    const res = exp.setSealed(MEM_DIR, { id, sealed: cmd === 'seal', note: arg('note', '') || '' })
+    out(res)
+    if (!res.ok) process.exitCode = 1
+  } else if (cmd === 'recap') {
+    // 这几天的事实整理，给她写回想用；不调模型、不下结论
+    const days = Number(arg('days', '7'))
+    const rc = recapLib.recap(MEM_DIR, { days, asOf: arg('as-of', '') || null })
+    out({ ok: true, recap: rc, text: recapLib.renderRecap(rc) })
   } else if (cmd === 'waking') {
     const chat = arg('chat', 'local:owner') || 'local:owner'
     const block = waking.buildWakingBlock(DATA, chat)
@@ -374,14 +399,16 @@ try {
       usage: [
         '全局：--data <数据根目录>（下面有 plugin-data/；不给就用 WHALE_DATA_DIR，再不给用 ./data）',
         'write --text "..." [--scene .. --feeling a,b --thought .. --unfinished .. --quote .. --source .. --weight important|normal|minor --kind 读书 --refs id1,id2]   （--refs：这条是从哪几件事想到的，必须是已写下的经历）',
-        'recall --query "..." [--limit 3] [--mark true] [--mode strict|loose] [--as-of 2026-11-15]   （空 query = 最近 N 条；默认只读，strict 宁可不召回；--as-of 在那天的自己里找）',
-        'read [--limit 8] [--id ...] [--as-of 2026-11-15]   （--as-of：翻回那天的自己；--id：只看这一条，附两段式全文）',
+        'recall --query "..." [--limit 3] [--mark true] [--mode strict|loose] [--as-of 2026-11-15] [--sealed true]   （空 query = 最近 N 条；默认只读，strict 宁可不召回；--as-of 在那天的自己里找；默认不召回她封存的）',
+        'read [--limit 8] [--id ...] [--as-of 2026-11-15] [--sealed true]   （--as-of：翻回那天的自己；--id：只看这一条，附两段式全文；封存的默认不列）',
         'revise --id ... --thought "..." [--reason .. --feeling a,b]   （--feeling：现在再想起的感觉；当时的感觉不会被改）',
         'unfinished --id ... --state done|shelved|reopen [--note ..]   这件事想通/先放下/再接着想',
+        'seal --id ... [--note ..] / unseal --id ...   她不想再被这件事主动提醒：不会被召回、不进醒来块；不删除，随时可以解封',
+        'recap [--days 7] [--as-of ..]   这几天写下的、改过的、感觉变的、想通/放下的、还没弄完的（只列事实，给她写回想用）',
         'export --out <目录>   把整份记忆打包（含 manifest 与校验和）',
         'import --from <导出目录> [--force true]   恢复；--force 会先备份现有目录',
         'purge [--yes true]   列出/删除记忆目录、导入前备份、迁移备份（默认只列不删）',
-        'doctor   能力层体检：写入→读回（含感觉、出处、翻回那天）、导出→导入、事件解析、出处完整、醒来白名单（临时目录）',
+        'doctor   能力层体检：写入→读回（含感觉、出处、翻回那天、封存）、导出→导入、事件解析、出处完整、醒来白名单（临时目录）',
         'waking [--chat private:100000000] [--peek true]   （默认打印即记为已展示）',
         'memory --query "..." [--diary true --limit 4]',
         'prompt get|set --text ...|history|revert --version ...',

@@ -12,8 +12,9 @@ function readJsonl(file) {
 }
 
 // 她自己的经历（自己的时间写的）：走 loadAll，id 和后记都与 self-experience 一致
+// 她封存了的不进这里：被问到"你自己"时不该把她不想再提的事翻出来
 export function loadExperiences(dir) {
-  return loadAll(dir).map((r) => ({
+  return loadAll(dir).filter((r) => !r.sealed).map((r) => ({
     id: r.id,
     at: r.at || r.day || '',
     kind: r.kind || '其它',

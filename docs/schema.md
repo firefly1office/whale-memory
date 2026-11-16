@@ -111,6 +111,29 @@
 - 不改任何文件；`recall` 带 `asOf` 时不能同时 `mark`（翻旧日子不算"想起"）
 - 没有时间戳的旧记录放不到时间线上，截断时不算在"那时"里；旧格式行内的 `recalls` 也一样
 
+## 她选择的遗忘：封存（0.13.0 起）
+
+她不想再被某件事主动提醒时，追加一条到 `seal-events.jsonl`：
+
+```json
+{"id":"exp_mwggkzwbwp10","at":"2026-11-16T02:30:00.000Z","day":"2026-11-16","action":"seal","note":"不想再被提起"}
+```
+
+- `action` 只有 `seal` / `unseal`；该 id 的最后一条是 `seal` 就算封存着。重复同一个动作不追加（锁内重读判断）
+- 封存着的经历：`recall`、`memory`、醒来块都不给；`read` 默认不列（输出 `sealedHidden` 计数），`read --sealed true` 或 `read --id` 点名才给，并带 `sealed` 标记
+- 别的回想把它写进了出处时，`refsInfo` / `citedBy` 里只给 `{ id, day, sealed: true }`，翻读写"一件你封存了的事"，不露内容
+- **不是删除**：经历文件、后记、选择一字未动，导出包里也有。要真的抹掉只能 `purge` 整库删除
+- 翻回那天（`asOf`）时按那一刻之前的封存事件算：那时还没封存的，就是没封存
+
+## 回顾材料（0.13.0 起）
+
+`recap(dir, { days, asOf })` / CLI `recap --days 7`：含"今天"在内往回 `days` 个自然日，列出这段时间里
+
+- 写下了什么（`written`）、回头想过什么（`revised`）、感觉怎么变的（`feelingShifts`：当时 → 后来）
+- 有了决定的（`settled`：想通 / 先放下）、又拾起来的（`reopened`）、还没弄完的（`stillOpen`，不限时间，最近 5 件）
+
+只列事实，不调模型、不下结论；封存了的一律不列。每条都带 id，她想写一条回想时可以直接 `write --kind 回想 --refs <这些 id>`。不写也可以。
+
 ## 想起是事件（0.5.0 起）
 
 「想起一次」不再写进经历行，而是追加到 `recall-events.jsonl`：
@@ -154,13 +177,14 @@
 
 ## 备份要带哪些文件
 
-一条经历在磁盘上可能由四处组成，备份时不要只拷 `self-experience.jsonl`：
+一条经历在磁盘上可能由五处组成，备份时不要只拷 `self-experience.jsonl`：
 
 ```
 self-experience.jsonl     then（以及迁移前遗留的行内 later / recalls）
 later-events.jsonl        后来追加的想法（0.12 起可带后来的感觉）
 recall-events.jsonl       想起的次数
 unfinished-events.jsonl   没弄完的事后来怎么样了（0.11 起）
+seal-events.jsonl         她封存 / 解封了哪些（0.13 起）
 ```
 
 出处（`then.refs`）写在经历行里，不是单独的文件。

@@ -5,6 +5,7 @@ import crypto from 'node:crypto'
 import * as recallEvents from './recall-events.js'
 import * as laterEvents from './later-events.js'
 import * as unfinishedEvents from './unfinished-events.js'
+import * as sealEvents from './seal-events.js'
 import { queryTerms, requiredOverlap, matchedTerms, normalizeText } from './query-match.js'
 import { parseAsOf, before, dayOf } from './as-of.js'
 
@@ -137,6 +138,10 @@ export function loadAll(dir, { asOf = null } = {}) {
   let unfinishedMap = new Map()
   try { unfinishedMap = unfinishedEvents.latestByExp(dir, { until }) } catch { }
 
+  // 她选择封存的：不再被主动想起，但还在
+  let sealedMap = new Map()
+  try { sealedMap = sealEvents.sealedByExp(dir, { until }) } catch { }
+
   const viewed = rows.map((r) => {
     const keys = r.formerId ? [r.id, r.formerId] : [r.id]
     const extra = keys.flatMap((k) => laterMap.get(k) || [])
@@ -155,6 +160,10 @@ export function loadAll(dir, { asOf = null } = {}) {
       if (st) state = st
     }
     if (state && next.then && next.then.unfinished) next.unfinishedState = state
+    for (const k of keys) {
+      const s = sealedMap.get(k)
+      if (s) next.sealed = s
+    }
     let count = 0
     let lastAt = ''
     for (const k of keys) {
@@ -171,19 +180,37 @@ export function loadAll(dir, { asOf = null } = {}) {
   })
 
   // 出处（这条是从哪几件事想到的）和反向引用（后来有哪些回想提到它）：都从 then.refs 派生
+  // 封存了的经历不露摘要：别的回想里只说"一件你封存了的事"，不借着引用把它又提起来
+  const pointer = (r) => r.sealed ? { id: r.id, day: r.day, sealed: true } : brief(r)
   const byId = new Map()
   for (const r of viewed) { byId.set(r.id, r); if (r.formerId) byId.set(r.formerId, r) }
   for (const r of viewed) {
     const refs = (r.then && Array.isArray(r.then.refs)) ? r.then.refs : []
     if (!refs.length) continue
-    r.refsInfo = refs.map((id) => { const hit = byId.get(id); return hit ? brief(hit) : { id, missing: true } })
+    r.refsInfo = refs.map((id) => { const hit = byId.get(id); return hit ? pointer(hit) : { id, missing: true } })
     for (const id of refs) {
       const target = byId.get(id)
       if (!target || target === r) continue
-      target.citedBy = [...(target.citedBy || []), brief(r)]
+      target.citedBy = [...(target.citedBy || []), pointer(r)]
     }
   }
   return viewed
+}
+
+// 封存 / 解封：她不想再被这件事主动提醒了，或者又愿意了
+// 不删除任何东西；重复同一个动作不写第二条
+export function setSealed(dir, { id, sealed = true, note = '' } = {}) {
+  if (!String(id || '').trim()) return { ok: false, error: '需要 id' }
+  try {
+    const target = resolveId(dir, String(id))
+    if (target.ambiguous) return { ok: false, error: '这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id。' }
+    if (!target.id) return { ok: false, error: '找不到这条经历：' + id + '。先用 read 看一下 id。' }
+    const action = sealed ? 'seal' : 'unseal'
+    const decided = sealEvents.decide(dir, { id: target.id, action, note: tooLong('note', note, 200) })
+    return { ok: true, id: target.id, sealed: Boolean(sealed), at: decided.row ? decided.row.at : '', noop: decided.noop }
+  } catch (e) {
+    return { ok: false, error: String(e && e.message ? e.message : e) }
+  }
 }
 
 // 挂在 0.10.0 之前的旧 id 上、但这个 id 有几条旧记录共用：事件原样保留，只报告，不替她挑
@@ -346,9 +373,10 @@ export function currentView(dir, id, { asOf = null } = {}) {
 // mode='loose'：只要求至少一个实词命中，适合"想起来就该出现在眼前"的日常召回，宿主自行承担误召
 // mark=false（默认）：只读；mark=true 追加一条 recall 事件（不重写经历文件）
 // asOf：在那天的自己里找（只读）；翻旧日子不算"想起"，所以不能和 mark 一起用
-export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null } = {}) {
+// 她封存了的经历不会被召回；includeSealed=true 只给"她自己要翻"这种明确场景用
+export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false } = {}) {
   if (mark && asOf !== null && asOf !== undefined && asOf !== '') throw new Error('翻回旧日子时不记「想起」：mark 和 asOf 不能一起用。')
-  const rows = loadAll(dir, { asOf })
+  const rows = loadAll(dir, { asOf }).filter((r) => includeSealed || !r.sealed)
   const q = String(query || '')
   const parsed = queryTerms(q)
   const { terms } = parsed
@@ -404,7 +432,7 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, mi
 const laterDay = (l) => l.day || String(l.at || '').slice(0, 10)
 const sameLater = (a, b) => a === b || (a.at === b.at && a.thought === b.thought)
 
-const refLine = (x) => x.missing ? '（' + x.id + '，找不到了）' : x.day + '「' + x.text + '」'
+const refLine = (x) => x.missing ? '（' + x.id + '，找不到了）' : x.sealed ? '（一件你封存了的事）' : x.day + '「' + x.text + '」'
 
 // 「当时 / 现在」两段式：模板拼，不调模型；没有的字段就如实说没有
 // 后记：这次是被哪条后记想起的，就把那条原样给她；再给最近的一条。各带各的日子，不截断
@@ -440,6 +468,7 @@ export function renderTwoPart(entry, { now = new Date() } = {}) {
     lines.push('', '【现在】')
     lines.push('- 现在时间：' + now.toLocaleString('zh-CN', { hour12: false }))
   }
+  if (entry.sealed) lines.push('- 这件事你封存了（' + entry.sealed.day + '）：不会再被主动想起；它还在，想解封随时可以')
   lines.push('- 这条被你想起过 ' + Number(entry.recalls || 0) + ' 次' + (entry.lastRecalledAt ? '，上次是 ' + String(entry.lastRecalledAt).slice(0, 10) : ''))
   const later = Array.isArray(entry.later) ? entry.later : []
   if (later.length) {

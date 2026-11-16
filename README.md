@@ -82,7 +82,9 @@ node adapters/cli/memory-cli.mjs doctor
 | 记下后来的感觉、回想的出处 | `revise --feeling 释然`（当时的感觉不动）；`write --refs id1,id2`（引用的经历必须存在） |
 | 想让她放下旧念头 | [想通 / 暂放 / 再拾起](examples/first-day/)：`unfinished --state done|shelved|reopen`，醒来与翻读同步 |
 | 用向量/RAG 找、用它来讲 | [和检索层怎么组合](docs/composition.md)：检索层只给 id，`then/later` 负责叙事 |
-| 备份与换机器 | [备份与搬家](docs/backup.md)：四个文件缺一不可，恢复后怎么校验 |
+| 她不想再被某件事提醒 | `seal --id`：不被召回、不进醒来块，原文还在；`unseal` 随时回来（[和删除的区别](docs/limits.md)） |
+| 给她写回想的材料 | `recap --days 7`：这几天写下的、改过的、感觉变的、想通或放下的、还没弄完的；只列事实，带 id 方便写出处 |
+| 备份与换机器 | [备份与搬家](docs/backup.md)：五个文件缺一不可，恢复后怎么校验 |
 | 撑多大、做不到什么 | [上限与不保证](docs/limits.md)：实测规模、明文存储、删除语义 |
 | 什么时候递回记忆 | [注入时机](docs/injection.md)：七条规则、可抄的实现和反例 |
 | 这些思路从哪来 | [借了谁、改了什么、刻意不做什么](docs/related-work.md)：Generative Agents、Zep、MemoryBank、A-MEM、情感引擎 |

@@ -2,6 +2,25 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.13.0] · 2026-11-16
+
+### Added
+
+- **她选择的遗忘（封存）**：`setSealed(dir, { id, sealed, note })`，只追加 `seal-events.jsonl`（`seal` / `unseal`，锁内重读判断，重复动作不写）。封存着的经历不会被 `recall`、`memory`、醒来块给出；`read` 默认不列（返回 `sealedHidden` 计数），`read --sealed true` 或 `read --id` 点名才给；别的回想引用它时只显示"一件你封存了的事"，不露内容。**不是删除**：原文、后记、选择都在，导出包里也有；翻回那天时按那时的封存状态算。CLI：`seal --id` / `unseal --id`，`recall --sealed true`。
+- **回顾材料**：`recap(dir, { days, asOf })` / CLI `recap --days 7`，含今天在内往回 N 个自然日，列出写下的、回头想过的、感觉变了的（当时 → 后来）、想通或放下的、又拾起的、还没弄完的；只列事实、不调模型、不下结论，封存的不列，每条带 id 方便 `write --refs`。
+- 核心库导出 `sealEvents`、`recap`（根入口与子路径 `./seal-events`、`./recap`，均带类型）。
+- `doctor`：事件解析覆盖 `seal-events.jsonl`；能力探针覆盖封存（召回避开、点名仍在）。
+
+### Docs
+
+- `docs/schema.md`：封存与回顾的语义；备份一节改为五个文件。`docs/backup.md` / `docs/storage-events.md` / `docs/limits.md`（封存 ≠ 删除）同步。
+- `docs/related-work.md`：封存（对照 MemoryBank 的遗忘曲线）与回顾（对照 Generative Agents 的 reflection 触发）各一行。
+- DSH skill 说明补命令与硬规则：封存只能是她自己的选择，不要替她封存，也不要把封存的翻给别人看。
+
+### 兼容
+
+- 新增事件文件 `seal-events.jsonl`；没有这个文件时行为与 0.12.0 完全一致。旧版本读到新数据会忽略封存（封存的经历会重新可见），升级后请别再降级。
+
 ## [0.12.0] · 2026-11-16
 
 这一版回到项目最初的问题：她昨天读了一章书、今天改了看法，还能翻回昨天的自己吗？

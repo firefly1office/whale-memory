@@ -73,7 +73,9 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | Look back at who she was that day | `read --id <id> --as-of 2026-11-15`: only notes and choices written up to that day are visible |
 | Record how it feels now, and what a reflection is based on | `revise --feeling relieved` (the original feeling never changes); `write --refs id1,id2` (every cited experience must exist) |
 | Vector/RAG for finding, this for telling | [Composing with a retrieval layer](docs/composition.md): retrieval returns ids; `then/later` holds the narrative |
-| Backup and move machines | [Backup & migration](docs/backup.md): four files, and how to verify after restore |
+| She no longer wants to be reminded of something | `seal --id`: never recalled or shown on waking, but still on disk; `unseal` brings it back |
+| Material for writing a reflection | `recap --days 7`: what she wrote, revised, felt differently about, settled, or left open; facts only, with ids to cite |
+| Backup and move machines | [Backup & migration](docs/backup.md): five files, and how to verify after restore |
 | How far it goes, what it won't do | [Limits & non-guarantees](docs/limits.md): measured scale, plaintext storage, deletion semantics |
 | When to hand a memory back | [Injection timing](docs/injection.md): seven rules, a minimal implementation, anti-patterns |
 | Where these ideas come from | [What we borrowed, what we changed, what we refuse to do](docs/related-work.md) (Chinese) |

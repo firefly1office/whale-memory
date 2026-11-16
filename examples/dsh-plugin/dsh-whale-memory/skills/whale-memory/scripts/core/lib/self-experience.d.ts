@@ -21,6 +21,8 @@ export interface ExperienceBrief {
   text?: string
   /** 出处指向的经历找不到了（例如只恢复了部分文件） */
   missing?: boolean
+  /** 那条经历她封存了：不给摘要 */
+  sealed?: boolean
 }
 
 /** 「翻回那天的自己」：2026-11-15（截到那天本地时间的最后一刻）、完整 ISO 时间或 Date */
@@ -52,6 +54,8 @@ export interface Experience {
   citedBy?: ExperienceBrief[]
   /** 用 asOf 读出来时，截到的那一刻（ISO） */
   viewAsOf?: string
+  /** 她封存了这件事（0.13 起）：不会被召回、不进醒来块，但还在 */
+  sealed?: { at: string; day: string; note: string }
   recalls?: number
   lastRecalledAt?: string
   matchedIn?: Array<'then' | 'quote' | 'later'>
@@ -112,7 +116,19 @@ export function recall(dir: string, query: string, opts?: {
   mode?: 'strict' | 'loose'
   /** 在那天的自己里找；不能和 mark 一起用 */
   asOf?: AsOf
+  /** 默认不召回她封存了的经历；只在"她自己要翻"时打开 */
+  includeSealed?: boolean
 }): Experience[]
+
+/** 封存 / 解封：不删除任何东西；重复同一个动作是 noop */
+export function setSealed(dir: string, opts: { id: string; sealed?: boolean; note?: string }): {
+  ok: boolean
+  id?: string
+  sealed?: boolean
+  at?: string
+  noop?: boolean
+  error?: string
+}
 
 export function renderTwoPart(entry: Experience, opts?: { now?: Date }): string
 

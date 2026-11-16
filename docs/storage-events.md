@@ -18,6 +18,7 @@ then 写一次，永远不改；
 | 改主意（`later`） | 事件，只追加 | `later-events.jsonl` | 追加一行 `{id, at, thought, reason?}`；走文件锁 |
 | 想起 | 事件，只追加 | `recall-events.jsonl` | 追加一行 `{id, at, query, chatKey?}`；走文件锁 |
 | 没弄完的事 | 事件，只追加 | `unfinished-events.jsonl` | 追加一行 `{id, at, day, choice, note?}`；走文件锁 |
+| 封存 / 解封 | 事件，只追加 | `seal-events.jsonl` | 追加一行 `{id, at, day, action, note?}`；锁内重读判断，重复动作不写 |
 | 日记 | 事实，只追加 | `autobiography.jsonl` | 追加一行 |
 | 设置 | 状态，可覆盖 | `self-settings.json` | 锁 + 临时文件 + rename |
 | 提示词 | 状态/历史 | `prompt-overlay/` | 锁 + 原子写，保留版本 |
@@ -29,6 +30,9 @@ later       = 旧行内 later + later-events 里该 id 的事件（按 at 排序
 recalls     = recall-events 里该 id 的事件数
 lastRecalledAt = 该 id 事件的最大 at
 unfinishedState = unfinished-events 里该 id 的最后一条；history 保留完整顺序
+sealed      = seal-events 里该 id 的最后一条是 seal（是 unseal 或没有就不算封存）
+refsInfo / citedBy = 由经历行里的 then.refs 派生（0.12 起）
+以上都接受截断时刻 until（翻回那天的自己）：只用那一刻之前的事件重放
 ```
 
 - 旧文件里的 `later` / `recalls` / `lastRecalledAt` 仍然可读；有事件时以事件为准。

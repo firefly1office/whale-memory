@@ -1,5 +1,5 @@
 // 类型冒烟：CI 里用 tsc --strict 跑这个文件，保证 .d.ts 与导出对得上
-import { selfExperience, evidencePolicy, evidenceFromExperience, selfPrompt, waking, unfinishedEvents } from '../packages/core/index.js'
+import { selfExperience, evidencePolicy, evidenceFromExperience, selfPrompt, waking, unfinishedEvents, sealEvents, recap } from '../packages/core/index.js'
 
 const rows = selfExperience.loadAll('/tmp/whale')
 const made = selfExperience.addExperience('/tmp/whale', { text: '灯塔', weight: 'important' })
@@ -29,3 +29,10 @@ const felt = selfExperience.reviseExperience('/tmp/whale', { id: made.id, though
 const echo = selfExperience.addExperience('/tmp/whale', { text: '回想', refs: [made.id] })
 const feelings = evidenceFromExperience.feelingFacts(rows)
 console.log(past.length, pastOne?.viewAsOf, pastHits.length, felt.feeling?.join(), echo.then.refs?.length, echo.refsInfo?.[0]?.missing, echo.citedBy?.length, feelings.length)
+// 0.13：封存、回顾
+const sealedRes = selfExperience.setSealed('/tmp/whale', { id: made.id, sealed: true, note: '不想再被提起' })
+const stillSealed = sealEvents.sealedByExp('/tmp/whale').get(made.id)?.day
+const withSealed = selfExperience.recall('/tmp/whale', '灯塔', { includeSealed: true })
+const rc = recap.recap('/tmp/whale', { days: 7 })
+const rcText: string = recap.renderRecap(rc)
+console.log(sealedRes.noop, stillSealed, withSealed[0]?.sealed?.note, rc.feelingShifts[0]?.now.join(), rc.settled[0]?.choice, rcText.length)

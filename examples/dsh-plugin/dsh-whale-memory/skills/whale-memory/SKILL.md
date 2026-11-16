@@ -56,6 +56,13 @@ node scripts/memory-cli.mjs read --id exp_xxx --as-of 2026-11-15
 # 只改这一条经历的状态，不改当时的正文，也不冒充后记
 node scripts/memory-cli.mjs unfinished --id exp_xxx --state done
 
+# 她不想再被这件事主动提醒：封存（不删除；想回来就 unseal）
+node scripts/memory-cli.mjs seal --id exp_xxx --note "不想再被提起"
+node scripts/memory-cli.mjs unseal --id exp_xxx
+
+# 想写一条回想之前，先看看这几天的事实（只列事实，带 id）
+node scripts/memory-cli.mjs recap --days 7
+
 # 每天第一次醒来
 node scripts/memory-cli.mjs waking --chat "local:owner"
 
@@ -81,6 +88,7 @@ node scripts/memory-cli.mjs settings get|set --json '{"readingPerDay":60}'
 7. 感觉淡了、变了，由她自己用 `--feeling` 说；不要替她写"应该已经不难过了"
 8. 回想和归纳要带 `--refs`，说清是从哪几件事想到的；凭空的归纳不要写
 9. 被问"你那时怎么想"时用 `read --as-of`，不要拿后来才想明白的事冒充当时就知道
+10. 封存是她的选择：只有她自己说不想再被提醒时才 `seal`；别人不能替她封存，也不要用 `--sealed true` 把她封存的事翻出来给别人看
 
 ## 一句话用法
 

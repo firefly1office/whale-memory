@@ -37,6 +37,8 @@ node adapters/cli/memory-cli.mjs <命令> [参数]
 | 回想、归纳，写明是从哪几件事想到的 | `write --text "..." --kind 回想 --refs id1,id2` |
 | 被问"你那时怎么想" | `read --id ... --as-of 2026-11-15` |
 | 那件没弄完的事想通了 / 先放下 / 又接着想 | `unfinished --id ... --state done\|shelved\|reopen` |
+| 她不想再被某件事提醒（不删除，可解封） | `seal --id ...` / `unseal --id ...` |
+| 想写回想前，先看看这几天的事实 | `recap --days 7` |
 | 每天第一次醒来，给昨天的自己一条线 | `waking --chat "local:owner"` |
 | 被问到自己、想带上自己的经历 | `memory --query "..." [--diary true]` |
 | 她想改自己的说话方式 | `prompt set --text "..." --reason "..."` |
@@ -52,6 +54,7 @@ node adapters/cli/memory-cli.mjs <命令> [参数]
 6. **感觉变了由她自己说**（`--feeling`），不要替她写"应该已经不难过了"。
 7. **回想要带出处**（`--refs`）；说不出是从哪几件事想到的归纳，不要写。
 8. **问"那时"就翻那时**（`read --as-of`），不要拿后来才明白的事冒充当时就知道。
+9. **封存是她的选择**：只有她自己说不想再被提醒时才 `seal`；别人不能替她封存，也不要用 `--sealed true` 把她封存的事翻给别人看。
 
 ## 每天该做的三件事
 
