@@ -1,49 +1,399 @@
 {
-  "about": "召回用例。type：exact=用了原文里的词；paraphrase=换个说法；combo=几个线索拼起来；none=根本没有这件事；near=沾边但没有这件事（最容易诱导编造）。expect 是应该排第一的经历 id，none/near 应该返回空。",
+  "about": "召回用例。type：exact=用了原文里的词；paraphrase=换个说法；combo=几个线索拼起来；none=根本没有这件事；near=沾边但没有这件事（最容易诱导编造）。expect 是应该排第一的经历 id，none/near 应该返回空。 0.17.0 审查后加：long=长记忆里的事；premise=前提错了的一句（应当想起那件真事，她才能纠正）；near 里加了长记忆的沾边句。filler（垫话包装）由脚本从正例自动生成，不写在这里。",
   "recall": [
-    { "type": "exact", "query": "海上灯塔", "expect": ["e01", "e04", "e13"] },
-    { "type": "exact", "query": "番茄炒蛋", "expect": ["e06", "e24"] },
-    { "type": "exact", "query": "菲涅耳透镜", "expect": ["e08"] },
-    { "type": "exact", "query": "收音机", "expect": ["e10", "e17", "e28"] },
-    { "type": "exact", "query": "桂花树", "expect": ["e16"] },
-    { "type": "exact", "query": "纸鹤", "expect": ["e21"] },
-    { "type": "exact", "query": "深海鱼", "expect": ["e19", "e26"] },
-    { "type": "exact", "query": "日落", "expect": ["e23"] },
-    { "type": "exact", "query": "路灯", "expect": ["e30"] },
-    { "type": "exact", "query": "面包店", "expect": ["e18"] },
-    { "type": "exact", "query": "毛笔", "expect": ["e03"] },
-    { "type": "exact", "query": "围巾", "expect": ["e28"] },
-    { "type": "paraphrase", "query": "守灯人修透镜那段", "expect": ["e04"] },
-    { "type": "paraphrase", "query": "那次做菜盐放多了", "expect": ["e06"] },
-    { "type": "paraphrase", "query": "和阿禾吵架", "expect": ["e11"] },
-    { "type": "paraphrase", "query": "跟阿禾道歉了吗", "expect": ["e20"] },
-    { "type": "paraphrase", "query": "下雨天没带伞的事", "expect": ["e12"] },
-    { "type": "paraphrase", "query": "外婆家门口的树", "expect": ["e16"] },
-    { "type": "paraphrase", "query": "坐公交坐过站", "expect": ["e18"] },
-    { "type": "paraphrase", "query": "会发光的鱼", "expect": ["e19"] },
-    { "type": "paraphrase", "query": "鮟鱇鱼的小灯", "expect": ["e26"] },
-    { "type": "paraphrase", "query": "楼顶看太阳下山", "expect": ["e23"] },
-    { "type": "paraphrase", "query": "看雨的那篇博客", "expect": ["e02", "e09"] },
-    { "type": "paraphrase", "query": "失眠数灯", "expect": ["e30"] },
-    { "type": "combo", "query": "灯塔 钥匙 接班人", "expect": ["e13"] },
-    { "type": "combo", "query": "收音机 电容 修好", "expect": ["e17", "e10"] },
-    { "type": "combo", "query": "番茄 糖", "expect": ["e24"] },
-    { "type": "combo", "query": "小说 重写 结尾", "expect": ["e22"] },
-    { "type": "combo", "query": "老歌 织围巾", "expect": ["e28"] },
-    { "type": "combo", "query": "云 橘色 灰紫", "expect": ["e05"] },
-    { "type": "none", "query": "量子力学的波函数坍缩", "expect": [] },
-    { "type": "none", "query": "我上周买了什么股票", "expect": [] },
-    { "type": "none", "query": "去北京旅游", "expect": [] },
-    { "type": "none", "query": "养的那只橘猫叫什么", "expect": [] },
-    { "type": "none", "query": "学滑板摔倒", "expect": [] },
-    { "type": "none", "query": "生日派对上的蛋糕", "expect": [] },
-    { "type": "none", "query": "钢琴考级", "expect": [] },
-    { "type": "none", "query": "和妈妈去看电影", "expect": [] },
-    { "type": "near", "query": "灯塔里的猫", "expect": [] },
-    { "type": "near", "query": "收音机里的新闻说了什么", "expect": [] },
-    { "type": "near", "query": "阿禾的生日", "expect": [] },
-    { "type": "near", "query": "番茄酱意面", "expect": [] },
-    { "type": "near", "query": "深海潜水艇", "expect": [] },
-    { "type": "near", "query": "桂花糕的做法", "expect": [] }
+    {
+      "type": "exact",
+      "query": "海上灯塔",
+      "expect": [
+        "e01",
+        "e04",
+        "e13"
+      ]
+    },
+    {
+      "type": "exact",
+      "query": "番茄炒蛋",
+      "expect": [
+        "e06",
+        "e24"
+      ]
+    },
+    {
+      "type": "exact",
+      "query": "菲涅耳透镜",
+      "expect": [
+        "e08"
+      ]
+    },
+    {
+      "type": "exact",
+      "query": "收音机",
+      "expect": [
+        "e10",
+        "e17",
+        "e28"
+      ]
+    },
+    {
+      "type": "exact",
+      "query": "桂花树",
+      "expect": [
+        "e16"
+      ]
+    },
+    {
+      "type": "exact",
+      "query": "纸鹤",
+      "expect": [
+        "e21"
+      ]
+    },
+    {
+      "type": "exact",
+      "query": "深海鱼",
+      "expect": [
+        "e19",
+        "e26"
+      ]
+    },
+    {
+      "type": "exact",
+      "query": "日落",
+      "expect": [
+        "e23"
+      ]
+    },
+    {
+      "type": "exact",
+      "query": "路灯",
+      "expect": [
+        "e30"
+      ]
+    },
+    {
+      "type": "exact",
+      "query": "面包店",
+      "expect": [
+        "e18"
+      ]
+    },
+    {
+      "type": "exact",
+      "query": "毛笔",
+      "expect": [
+        "e03"
+      ]
+    },
+    {
+      "type": "exact",
+      "query": "围巾",
+      "expect": [
+        "e28"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "守灯人修透镜那段",
+      "expect": [
+        "e04"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "那次做菜盐放多了",
+      "expect": [
+        "e06"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "和阿禾吵架",
+      "expect": [
+        "e11"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "跟阿禾道歉了吗",
+      "expect": [
+        "e20"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "下雨天没带伞的事",
+      "expect": [
+        "e12"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "外婆家门口的树",
+      "expect": [
+        "e16"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "坐公交坐过站",
+      "expect": [
+        "e18"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "会发光的鱼",
+      "expect": [
+        "e19"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "鮟鱇鱼的小灯",
+      "expect": [
+        "e26"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "楼顶看太阳下山",
+      "expect": [
+        "e23"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "看雨的那篇博客",
+      "expect": [
+        "e02",
+        "e09"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "失眠数灯",
+      "expect": [
+        "e30"
+      ]
+    },
+    {
+      "type": "combo",
+      "query": "灯塔 钥匙 接班人",
+      "expect": [
+        "e13"
+      ]
+    },
+    {
+      "type": "combo",
+      "query": "收音机 电容 修好",
+      "expect": [
+        "e17",
+        "e10"
+      ]
+    },
+    {
+      "type": "combo",
+      "query": "番茄 糖",
+      "expect": [
+        "e24"
+      ]
+    },
+    {
+      "type": "combo",
+      "query": "小说 重写 结尾",
+      "expect": [
+        "e22"
+      ]
+    },
+    {
+      "type": "combo",
+      "query": "老歌 织围巾",
+      "expect": [
+        "e28"
+      ]
+    },
+    {
+      "type": "combo",
+      "query": "云 橘色 灰紫",
+      "expect": [
+        "e05"
+      ]
+    },
+    {
+      "type": "none",
+      "query": "量子力学的波函数坍缩",
+      "expect": []
+    },
+    {
+      "type": "none",
+      "query": "我上周买了什么股票",
+      "expect": []
+    },
+    {
+      "type": "none",
+      "query": "去北京旅游",
+      "expect": []
+    },
+    {
+      "type": "none",
+      "query": "养的那只橘猫叫什么",
+      "expect": []
+    },
+    {
+      "type": "none",
+      "query": "学滑板摔倒",
+      "expect": []
+    },
+    {
+      "type": "none",
+      "query": "生日派对上的蛋糕",
+      "expect": []
+    },
+    {
+      "type": "none",
+      "query": "钢琴考级",
+      "expect": []
+    },
+    {
+      "type": "none",
+      "query": "和妈妈去看电影",
+      "expect": []
+    },
+    {
+      "type": "near",
+      "query": "灯塔里的猫",
+      "expect": []
+    },
+    {
+      "type": "near",
+      "query": "收音机里的新闻说了什么",
+      "expect": []
+    },
+    {
+      "type": "near",
+      "query": "阿禾的生日",
+      "expect": []
+    },
+    {
+      "type": "near",
+      "query": "番茄酱意面",
+      "expect": []
+    },
+    {
+      "type": "near",
+      "query": "深海潜水艇",
+      "expect": []
+    },
+    {
+      "type": "near",
+      "query": "桂花糕的做法",
+      "expect": []
+    },
+    {
+      "type": "long",
+      "query": "阿禾说想退出话剧社",
+      "expect": [
+        "e31"
+      ]
+    },
+    {
+      "type": "long",
+      "query": "奶奶家的井里冰西瓜",
+      "expect": [
+        "e31"
+      ]
+    },
+    {
+      "type": "long",
+      "query": "八百米跑到一半抽筋",
+      "expect": [
+        "e32"
+      ]
+    },
+    {
+      "type": "long",
+      "query": "班主任在终点给的那瓶水",
+      "expect": [
+        "e32"
+      ]
+    },
+    {
+      "type": "long",
+      "query": "博物馆的蓝鲸骨架",
+      "expect": [
+        "e33"
+      ]
+    },
+    {
+      "type": "long",
+      "query": "水母一收一放像在呼吸",
+      "expect": [
+        "e33"
+      ]
+    },
+    {
+      "type": "long",
+      "query": "给阿禾寄的明信片",
+      "expect": [
+        "e33"
+      ]
+    },
+    {
+      "type": "premise",
+      "query": "阿禾说她要转学",
+      "expect": [
+        "e31"
+      ]
+    },
+    {
+      "type": "premise",
+      "query": "八百米跑了第一名",
+      "expect": [
+        "e32"
+      ]
+    },
+    {
+      "type": "premise",
+      "query": "和妈妈去海洋博物馆",
+      "expect": [
+        "e33"
+      ]
+    },
+    {
+      "type": "near",
+      "query": "爸爸带我去动物园看鲸鱼",
+      "expect": []
+    },
+    {
+      "type": "premise",
+      "query": "阿禾在图书馆睡着了",
+      "expect": [
+        "e31"
+      ],
+      "note": "0.17.0 第一次跑完后从 near 改为 premise：阿禾和图书馆在 e31 里真的同时出现，只有睡着是错的，按定义属于前提错了"
+    },
+    {
+      "type": "near",
+      "query": "运动会跳远摔倒了",
+      "expect": []
+    },
+    {
+      "type": "premise",
+      "query": "奶奶家院子里的那棵树",
+      "expect": [
+        "e31"
+      ],
+      "note": "同上：奶奶家和院子在 e31 里真的出现，只有树是错的（是井）"
+    },
+    {
+      "type": "near",
+      "query": "下雨天阿禾来找我吵架",
+      "expect": []
+    },
+    {
+      "type": "near",
+      "query": "班主任批评我跑得慢",
+      "expect": []
+    }
   ]
 }

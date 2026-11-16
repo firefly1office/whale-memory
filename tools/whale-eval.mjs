@@ -58,12 +58,16 @@ for (const o of corpus.operations) {
 }
 
 // ── 1 & 2. 召回 ─────────────────────────────────────────────────────────
-const POS = ['exact', 'paraphrase', 'combo', 'attr']
-function scoreRecall(mode, list = cases.recall) {
+const POS = ['exact', 'paraphrase', 'combo', 'attr', 'long', 'premise', 'filler']
+// 垫话包装：把开发集的正例套进聊天里常见的说法（"说说X""X怎么样了""记不记得X"…），自动生成
+const WRAPS = ['说说X', '上次说的X', 'X怎么样了', '记不记得X', '之前的X', '聊聊X', '你还记得X吗', '最近X了吗', '跟我讲讲X']
+const fillerCases = cases.recall.filter((c) => ['exact', 'paraphrase', 'combo', 'long'].includes(c.type) && !/s/.test(c.query))
+  .flatMap((c) => WRAPS.map((w) => ({ type: 'filler', query: w.replace('X', c.query), expect: c.expect })))
+function scoreRecall(mode, list = cases.recall, gate = 'cover') {
   const by = {}
   const fails = []
   for (const c of list) {
-    const got = exp.recall(M, c.query, { limit: 3, mode }).map((r) => r.id)
+    const got = exp.recall(M, c.query, { limit: 3, mode, gate }).map((r) => r.id)
     const b = (by[c.type] ||= { n: 0, top1: 0, top3: 0, empty: 0 })
     b.n++
     if (c.expect.length) {
@@ -81,7 +85,7 @@ function scoreRecall(mode, list = cases.recall) {
     top1: +(sum('top1') / N).toFixed(3), top3: +(sum('top3') / N).toFixed(3),
     byType: Object.fromEntries(POS.filter((t) => by[t]).map((t) => [t, { n: by[t].n, top1: +(by[t].top1 / by[t].n).toFixed(3), top3: +(by[t].top3 / by[t].n).toFixed(3) }])),
     noneEmpty: neg('none'), nearEmpty: neg('near'),
-    fabrication: +(1 - ((by.none?.empty || 0) + (by.near?.empty || 0)) / Math.max(1, (by.none?.n || 0) + (by.near?.n || 0))).toFixed(3),
+    fabrication: (by.none?.n || 0) + (by.near?.n || 0) ? +(1 - ((by.none?.empty || 0) + (by.near?.empty || 0)) / ((by.none?.n || 0) + (by.near?.n || 0))).toFixed(3) : null,
     fails
   }
 }
@@ -89,6 +93,11 @@ const recallStrict = scoreRecall('strict')
 const recallLoose = scoreRecall('loose')
 const holdStrict = scoreRecall('strict', holdout.recall)
 const holdLoose = scoreRecall('loose', holdout.recall)
+const fillerStrict = scoreRecall('strict', fillerCases)
+// 旧口径（0.16 及以前；recallForContext 默认用它）做对照
+const legacyDev = scoreRecall('strict', cases.recall, 'legacy')
+const legacyHold = scoreRecall('strict', holdout.recall, 'legacy')
+const legacyFiller = scoreRecall('strict', fillerCases, 'legacy')
 
 // ── 3. 外露 ─────────────────────────────────────────────────────────────
 const markers = [
@@ -172,8 +181,9 @@ fs.rmSync(data, { recursive: true, force: true })
 // ── 汇总 ────────────────────────────────────────────────────────────────
 const report = {
   corpus: { experiences: corpus.experiences.length, operations: corpus.operations.length, recallCases: cases.recall.length, holdoutCases: holdout.recall.length, leakChecks: surfaces.length * markers.length },
-  recall: { strict: recallStrict, loose: recallLoose },
-  holdout: { strict: holdStrict, loose: holdLoose },
+  recall: { strict: recallStrict, loose: recallLoose, legacy: legacyDev },
+  holdout: { strict: holdStrict, loose: holdLoose, legacy: legacyHold },
+  filler: { strict: fillerStrict, legacy: legacyFiller, cases: fillerCases.length },
   leak: { count: leaks.length, surfaces: surfaces.length, markers: markers.length, leaks, control },
   immutability: immut
 }
@@ -186,7 +196,8 @@ const gates = [
   ['strict 编造率 ≤ ' + thresholds.strictFabrication, recallStrict.fabrication <= thresholds.strictFabrication],
   ['loose 前三命中率 ≥ ' + thresholds.looseTop3, recallLoose.top3 >= thresholds.looseTop3],
   ['留出集 strict 前三命中率 ≥ ' + thresholds.holdoutStrictTop3, holdStrict.top3 >= thresholds.holdoutStrictTop3],
-  ['留出集 strict 编造率 ≤ ' + thresholds.holdoutStrictFabrication, holdStrict.fabrication <= thresholds.holdoutStrictFabrication]
+  ['留出集 strict 编造率 ≤ ' + thresholds.holdoutStrictFabrication, holdStrict.fabrication <= thresholds.holdoutStrictFabrication],
+  ['垫话包装 strict 前三命中率 ≥ ' + thresholds.fillerStrictTop3, fillerStrict.top3 >= thresholds.fillerStrictTop3]
 ]
 report.gates = gates.map(([name, ok]) => ({ name, ok }))
 report.ok = gates.every(([, ok]) => ok)
@@ -199,8 +210,8 @@ else {
   console.log('想起（开发集 ' + cases.recall.length + ' 条，调过口径；留出集 ' + holdout.recall.length + ' 条，没拿来调）')
   console.log('                       首位命中   前三命中   编造率（none / near 返回了东西）')
   const neg = (x) => (x === null ? '—' : pct(1 - x))
-  for (const [mode, r] of [['开发 strict（默认）', recallStrict], ['开发 loose', recallLoose], ['留出 strict（默认）', holdStrict], ['留出 loose', holdLoose]]) console.log('  ' + mode.padEnd(17) + pct(r.top1).padStart(8) + pct(r.top3).padStart(11) + '   ' + pct(r.fabrication) + '（none ' + neg(r.noneEmpty) + ' / near ' + neg(r.nearEmpty) + '）')
-  for (const [name, r] of [['开发', recallStrict], ['留出', holdStrict]]) for (const [t, b] of Object.entries(r.byType)) console.log('    ' + name + ' strict · ' + t.padEnd(10) + ' ' + String(b.n).padStart(2) + ' 条   首位 ' + pct(b.top1) + '   前三 ' + pct(b.top3))
+  for (const [mode, r] of [['开发 strict（默认）', recallStrict], ['开发 strict 旧口径', legacyDev], ['开发 loose', recallLoose], ['垫话包装 strict', fillerStrict], ['垫话包装 旧口径', legacyFiller], ['留出 strict（默认）', holdStrict], ['留出 strict 旧口径', legacyHold], ['留出 loose', holdLoose]]) console.log('  ' + mode.padEnd(17) + pct(r.top1).padStart(8) + pct(r.top3).padStart(11) + '   ' + (r.fabrication === null ? '—（这组没有反例）' : pct(r.fabrication) + '（none ' + neg(r.noneEmpty) + ' / near ' + neg(r.nearEmpty) + '）'))
+  for (const [name, r] of [['开发', recallStrict], ['开发旧口径', legacyDev], ['留出', holdStrict], ['留出旧口径', legacyHold]]) for (const [t, b] of Object.entries(r.byType)) console.log('    ' + name + ' strict · ' + t.padEnd(10) + ' ' + String(b.n).padStart(2) + ' 条   首位 ' + pct(b.top1) + '   前三 ' + pct(b.top3))
   console.log('')
   console.log('外露            ' + leaks.length + ' 次（' + surfaces.length + ' 个出口 × ' + markers.length + ' 个标记）' + (leaks.length ? '\n' + leaks.map((l) => '  ✘ ' + l.surface + ' 露出了' + l.kind + '「' + l.marker + '」').join('\n') : ''))
   console.log('then 不可改     ' + (immut.fileUnchanged ? '经历文件逐字节不变' : '经历文件变了！') + (thenChanged.length ? '；then 变了：' + thenChanged.join(',') : ''))

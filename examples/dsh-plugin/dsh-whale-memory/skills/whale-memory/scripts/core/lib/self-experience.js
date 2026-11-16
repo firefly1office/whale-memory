@@ -426,7 +426,9 @@ export function currentView(dir, id, { asOf = null } = {}) {
 // mark=false（默认）：只读；mark=true 追加一条 recall 事件（不重写经历文件）
 // asOf：在那天的自己里找（只读）；翻旧日子不算"想起"，所以不能和 mark 一起用
 // 她封存了的经历不会被召回；includeSealed=true 只给"她自己要翻"这种明确场景用
-export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false } = {}) {
+// gate：strict 下用哪套门槛。'cover'（默认，0.17 起）= 至少对上一个词 + 意思至少 70% 被接住；
+//       'legacy' = 0.16 及以前的口径（长查询要 60% 的两字词对上），排序也照旧。宿主想保持旧行为时用
+export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover' } = {}) {
   if (mark && asOf !== null && asOf !== undefined && asOf !== '') throw new Error('翻回旧日子时不记「想起」：mark 和 asOf 不能一起用。')
   const rows = loadAll(dir, { asOf }).filter((r) => includeSealed || !r.sealed)
   const q = String(query || '')
@@ -466,10 +468,11 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, mi
   const weightOf = (r) => (r.weight === 'important' ? 3 : r.weight === 'minor' ? 0.5 : 1)
   const picked = rows.map((r) => {
     const { n, size, matchedIn, matchedLater, cover } = measure(r)
-    return { r: { ...r, matchedIn, matchedLater }, n, cover, s: (n / Math.sqrt(size)) * weightOf(r) * (0.5 + cover) }
+    const legacy = gate === 'legacy'
+    return { r: { ...r, matchedIn, matchedLater }, n, cover, s: (n / Math.sqrt(size)) * weightOf(r) * (legacy ? 1 : 0.5 + cover) }
   })
     // strict（0.17 起）：至少对上一个词，并且查询的意思至少 MIN_COVER 在这段记忆里找得到；loose：对上 minOverlap 个词
-    .filter((x) => (!q ? true : mode === 'loose' ? x.n >= required : x.n >= minOverlap && x.cover >= MIN_COVER))
+    .filter((x) => (!q ? true : mode === 'loose' || gate === 'legacy' ? x.n >= required : x.n >= minOverlap && x.cover >= MIN_COVER))
     .sort((a, b) => b.s - a.s || String(b.r.at).localeCompare(String(a.r.at)))
     .slice(0, limit).map((x) => x.r)
 
@@ -567,6 +570,8 @@ export function renderTwoPart(entry, { now = new Date() } = {}) {
 
 export const internals = { WEIGHTS, FILE }
 // 兼容旧调用：只要一句摘要的地方仍可用
-export function recallForContext(dir, query, { max = 1 } = {}) {
-  return recall(dir, query, { limit: max }).map((r) => ({ id: r.id, day: r.day, text: r.then.text, thought: r.then.thought, weight: r.weight, raw: r }))
+// 宿主拿用户的原话直接来召回、再自动塞进提示词：用旧口径，升级不改变自动递回的行为
+// （新口径对"垫话 + 话题"更友好，但对"长句里带一个错的前提"仍可能放进来，见 docs/eval.md）
+export function recallForContext(dir, query, { max = 1, gate = 'legacy' } = {}) {
+  return recall(dir, query, { limit: max, gate }).map((r) => ({ id: r.id, day: r.day, text: r.then.text, thought: r.then.thought, weight: r.weight, raw: r }))
 }

@@ -234,3 +234,17 @@ test('备份 --keep 0：一份都不删，全部留着', (t) => {
   assert.equal(made[3].kept.length, 4)
   assert.throws(() => backup({ data, out, keep: -1 }), /0 到 365/)
 })
+
+test('恢复演练：原数据里本来就有一行坏的事件，如实备份不算"不可恢复"；备份里多出来的坏行才算', (t) => {
+  const data = tmp(t), out = tmp(t)
+  seed(data)
+  const m = memOf(data)
+  fs.appendFileSync(path.join(m, 'later-events.jsonl'), '{这一行是坏的\n')
+  const bk = backup({ data, out })
+  const r = restoreCheck({ from: bk.dir, data })
+  assert.notEqual(r.verdict, '不可恢复', JSON.stringify(r.checks))
+  assert.match(r.checks.find((c) => c.name === '事件文件没有坏行').detail, /原数据里本来就有 1 行/)
+  // 备份包里多坏一行：校验和就不对了，整包不可恢复
+  fs.appendFileSync(path.join(bk.dir, 'later-events.jsonl'), '{又坏一行\n')
+  assert.equal(restoreCheck({ from: bk.dir, data }).verdict, '不可恢复')
+})

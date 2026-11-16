@@ -61,7 +61,11 @@ export function restoreCheck({ from, data = '' }) {
     const rows = loadAll(restored)
     const bad = badLines(restored)
     check('恢复后能读', true, rows.length + ' 条经历')
-    check('事件文件没有坏行', bad === 0, bad === 0 ? '没有坏行' : bad + ' 行解析失败')
+    // 原数据里本来就有的坏行（插件读的时候会跳过），备份如实带上不算备份坏了；只有比原数据多出来的才算
+    let origBad = null
+    if (data) { const om = path.join(path.resolve(data), 'plugin-data', 'biomimetic-memory'); if (fs.existsSync(om)) { try { origBad = badLines(om) } catch { origBad = null } } }
+    const badOk = bad === 0 || (origBad !== null && bad <= origBad)
+    check('事件文件没有坏行', badOk, bad === 0 ? '没有坏行' : badOk ? '有 ' + bad + ' 行解析失败，原数据里本来就有 ' + origBad + ' 行（读的时候会跳过），备份如实带上了' : bad + ' 行解析失败' + (origBad !== null ? '（原数据里只有 ' + origBad + ' 行）' : ''))
     const missing = rows.flatMap((r) => (r.refsInfo || []).filter((x) => x.missing).map((x) => r.id + '→' + x.id))
     check('出处都在', missing.length === 0, missing.length ? missing.length + ' 处出处指向找不到的经历' : '每条回想引用的经历都在')
 

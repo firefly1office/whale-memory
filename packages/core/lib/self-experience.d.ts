@@ -122,6 +122,8 @@ export function recall(dir: string, query: string, opts?: {
   asOf?: AsOf
   /** 默认不召回她封存了的经历；只在"她自己要翻"时打开 */
   includeSealed?: boolean
+  /** strict 用哪套门槛：cover（默认，0.17 起）或 legacy（0.16 及以前，结果逐条一致） */
+  gate?: 'cover' | 'legacy'
 }): Experience[]
 
 /** 事后联想：两条都必须存在、必须写理由；同一对（不分方向）只连一次 */
@@ -171,6 +173,7 @@ export interface RecallContextItem {
   raw: Experience
 }
 
-export function recallForContext(dir: string, query: string, opts?: { max?: number }): RecallContextItem[]
+/** 宿主拿用户原话自动召回用；默认 gate 为 legacy，升级不改变自动递回的行为 */
+export function recallForContext(dir: string, query: string, opts?: { max?: number; gate?: 'cover' | 'legacy' }): RecallContextItem[]
 
 export const internals: { WEIGHTS: Set<Weight>; FILE: string }
