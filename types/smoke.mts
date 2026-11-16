@@ -15,4 +15,6 @@ const ctx = selfExperience.recallForContext('/tmp/whale', '灯塔', { max: 1 })
 const firstCtx = ctx[0]
 if (firstCtx) console.log(firstCtx.text, firstCtx.raw.then.text)
 
+const pending = selfExperience.pendingLegacyEvents('/tmp/whale')
+console.log(pending.length, made.matchedLater?.length, made.formerId)
 console.log(rows.length, made.then.text, verdict.status, facts.length, answer.status, block, prompt.ok)

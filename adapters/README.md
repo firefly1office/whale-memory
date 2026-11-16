@@ -18,6 +18,8 @@ node adapters/cli/memory-cli.mjs recall --query "那本书里那个人" --limit 
 node adapters/cli/memory-cli.mjs waking --chat "local:owner"
 ```
 
+也可以每条命令带 `--data /path/to/data`，优先于环境变量。`/path/to/data` 是下面有 `plugin-data/` 的数据根目录。
+
 ## 2. 直接 import（有 JS 运行时的宿主）
 
 ```js

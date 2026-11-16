@@ -33,6 +33,10 @@ export interface Experience {
   recalls?: number
   lastRecalledAt?: string
   matchedIn?: Array<'then' | 'quote' | 'later'>
+  /** recall 返回：是哪几条后记让这条被想起 */
+  matchedLater?: LaterEntry[]
+  /** 0.10.0 之前的旧 id（只在唯一对应时出现）；用它也能 revise / currentView */
+  formerId?: string
   status?: string
   legacy?: boolean
 }
@@ -73,7 +77,18 @@ export function recall(dir: string, query: string, opts?: {
   mode?: 'strict' | 'loose'
 }): Experience[]
 
-export function renderTwoPart(entry: Experience, opts?: { now?: Date; laterCount?: number }): string
+export function renderTwoPart(entry: Experience, opts?: { now?: Date }): string
+
+export interface PendingLegacyEvents {
+  /** 几条旧经历共用的旧 id */
+  id: string
+  /** 可能的归属（当前 id） */
+  candidates: string[]
+  later: number
+  recalls: number
+}
+
+export function pendingLegacyEvents(dir: string): PendingLegacyEvents[]
 
 export interface RecallContextItem {
   id: string

@@ -83,7 +83,7 @@
 2. 用 `packages/core` 打底，按需实现注入与调度
 3. 隐私边界自己做：日记只在一对一、别人的私事不跨会话
 4. 单写者约束自己保证
-5. 醒来块**默认只给一对一**：`buildWakingBlock()` 在没有 chatKey 或遇到 `group_*` 时返回空，群聊要显式 `allowGroup: true`。`consumeWaking()` 同样拒绝这两类，避免"没注入却把当天额度用掉"
+5. 醒来块**默认只给一对一**：`buildWakingBlock()` 只认 `private_*` / `private:*` / `local_*` / `local:*` 这几种一对一会话键；没有 chatKey、或认不出来的（`group_*`、`qq:group:1`、别的平台的频道号……）一律返回空。要给别的会话，宿主自己判断后显式传 `allowGroup: true`。`consumeWaking()` 同样拒绝这两类，避免"没注入却把当天额度用掉"
 
 ## 相关文档
 

@@ -8,11 +8,12 @@ import * as waking from './core/lib/waking.js'
 import * as prompt from './core/lib/self-prompt.js'
 import * as settings from './core/lib/self-settings.js'
 
-const DATA = process.env.WHALE_DATA_DIR || path.resolve(process.cwd(), 'data')
-const MEM_DIR = path.join(DATA, 'plugin-data', 'biomimetic-memory')
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
 
+// 参数写成 --name value 或 --name=value 都行
 function arg(name, fallback = null) {
+  const eq = process.argv.find((a) => a.startsWith('--' + name + '='))
+  if (eq !== undefined) return eq.slice(name.length + 3)
   const i = process.argv.indexOf('--' + name)
   if (i < 0) return fallback
   const v = process.argv[i + 1]
@@ -22,10 +23,8 @@ function arg(name, fallback = null) {
 
 // --limit 必须是非负整数：0 表示一条都不要，负数直接拒绝（不能变成“全部”）
 function limitArg(name, fallback) {
-  const i = process.argv.indexOf('--' + name)
-  if (i < 0) return fallback
-  const v = process.argv[i + 1]
-  if (v === undefined || v.startsWith('--')) throw new Error('--' + name + ' 缺少参数值')
+  const v = arg(name, null)
+  if (v === null) return fallback
   if (!/^\d+$/.test(v)) throw new Error('--' + name + ' 必须是非负整数')
   return Number(v)
 }
@@ -39,7 +38,12 @@ function weightArg() {
 function out(obj) { console.log(JSON.stringify(obj, null, 2)) }
 
 const cmd = process.argv[2]
+let DATA = ''
+let MEM_DIR = ''
 try {
+  // 数据根目录（下面有 plugin-data/）：--data 优先，其次 WHALE_DATA_DIR，最后是当前目录下的 data/
+  DATA = path.resolve(arg('data', '') || process.env.WHALE_DATA_DIR || path.join(process.cwd(), 'data'))
+  MEM_DIR = path.join(DATA, 'plugin-data', 'biomimetic-memory')
   if (cmd === 'write') {
     const text = arg('text')
     if (typeof text !== 'string' || !text.trim()) throw new Error('缺少 --text（不能是空白）')
@@ -67,7 +71,11 @@ try {
     const n = limitArg('limit', 8)
     const all = exp.loadAll(MEM_DIR)
     const rows = n === 0 ? [] : all.slice(-n)
-    out({ ok: true, items: rows.map((r) => ({ id: r.id, day: r.day, weight: r.weight, text: r.then.text, thought: r.then.thought, later: (r.later || []).map((x) => x.thought) })) })
+    const res = { ok: true, items: rows.map((r) => ({ id: r.id, day: r.day, weight: r.weight, text: r.then.text, thought: r.then.thought, later: (r.later || []).map((x) => x.thought) })) }
+    // 旧 id 有几条记录共用、认不出归属的事件：原样留着，提醒人来核对
+    const pending = exp.pendingLegacyEvents(MEM_DIR)
+    if (pending.length) res.pending = { note: '这些后记/想起记录挂在几条旧经历共用的旧 id 上，没有自动归给任何一条，请人工核对。', items: pending }
+    out(res)
   } else if (cmd === 'revise') {
     const id = arg('id')
     const thought = arg('thought')
@@ -107,6 +115,7 @@ try {
     out({
       ok: false,
       usage: [
+        '全局：--data <数据根目录>（下面有 plugin-data/；不给就用 WHALE_DATA_DIR，再不给用 ./data）',
         'write --text "..." [--scene .. --feeling a,b --thought .. --unfinished .. --quote .. --source .. --weight important|normal|minor --kind 读书]',
         'recall --query "..." [--limit 3] [--mark true] [--mode strict|loose]   （空 query = 最近 N 条；默认只读，strict 宁可不召回）',
         'read [--limit 8]',

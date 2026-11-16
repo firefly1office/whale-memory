@@ -11,6 +11,27 @@
 - `tests/with-vector.test.mjs` 守住组合示例的输出。
 - `examples/first-day/`：用一个外部角色的视角跑通「第一天读故事、关掉应用、第二天宿主自己把昨天递回来」。两个独立进程，不输入 recall 命令；`tests/first-day.test.mjs` 守住这段验收。
 
+## [0.10.1] · 2026-11-16
+
+### Fixed
+
+- **从 0.9 及更早升级后，旧经历的后记和想起记录重新认回来。** 0.10.0 换了旧格式记录的 id 算法，挂在旧 id 上的事件就对不上了。现在读取时会同时认旧 id：只有一条旧经历对应它时才认领；几条旧经历共用同一个旧 id 时，谁也不给，事件原样留在文件里，由 `pendingLegacyEvents()` 和 CLI `read` 的 `pending` 报告待核对。旧 id 也能继续用来 `revise` / `currentView`。
+- 没有 `at` 的旧格式记录，id 不再每次读取都变（之前混入了 `Date.now()`，写过的后记下次就找不到）。
+- 迁移回滚可以重复执行：第一次回滚不再删掉事件备份，第二次也就不会把当前事件文件当成"迁移新建的"删掉。迁移前有没有事件文件写在 `<备份>.manifest.json` 里；迁移前没有事件文件的，回滚只把新文件改名挪开，不删除。
+- `revise` 给了不存在的 id 时返回 `ok: false` 并说明找不到，不再写下一条谁也看不见的后记。
+- CLI `recall` 渲染：如果是凭较早的一条后记找到的，会把那条原样给出（"这次想起它，是因为后来写过"），再给最近一条，各带日子；后记不再截到 80 字。
+- CLI 支持 `--data <数据根目录>`（优先于 `WHALE_DATA_DIR`），所有参数都可以写成 `--name=value`。之前 `docs/backup.md` 里的 `read --data=<data>` 会被忽略，读到的是另一个目录。
+- `memory` 命令（`self-memory.recall`）和 `recall` 用同一套防编造口径（虚词不算、长查询过比例门槛），也会匹配后记。之前"我昨天买了什么股票"会因为一个"什么"召回无关记录。
+- 醒来块改成白名单：只认 `private_*` / `private:*` / `local_*` / `local:*`，认不出的会话键一律不给。之前只拦 `group` 开头，`qq:group:1` 这类键会拿到私下内容。
+- `self-settings.save()`：设置文件损坏时拒绝保存（原样留着等人修），不再用默认值把她改过的设置冲掉；加锁、原子写；`patch` 必须是对象。
+- `leaveNote()` 在数据目录还不存在时不再报 ENOENT。
+- 英文查询按整词匹配、不分大小写，常见英文虚词不参与匹配：`the cat` 不会再召回所有含 "the" 的记录，`LIGHTHOUSE` 能找到 "lighthouse"。
+
+### Changed
+
+- 匹配口径集中到 `lib/query-match.js`，`self-experience` 和 `self-memory` 共用。
+- `renderTwoPart()` 去掉了没有用到的 `laterCount` 参数。
+
 ## [0.10.0] · 2026-11-15
 
 ### Added

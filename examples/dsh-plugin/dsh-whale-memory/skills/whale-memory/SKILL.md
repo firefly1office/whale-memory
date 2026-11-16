@@ -15,7 +15,7 @@ description: 她自己的记忆。用 CLI 记录/回想她自己的经历（scen
 node <skill目录>/scripts/memory-cli.mjs <命令> [参数]
 ```
 
-数据目录用环境变量 `WHALE_DATA_DIR` 指定；不设就用当前目录下的 `data/`。
+数据目录用 `--data <目录>` 或环境变量 `WHALE_DATA_DIR` 指定（`--data` 优先）；都不给就用当前目录下的 `data/`。
 
 ## 命令
 

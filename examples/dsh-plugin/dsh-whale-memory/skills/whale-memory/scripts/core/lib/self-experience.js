@@ -4,6 +4,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import * as recallEvents from './recall-events.js'
 import * as laterEvents from './later-events.js'
+import { queryTerms, requiredOverlap, matchedTerms, normalizeText } from './query-match.js'
 
 const FILE = 'self-experience.jsonl'
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
@@ -26,17 +27,6 @@ function readAll(dir, { rewriting = false } = {}) {
   return rows
 }
 
-function atomicWrite(dir, rows) {
-  const file = path.join(dir, FILE)
-  const tmp = file + '.tmp-' + Date.now() + '-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
-  fs.writeFileSync(tmp, rows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
-  fs.renameSync(tmp, file)
-}
-
-function writeAll(dir, rows) {
-  atomicWrite(dir, rows)
-}
-
 // 字段上限：写的时候超了就报错，不静默截断
 export const LIMITS = { text: 2000, scene: 500, thought: 1000, unfinished: 300, feelings: 8, kind: 20, laterThought: 1000, laterReason: 200 }
 
@@ -47,11 +37,18 @@ function tooLong(name, value, max) {
 }
 
 // 旧格式没有 id：用「时间 + 正文指纹」生成，避免同一分钟的多条记录撞成同一个身份
+// 只用记录里的内容生成，每次读取都得到同一个 id；没有 at 的旧记录用 noat 代替时间
 function legacyId(r) {
-  const stamp = String(r.at || Date.now()).replace(/\D/g, '').slice(0, 14)
+  const stamp = r.at ? String(r.at).replace(/\D/g, '').slice(0, 14) : 'noat'
   const body = String(r.text || '') + '\u0000' + String(r.thought || '') + '\u0000' + String(r.at || '')
   const fp = crypto.createHash('sha1').update(body).digest('hex').slice(0, 8)
   return 'exp_legacy_' + stamp + '_' + fp
+}
+
+// 0.10.0 之前的旧 id：只到分钟、不带指纹。那时写下的后记和想起事件挂在这个 id 上
+// 没有 at 的记录当时用的是 Date.now()，每次都不同，那些事件已无从对上
+function preV010Id(r) {
+  return r.at ? 'exp_legacy_' + String(r.at).replace(/\D/g, '').slice(0, 12) : ''
 }
 
 function normalize(r) {
@@ -62,6 +59,7 @@ function normalize(r) {
   // 旧格式：text/thought 在顶层
   return {
     id: r.id || legacyId(r),
+    formerId: r.id ? '' : preV010Id(r),
     at: r.at || '',
     day: r.day || String(r.at || '').slice(0, 10),
     author: 'self',
@@ -83,8 +81,24 @@ function normalize(r) {
   }
 }
 
-export function loadAll(dir) {
+// 读出经历并认领旧 id：一个旧 id 只对应一条旧记录、也没有别的记录显式用着它，才认领；
+// 否则谁也不给（事件原样留在文件里），由 pendingLegacyEvents 报告
+function identify(dir) {
   const rows = readAll(dir).map(normalize).filter((r) => r && r.then && r.then.text)
+  const explicit = new Set(rows.filter((r) => !r.formerId).map((r) => r.id))
+  const owners = new Map()
+  for (const r of rows) {
+    if (r.formerId) owners.set(r.formerId, [...(owners.get(r.formerId) || []), r.id])
+  }
+  for (const r of rows) {
+    if (r.formerId && (owners.get(r.formerId).length !== 1 || explicit.has(r.formerId))) r.formerId = ''
+    if (!r.formerId) delete r.formerId
+  }
+  return { rows, owners, explicit }
+}
+
+export function loadAll(dir) {
+  const { rows } = identify(dir)
   if (!rows.length) return rows
 
   // 想起次数：有事件文件就以事件为准；没有事件时才退回旧字段
@@ -96,17 +110,51 @@ export function loadAll(dir) {
   try { laterMap = laterEvents.groupByExp(dir) } catch { }
 
   return rows.map((r) => {
-    const c = counts.get(r.id)
-    const extra = laterMap.get(r.id) || []
+    const keys = r.formerId ? [r.id, r.formerId] : [r.id]
+    const extra = keys.flatMap((k) => laterMap.get(k) || [])
     const merged = [...(r.later || []), ...extra]
       .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')))
     const next = { ...r, later: merged }
-    if (c) {
-      next.recalls = c.count
-      next.lastRecalledAt = c.lastAt || r.lastRecalledAt || ''
+    let count = 0
+    let lastAt = ''
+    for (const k of keys) {
+      const c = counts.get(k)
+      if (!c) continue
+      count += c.count
+      if (c.lastAt > lastAt) lastAt = c.lastAt
+    }
+    if (count) {
+      next.recalls = count
+      next.lastRecalledAt = lastAt || r.lastRecalledAt || ''
     }
     return next
   })
+}
+
+// 挂在 0.10.0 之前的旧 id 上、但这个 id 有几条旧记录共用：事件原样保留，只报告，不替她挑
+export function pendingLegacyEvents(dir) {
+  const { owners, explicit } = identify(dir)
+  let counts = new Map()
+  let laterMap = new Map()
+  try { counts = recallEvents.countByExp(dir) } catch { }
+  try { laterMap = laterEvents.groupByExp(dir) } catch { }
+  const out = []
+  for (const [id, candidates] of owners) {
+    if (candidates.length < 2 || explicit.has(id)) continue
+    const later = (laterMap.get(id) || []).length
+    const recalls = counts.get(id) ? counts.get(id).count : 0
+    if (later || recalls) out.push({ id, candidates, later, recalls })
+  }
+  return out
+}
+
+// 把调用方给的 id 落到一条现存经历上：认当前 id，也认唯一对应的旧 id
+// 旧 id 被几条旧经历共用时不落到任何一条上，返回 ambiguous 让调用方说清楚
+function resolveId(dir, id) {
+  const { rows, owners } = identify(dir)
+  const hit = rows.find((r) => r.id === id) || rows.find((r) => r.formerId === id)
+  if (hit) return { id: hit.id }
+  return { id: '', ambiguous: (owners.get(id) || []).length > 1 }
 }
 
 // 写下时的"当时"：她写的 + 系统能自动带的状态（情绪/时间/场合）
@@ -156,14 +204,18 @@ export function addExperience(dir, { text, scene = '', feeling = [], thought = '
   return row
 }
 
-// 改主意 / 回头想：只追加一条 later 事件，不读全量、不重写经历文件
+// 改主意 / 回头想：只追加一条 later 事件，不重写经历文件
+// 先确认这条经历真的在：id 抄错时明说找不到，不留一条谁也看不见的后记
 export function reviseExperience(dir, { id, thought, reason = '' }) {
   if (!String(id || '').trim()) return { ok: false, error: '需要 id' }
   if (!String(thought || '').trim()) return { ok: false, error: 'thought 不能是空的。' }
   try {
     const safeThought = tooLong('thought', thought, LIMITS.laterThought)
     const safeReason = tooLong('reason', reason, LIMITS.laterReason)
-    const row = laterEvents.append(dir, { id: String(id), thought: safeThought, reason: safeReason })
+    const target = resolveId(dir, String(id))
+    if (target.ambiguous) return { ok: false, error: '这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id 来改。' }
+    if (!target.id) return { ok: false, error: '找不到这条经历：' + id + '。先用 read 或 recall 看一下 id。' }
+    const row = laterEvents.append(dir, { id: target.id, thought: safeThought, reason: safeReason })
     return { ok: true, id: row.id, at: row.at }
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) }
@@ -180,74 +232,52 @@ export function markRecalled(dir, id) {
 
 export function currentView(dir, id) {
   const rows = loadAll(dir)
-  return rows.find((r) => r.id === id) || null
-}
-
-// 高频但不携带信息的词：不参与重叠计算，避免「今天/什么/我的」把不相关的东西拉进来
-const STOP = new Set([
-  '什么', '怎么', '这个', '那个', '我的', '你的', '他的', '她的', '我们', '他们', '她们', '自己',
-  '昨天', '今天', '明天', '后天', '前天', '现在', '刚刚', '后来', '以前', '以后', '时候',
-  '是不是', '有没有', '一点', '一些', '东西', '事情', '觉得', '知道', '记得', '忘了',
-  '可能', '应该', '还是', '就是', '但是', '因为', '所以', '如果', '然后', '已经',
-  '没有', '不是', '可以', '一个', '这样', '那样', '真的', '其实', '比较', '非常', '特别',
-  '一直', '总是', '大概', '也许', '当然', '而是', '并且', '或者', '不过', '虽然', '只是',
-  '还有', '以及', '关于', '对于', '买了', '了什', '说了', '去了', '来了', '看到', '做了'
-])
-
-function queryBigrams(q) {
-  const cleaned = String(q || '').replace(/[\s\p{P}\p{S}]+/gu, '')
-  const out = new Set()
-  for (let i = 0; i + 2 <= cleaned.length; i++) {
-    const g = cleaned.slice(i, i + 2)
-    if (!STOP.has(g)) out.add(g)
-  }
-  return { cleaned, bigrams: out }
+  return rows.find((r) => r.id === id) || rows.find((r) => r.formerId === id) || null
 }
 
 // 相关度 × 重要度：重要的先被想起
-// 阈值比较的是「原始重叠数」，重要度只影响排序，不影响过线门槛
+// 阈值比较的是「原始重叠数」，重要度只影响排序，不影响过线门槛；门槛口径见 query-match.js
 // mode='strict'（默认）：长查询要求 ≥60% 命中，宁可不召回也不硬凑
 // mode='loose'：只要求至少一个实词命中，适合"想起来就该出现在眼前"的日常召回，宿主自行承担误召
 // mark=false（默认）：只读；mark=true 追加一条 recall 事件（不重写经历文件）
 export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict' } = {}) {
   const rows = loadAll(dir)
   const q = String(query || '')
-  const { cleaned, bigrams } = queryBigrams(q)
-  const strict = mode !== 'loose'
-  const required = (strict && q && cleaned.length >= 8)
-    ? Math.max(minOverlap, Math.ceil(bigrams.size * minRatio))
-    : minOverlap
+  const parsed = queryTerms(q)
+  const { terms } = parsed
+  const required = requiredOverlap(parsed, { mode, minOverlap, minRatio })
 
   const measure = (r) => {
     const fields = []
     const matched = new Set()
-    const scan = (text, label) => {
-      const t = String(text || '').replace(/[\s\p{P}\p{S}]+/gu, '')
-      if (!t) return
-      let any = false
-      for (const g of bigrams) {
-        if (t.includes(g)) { matched.add(g); any = true }
-      }
-      if (any) fields.push(label)
+    const take = (hits, label) => {
+      if (!hits.size) return
+      for (const g of hits) matched.add(g)
+      if (!fields.includes(label)) fields.push(label)
     }
-    // 最初写下的、原文锚、后来才明白的：都参与匹配
-    scan(r.then.text + ' ' + r.then.thought + ' ' + (r.then.feeling || []).join(' '), 'then')
-    if (r.then.quote) scan((r.then.quote.text || '') + ' ' + (r.then.quote.source || ''), 'quote')
-    scan((r.later || []).map((l) => l.thought).join(' '), 'later')
+    // 最初写下的、原文锚、后来才明白的：都参与匹配；后记逐条看，记下是哪几条让它被想起
+    take(matchedTerms(terms, r.then.text + ' ' + r.then.thought + ' ' + (r.then.feeling || []).join(' ')), 'then')
+    if (r.then.quote) take(matchedTerms(terms, (r.then.quote.text || '') + ' ' + (r.then.quote.source || '')), 'quote')
+    const matchedLater = []
+    for (const l of r.later || []) {
+      const hits = matchedTerms(terms, l.thought)
+      if (hits.size) matchedLater.push(l)
+      take(hits, 'later')
+    }
 
-    const all = [
+    const all = normalizeText([
       r.then.text, r.then.thought, (r.then.feeling || []).join(' '),
       r.then.quote ? r.then.quote.text : '', r.then.quote ? r.then.quote.source : '',
       (r.later || []).map((l) => l.thought).join(' ')
-    ].join(' ').replace(/[\s\p{P}\p{S}]+/gu, '')
-    // 记录自身的 bigram 规模：长记录天然更容易碰巧命中，排序时按 √长度 归一化
+    ].join(' '))
+    // 记录自身的规模：长记录天然更容易碰巧命中，排序时按 √长度 归一化
     const size = Math.max(1, all.length - 1)
-    return { n: matched.size, size, matchedIn: fields }
+    return { n: matched.size, size, matchedIn: fields, matchedLater }
   }
   const weightOf = (r) => (r.weight === 'important' ? 3 : r.weight === 'minor' ? 0.5 : 1)
   const picked = rows.map((r) => {
-    const { n, size, matchedIn } = measure(r)
-    return { r: { ...r, matchedIn }, n, s: (n / Math.sqrt(size)) * weightOf(r) }
+    const { n, size, matchedIn, matchedLater } = measure(r)
+    return { r: { ...r, matchedIn, matchedLater }, n, s: (n / Math.sqrt(size)) * weightOf(r) }
   })
     .filter((x) => (q ? x.n >= required : true))
     .sort((a, b) => b.s - a.s || String(b.r.at).localeCompare(String(a.r.at)))
@@ -263,8 +293,12 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, mi
   return picked.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at }))
 }
 
+const laterDay = (l) => l.day || String(l.at || '').slice(0, 10)
+const sameLater = (a, b) => a === b || (a.at === b.at && a.thought === b.thought)
+
 // 「当时 / 现在」两段式：模板拼，不调模型；没有的字段就如实说没有
-export function renderTwoPart(entry, { now = new Date(), laterCount = 0 } = {}) {
+// 后记：这次是被哪条后记想起的，就把那条原样给她；再给最近的一条。各带各的日子，不截断
+export function renderTwoPart(entry, { now = new Date() } = {}) {
   if (!entry) return ''
   const t = entry.then
   const when = new Date(entry.at || entry.day)
@@ -286,7 +320,11 @@ export function renderTwoPart(entry, { now = new Date(), laterCount = 0 } = {}) 
   const later = Array.isArray(entry.later) ? entry.later : []
   if (later.length) {
     const last = later[later.length - 1]
-    lines.push('- 后来你想过：' + String(last.thought || '').slice(0, 80) + (last.day ? '（' + last.day + '）' : ''))
+    const hits = (entry.matchedLater || []).filter((l) => !sameLater(l, last))
+    for (const l of hits) lines.push('- 这次想起它，是因为后来写过：' + String(l.thought || '') + '（' + laterDay(l) + '）')
+    lines.push((hits.length ? '- 最近一次回头想：' : '- 后来你想过：') + String(last.thought || '') + '（' + laterDay(last) + '）')
+    const shown = hits.length + 1
+    if (later.length > shown) lines.push('- （后来一共回头想过 ' + later.length + ' 次，这里没列出的 ' + (later.length - shown) + ' 次可以用 read 看）')
   } else {
     lines.push('- 之后你还没回头想过')
   }

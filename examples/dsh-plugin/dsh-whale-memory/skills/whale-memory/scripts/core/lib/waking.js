@@ -10,14 +10,19 @@ function readJsonl(file) {
 
 function dayStr(d = new Date()) { return d.toLocaleDateString('sv-SE') }
 
+// 只认得出一对一的会话键（private_* / private:* / local_* / local:*）；认不出的一律当成可能有别人在，宁可不给
+const PRIVATE_KEY = /^(private|local)[:_]/i
+function mayShow(key, allowGroup) {
+  return Boolean(key) && (allowGroup || PRIVATE_KEY.test(key))
+}
+
 // 只读：算出「今天该给她看什么」，不写任何文件
 // 调用方确认真的把这段注入了，再调 consumeWaking 记「已展示」
-// 安全默认：没有 chatKey、或群聊（未显式 allowGroup）→ 返回空
+// 安全默认：没有 chatKey、或不是认得出的一对一会话（未显式 allowGroup）→ 返回空
 // 醒来块里可能有昨天私下的话，默认不该流到群里
 export function buildWakingBlock(dataDir, chatKey, { now = new Date(), allowGroup = false } = {}) {
   const key = String(chatKey || '').trim()
-  if (!key) return ''
-  if (!allowGroup && /^group/i.test(key)) return ''
+  if (!mayShow(key, allowGroup)) return ''
 
   const dir = path.join(dataDir, 'plugin-data', 'biomimetic-memory')
   const today = dayStr(now)
@@ -53,8 +58,7 @@ export function buildWakingBlock(dataDir, chatKey, { now = new Date(), allowGrou
 // 确认已展示：写入 flags，之后同一天同一会话不会再出
 export function consumeWaking(dataDir, chatKey, { now = new Date(), allowGroup = false } = {}) {
   const key = String(chatKey || '').trim()
-  if (!key) return false
-  if (!allowGroup && /^group/i.test(key)) return false
+  if (!mayShow(key, allowGroup)) return false
 
   const dir = path.join(dataDir, 'plugin-data', 'biomimetic-memory')
   fs.mkdirSync(dir, { recursive: true })
@@ -68,6 +72,7 @@ export function consumeWaking(dataDir, chatKey, { now = new Date(), allowGroup =
 
 export function leaveNote(dataDir, text) {
   const dir = path.join(dataDir, 'plugin-data', 'biomimetic-memory')
+  fs.mkdirSync(dir, { recursive: true })
   const row = { at: new Date().toISOString(), day: dayStr(), text: String(text || '').slice(0, 300) }
   fs.appendFileSync(path.join(dir, 'notes-to-tomorrow.jsonl'), JSON.stringify(row) + '\n', 'utf8')
   return row

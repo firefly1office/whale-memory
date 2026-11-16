@@ -38,6 +38,10 @@ Copy-Item "$src\*" $dst -Recurse -Force
 node adapters/cli/memory-cli.mjs read --data=<data> --limit 3
 ```
 
+`<data>` 是**数据根目录**，也就是下面有 `plugin-data/` 的那一层，不是 `biomimetic-memory/` 本身。CLI 按这个顺序找目录：`--data`，然后是环境变量 `WHALE_DATA_DIR`，最后是当前目录下的 `data/`。
+
+只核对条数不够，两个库可能各有一条。挑一条你记得内容的经历，确认读回来的正文就是它。
+
 ## 校验
 
 读回来的 `recalls` 和 `later` 是合并后的结果。如果迁移过旧数据，确认：
@@ -47,6 +51,10 @@ node adapters/cli/memory-cli.mjs read --data=<data> --limit 3
 - `recall-events.jsonl` 的条数 = 所有经历的 `recalls` 之和
 
 对不上就先别删旧备份。
+
+从 0.9 及更早版本升级的库：旧格式经历的 id 在 0.10.0 换过一次。0.10.1 起，挂在旧 id 上的后记和想起会自动认回原来那条；如果同一分钟里有几条旧经历共用了一个旧 id，这些事件不会被自动归给任何一条，`read` 的输出里会多一个 `pending`，列出待核对的 id 和候选。
+
+迁移工具（`tools/migrate-*-events.mjs`）的回滚可以重复执行，结果相同；备份文件不会被回滚删掉。迁移前没有事件文件的，回滚会把迁移生成的事件文件改名为 `*.rolled-back-<时间>` 留在原处，而不是删除。
 
 ## 换机器
 

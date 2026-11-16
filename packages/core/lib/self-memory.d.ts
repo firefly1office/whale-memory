@@ -4,6 +4,7 @@ export interface MemoryItem {
   kind: string
   text: string
   thought: string
+  later?: string
   origin: 'own-time' | 'diary'
   author: string
 }
@@ -14,5 +15,7 @@ export function recall(dir: string, query: string, opts?: {
   includeDiary?: boolean
   limit?: number
   minOverlap?: number
+  minRatio?: number
+  mode?: 'strict' | 'loose'
 }): MemoryItem[]
 export function renderBlock(items: MemoryItem[], opts?: { title?: string; maxChars?: number }): string

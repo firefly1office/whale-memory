@@ -4,6 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { writeManifest, rollback as rollbackFromBackup } from './lib/migration-backup.mjs'
 import { eventsFile } from '../packages/core/lib/later-events.js'
 import { loadAll } from '../packages/core/lib/self-experience.js'
 
@@ -63,6 +64,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   const existing = fs.existsSync(ev) ? fs.readFileSync(ev, 'utf8') : ''
   const eventsBackup = existing ? backup + '.events' : ''
   if (existing) fs.copyFileSync(ev, eventsBackup)
+  writeManifest(backup, { eventsBackup })
   const prefix = existing && !existing.endsWith('\n') ? '\n' : ''
   const tmp = ev + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
   fs.writeFileSync(tmp, existing + prefix + events.map((e) => JSON.stringify(e)).join('\n') + '\n', 'utf8')
@@ -96,19 +98,10 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: events.length, backup, eventsBackup }
 }
 
+// 可以重复回滚：备份不删，当前事件文件只挪开不删（见 lib/migration-backup.mjs）
 export function rollback({ dataDir, backup, eventsBackup = '' }) {
-  if (!backup || !fs.existsSync(backup)) throw new Error('找不到备份文件')
-  fs.copyFileSync(backup, path.join(memDir(dataDir), EXPERIENCES))
-  const ev = eventsFile(memDir(dataDir))
-  const pre = eventsBackup || (backup + '.events')
-  if (fs.existsSync(pre)) {
-    // 迁移前就有事件：原样恢复，不能把迁移期间别人的修订一起删掉
-    fs.copyFileSync(pre, ev)
-    fs.rmSync(pre, { force: true })
-  } else if (fs.existsSync(ev)) {
-    fs.rmSync(ev)
-  }
-  return { ok: true }
+  const dir = memDir(dataDir)
+  return rollbackFromBackup({ experiencesFile: path.join(dir, EXPERIENCES), eventsFile: eventsFile(dir), backup, eventsBackup })
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)

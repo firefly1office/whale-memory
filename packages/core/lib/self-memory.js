@@ -1,24 +1,9 @@
 // 她自己的记忆：统一读取她自己的经历、日记、自述；按相关度取回
+// 匹配口径和 self-experience.recall 是同一套（query-match.js）：虚词不算、长查询要过比例门槛
 import fs from 'node:fs'
 import path from 'node:path'
-
-const norm = (s) => String(s || '').replace(/[\s\p{P}\p{S}]+/gu, '').toLowerCase()
-
-function bigrams(s) {
-  const c = norm(s)
-  const out = new Set()
-  for (let i = 0; i + 2 <= c.length; i++) out.add(c.slice(i, i + 2))
-  return out
-}
-
-function overlapScore(query, text) {
-  const q = bigrams(query)
-  const t = bigrams(text)
-  if (!q.size || !t.size) return 0
-  let n = 0
-  for (const g of q) if (t.has(g)) n++
-  return n
-}
+import { loadAll } from './self-experience.js'
+import { queryTerms, requiredOverlap, matchedTerms } from './query-match.js'
 
 function readJsonl(file) {
   try {
@@ -26,17 +11,18 @@ function readJsonl(file) {
   } catch { return [] }
 }
 
-// 她自己的经历（自己的时间写的）
+// 她自己的经历（自己的时间写的）：走 loadAll，id 和后记都与 self-experience 一致
 export function loadExperiences(dir) {
-  return readJsonl(path.join(dir, 'self-experience.jsonl')).map((r) => ({
-    id: r.id || ('exp_' + (r.at || '').slice(0, 10)),
+  return loadAll(dir).map((r) => ({
+    id: r.id,
     at: r.at || r.day || '',
-    kind: r.kind || (r.then && r.then.kind) || '其它',
-    text: String((r.then && r.then.text) || r.text || '').slice(0, 400),
-    thought: String((r.then && r.then.thought) || r.thought || '').slice(0, 200),
+    kind: r.kind || '其它',
+    text: String(r.then.text || '').slice(0, 400),
+    thought: String(r.then.thought || '').slice(0, 200),
+    later: (r.later || []).map((l) => String(l.thought || '')).join(' '),
     origin: 'own-time',
     author: 'self'
-  })).filter((r) => r.text)
+  }))
 }
 
 // 她的日记（可能提到别人，默认只在主人私聊用）
@@ -52,11 +38,13 @@ export function loadDiaries(dir) {
   })).filter((r) => r.text)
 }
 
-export function recall(dir, query, { includeDiary = false, limit = 4, minOverlap = 1 } = {}) {
+export function recall(dir, query, { includeDiary = false, limit = 4, minOverlap = 1, minRatio = 0.6, mode = 'strict' } = {}) {
   const pool = loadExperiences(dir).concat(includeDiary ? loadDiaries(dir) : [])
   const q = String(query || '')
-  const scored = pool.map((r) => ({ r, score: q ? overlapScore(q, r.text + ' ' + r.thought) : 0 }))
-    .filter((x) => (q ? x.score >= minOverlap : true))
+  const parsed = queryTerms(q)
+  const required = requiredOverlap(parsed, { mode, minOverlap, minRatio })
+  const scored = pool.map((r) => ({ r, score: q ? matchedTerms(parsed.terms, [r.text, r.thought, r.later || ''].join(' ')).size : 0 }))
+    .filter((x) => (q ? x.score >= required : true))
     .sort((a, b) => (b.score - a.score) || (String(b.r.at).localeCompare(String(a.r.at))))
   const out = [], seen = new Set()
   for (const x of scored) {
