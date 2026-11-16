@@ -205,7 +205,13 @@ export function loadAll(dir, { asOf = null } = {}) {
   for (const r of viewed) {
     const keys = r.formerId ? [r.id, r.formerId] : [r.id]
     const links = keys.flatMap((k) => linkMap.get(k) || [])
-      .map((l) => { const other = byId.get(l.other); return other && other !== r ? { ...pointer(other), reason: l.reason, linkDay: l.day } : null })
+      .map((l) => {
+        const other = byId.get(l.other)
+        if (!other || other === r) return null
+        // 另一头封存了：只给 id 和日子，连理由也不露，免得借联想又把它提起来
+        if (other.sealed) return { id: other.id, day: other.day, sealed: true, linkDay: l.day }
+        return { ...pointer(other), reason: l.reason, linkDay: l.day }
+      })
       .filter(Boolean)
     if (links.length) r.links = links
     const ch = chapterEvents.chaptersOn(chapterList, r.day || '')
