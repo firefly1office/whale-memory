@@ -134,6 +134,33 @@
 
 只列事实，不调模型、不下结论；封存了的一律不列。每条都带 id，她想写一条回想时可以直接 `write --kind 回想 --refs <这些 id>`。不写也可以。
 
+## 事后联想（0.14.0 起）
+
+她后来才发现两件事有关，亲手连起来：`link-events.jsonl` 一行一个 `{from, to, at, day, reason}`。
+
+- `reason` 必填：说不出为什么就别连。两条经历都必须存在，不能连自己；同一对（不分方向）只连一次，重复提交是 noop
+- 读取时两头都有 `links`；另一头封存了的，只给 `{id, day, sealed: true}`，翻读连理由也不显示
+- 和出处（`then.refs`）的区别：出处是写下这条时就知道的依据，写下就固定；联想是之后才建立的关系
+- 召回不顺着联想跳；翻回那天时只算那之前连的
+
+## 人生章节（0.14.0 起）
+
+她给一段日子起名字：`chapter-events.jsonl`，`open`（`{id, name, from, to?}`）、`rename`（`{id, name}`）、`close`（`{id, to}`）各一行。
+
+- 名字 1–30 字；`from` / `to` 是 `2026-11-01` 这样的本地日期，`to` 不早于 `from`；没写 `to` 就是"还在这段日子里"
+- 经历按 `day` 落进章节，章节可以重叠或嵌套；读取时带 `chapters: [{id, name}]`
+- 改名不抹旧名：`chapter list` 里 `names` 是起过的全部名字；翻回那天看到的是她那时的叫法，那时还没开的章节就不存在
+- 同名同起点重复 `open`、同名 `rename`、同日 `close` 都是 noop
+
+## 她的书（0.14.0 起）
+
+`renderBook(dir, { asOf, includeSealed })` / CLI `book [--out 文件]`：人能读的 Markdown 自传。
+
+- 按章节分节；一条经历只印一次，放进它落入的**最具体**的章节（开始得最晚的那个），更大的章节在条目里提一句；章节外的按月份。各节按时间排
+- 每一条的正文是那天写下的原样；后记按时间接在后面，带"再想起时"的感觉；结案、出处、联想照实列出
+- 封存的默认不收，只写"有几件没有收进来"；`--sealed true` 才收，并标明封存
+- `--as-of`：写到那天为止的书，章节用那时的名字。`--out` 不能指向记忆目录里面
+
 ## 想起是事件（0.5.0 起）
 
 「想起一次」不再写进经历行，而是追加到 `recall-events.jsonl`：
@@ -177,7 +204,7 @@
 
 ## 备份要带哪些文件
 
-一条经历在磁盘上可能由五处组成，备份时不要只拷 `self-experience.jsonl`：
+一条经历在磁盘上可能由七处组成，备份时不要只拷 `self-experience.jsonl`：
 
 ```
 self-experience.jsonl     then（以及迁移前遗留的行内 later / recalls）
@@ -185,6 +212,8 @@ later-events.jsonl        后来追加的想法（0.12 起可带后来的感觉�
 recall-events.jsonl       想起的次数
 unfinished-events.jsonl   没弄完的事后来怎么样了（0.11 起）
 seal-events.jsonl         她封存 / 解封了哪些（0.13 起）
+link-events.jsonl         事后联想（0.14 起）
+chapter-events.jsonl      人生章节（0.14 起）
 ```
 
 出处（`then.refs`）写在经历行里，不是单独的文件。

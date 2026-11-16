@@ -15,6 +15,10 @@ import * as recallEvents from './core/lib/recall-events.js'
 import * as unfinishedEvents from './core/lib/unfinished-events.js'
 import * as sealEvents from './core/lib/seal-events.js'
 import * as recapLib from './core/lib/recap.js'
+import * as linkEvents from './core/lib/link-events.js'
+import * as chapterEvents from './core/lib/chapter-events.js'
+import * as book from './core/lib/book.js'
+import { parseAsOf } from './core/lib/as-of.js'
 
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
 
@@ -203,7 +207,7 @@ function doDoctor() {
 
   add('事件文件可解析', () => {
     if (!fs.existsSync(MEM_DIR)) return { ok: true, detail: '没有数据目录，跳过' }
-    const bad = laterEvents.readAll(MEM_DIR).bad + recallEvents.readAll(MEM_DIR).bad + unfinishedEvents.readAll(MEM_DIR).bad + sealEvents.readAll(MEM_DIR).bad
+    const bad = [laterEvents, recallEvents, unfinishedEvents, sealEvents, linkEvents, chapterEvents].reduce((n, m) => n + m.readAll(MEM_DIR).bad, 0)
     return { ok: bad === 0, detail: bad === 0 ? '没有坏行' : '有 ' + bad + ' 行解析失败' }
   })
 
@@ -365,6 +369,36 @@ try {
     const days = Number(arg('days', '7'))
     const rc = recapLib.recap(MEM_DIR, { days, asOf: arg('as-of', '') || null })
     out({ ok: true, recap: rc, text: recapLib.renderRecap(rc) })
+  } else if (cmd === 'link') {
+    // 事后联想：她发现两件事有关，亲手连起来；必须说为什么
+    const res = exp.linkExperiences(MEM_DIR, { from: arg('from', '') || '', to: arg('to', '') || '', reason: arg('reason', '') || '' })
+    out(res)
+    if (!res.ok) process.exitCode = 1
+  } else if (cmd === 'chapter') {
+    // 人生章节：她给一段日子起名字；改名保留旧名；经历按日期自动落进去
+    const sub = process.argv[3]
+    let res
+    if (sub === 'open') res = chapterEvents.open(MEM_DIR, { name: arg('name', '') || '', from: arg('from', '') || '', to: arg('to', '') || '', note: arg('note', '') || '' })
+    else if (sub === 'rename') res = chapterEvents.rename(MEM_DIR, { id: arg('id', '') || '', name: arg('name', '') || '' })
+    else if (sub === 'close') res = chapterEvents.close(MEM_DIR, { id: arg('id', '') || '', to: arg('to', '') || '' })
+    else if (sub === 'list') {
+      const asOf = arg('as-of', '') || null
+      const list = chapterEvents.chapters(MEM_DIR, { until: parseAsOf(asOf) })
+      const rows = exp.loadAll(MEM_DIR, { asOf })
+      out({ ok: true, ...(asOf ? { asOf } : {}), chapters: list.map((c) => ({ ...c, experiences: rows.filter((r) => (r.chapters || []).some((x) => x.id === c.id)).length })) })
+    } else throw new Error('chapter 子命令：open --name .. [--from 2026-11-01 --to ..] / rename --id .. --name .. / close --id .. [--to ..] / list [--as-of ..]')
+    if (res) out({ ok: true, noop: res.noop, ...(res.row ? { chapter: res.row } : {}) })
+  } else if (cmd === 'book') {
+    // 她的书：人能读的 Markdown 自传；封存的默认不收；--as-of 导出那时的她
+    const md = book.renderBook(MEM_DIR, { asOf: arg('as-of', '') || null, includeSealed: String(arg('sealed', 'false')) === 'true', title: arg('title', '') || undefined })
+    const file = arg('out', '') || ''
+    if (file) {
+      const target = path.resolve(file)
+      if (target === MEM_DIR || target.startsWith(MEM_DIR + path.sep)) throw new Error('书不要写进记忆目录里：' + target)
+      fs.mkdirSync(path.dirname(target), { recursive: true })
+      fs.writeFileSync(target, md, 'utf8')
+      out({ ok: true, file: target, chars: md.length })
+    } else out({ ok: true, markdown: md })
   } else if (cmd === 'waking') {
     const chat = arg('chat', 'local:owner') || 'local:owner'
     const block = waking.buildWakingBlock(DATA, chat)
@@ -405,6 +439,9 @@ try {
         'unfinished --id ... --state done|shelved|reopen [--note ..]   这件事想通/先放下/再接着想',
         'seal --id ... [--note ..] / unseal --id ...   她不想再被这件事主动提醒：不会被召回、不进醒来块；不删除，随时可以解封',
         'recap [--days 7] [--as-of ..]   这几天写下的、改过的、感觉变的、想通/放下的、还没弄完的（只列事实，给她写回想用）',
+        'link --from .. --to .. --reason "..."   事后联想：她发现两件事有关，亲手连起来（必须说为什么；同一对只连一次）',
+        'chapter open --name ".." [--from 2026-11-01 --to ..] | rename --id .. --name .. | close --id .. [--to ..] | list [--as-of ..]   人生章节：给一段日子起名字',
+        'book [--out 她的书.md] [--as-of ..] [--sealed true] [--title ..]   导出人能读的自传（按章节；封存的默认不收）',
         'export --out <目录>   把整份记忆打包（含 manifest 与校验和）',
         'import --from <导出目录> [--force true]   恢复；--force 会先备份现有目录',
         'purge [--yes true]   列出/删除记忆目录、导入前备份、迁移备份（默认只列不删）',

@@ -6,6 +6,8 @@ import * as recallEvents from './recall-events.js'
 import * as laterEvents from './later-events.js'
 import * as unfinishedEvents from './unfinished-events.js'
 import * as sealEvents from './seal-events.js'
+import * as linkEvents from './link-events.js'
+import * as chapterEvents from './chapter-events.js'
 import { queryTerms, requiredOverlap, matchedTerms, normalizeText } from './query-match.js'
 import { parseAsOf, before, dayOf } from './as-of.js'
 
@@ -194,7 +196,41 @@ export function loadAll(dir, { asOf = null } = {}) {
       target.citedBy = [...(target.citedBy || []), pointer(r)]
     }
   }
+
+  // 事后联想（两头都看得见）与人生章节（按 day 落进她起过名字的那段日子）
+  let linkMap = new Map()
+  try { linkMap = linkEvents.linksByExp(dir, { until }) } catch { }
+  let chapterList = []
+  try { chapterList = chapterEvents.chapters(dir, { until }) } catch { }
+  for (const r of viewed) {
+    const keys = r.formerId ? [r.id, r.formerId] : [r.id]
+    const links = keys.flatMap((k) => linkMap.get(k) || [])
+      .map((l) => { const other = byId.get(l.other); return other && other !== r ? { ...pointer(other), reason: l.reason, linkDay: l.day } : null })
+      .filter(Boolean)
+    if (links.length) r.links = links
+    const ch = chapterEvents.chaptersOn(chapterList, r.day || '')
+    if (ch.length) r.chapters = ch.map((c) => ({ id: c.id, name: c.name }))
+  }
   return viewed
+}
+
+// 事后联想：她发现两件事有关，亲手连起来，并说清为什么。两条都必须存在；同一对只连一次
+export function linkExperiences(dir, { from, to, reason = '' } = {}) {
+  if (!String(from || '').trim() || !String(to || '').trim()) return { ok: false, error: '需要 from 与 to 两条经历的 id' }
+  if (!String(reason || '').trim()) return { ok: false, error: '说一句为什么把它们连起来（reason）。说不出来就先别连。' }
+  try {
+    const why = tooLong('reason', String(reason).trim(), LIMITS.laterReason)
+    const a = resolveId(dir, String(from))
+    const b = resolveId(dir, String(to))
+    for (const [x, t] of [[from, a], [to, b]]) {
+      if (t.ambiguous) return { ok: false, error: '这个旧 id 有好几条旧经历共用：' + x + '。用 read 里列出的当前 id。' }
+      if (!t.id) return { ok: false, error: '找不到这条经历：' + x + '。先用 read 看一下 id。' }
+    }
+    const res = linkEvents.link(dir, { from: a.id, to: b.id, reason: why })
+    return { ok: true, from: a.id, to: b.id, noop: res.noop, ...(res.row ? { at: res.row.at } : {}) }
+  } catch (e) {
+    return { ok: false, error: String(e && e.message ? e.message : e) }
+  }
 }
 
 // 封存 / 解封：她不想再被这件事主动提醒了，或者又愿意了
@@ -487,6 +523,13 @@ export function renderTwoPart(entry, { now = new Date() } = {}) {
   if (Array.isArray(entry.citedBy) && entry.citedBy.length) {
     const shownRefs = entry.citedBy.slice(-3)
     lines.push('- 后来有 ' + entry.citedBy.length + ' 条回想提到它：' + shownRefs.map(refLine).join('；') + (entry.citedBy.length > shownRefs.length ? '；……' : ''))
+  }
+  // 事后联想：另一头封存了的，连理由也不给（理由本身也会把那件事带回来）
+  if (Array.isArray(entry.links) && entry.links.length) {
+    lines.push('- 你后来把它和这些事连在一起：' + entry.links.map((l) => l.sealed ? refLine(l) : refLine(l) + '——' + l.reason + '（' + l.linkDay + '）').join('；'))
+  }
+  if (Array.isArray(entry.chapters) && entry.chapters.length) {
+    lines.push('- 你把那段日子叫做' + entry.chapters.map((c) => '「' + c.name + '」').join('、'))
   }
   const st = entry.unfinishedState
   if (st && t.unfinished) {

@@ -56,6 +56,10 @@ export interface Experience {
   viewAsOf?: string
   /** 她封存了这件事（0.13 起）：不会被召回、不进醒来块，但还在 */
   sealed?: { at: string; day: string; note: string }
+  /** 事后联想（0.14 起）：她亲手连起来的另一件事，两头都能看到 */
+  links?: Array<ExperienceBrief & { reason: string; linkDay: string }>
+  /** 这一天落在她起过名字的哪段日子里（0.14 起） */
+  chapters?: Array<{ id: string; name: string }>
   recalls?: number
   lastRecalledAt?: string
   matchedIn?: Array<'then' | 'quote' | 'later'>
@@ -119,6 +123,16 @@ export function recall(dir: string, query: string, opts?: {
   /** 默认不召回她封存了的经历；只在"她自己要翻"时打开 */
   includeSealed?: boolean
 }): Experience[]
+
+/** 事后联想：两条都必须存在、必须写理由；同一对（不分方向）只连一次 */
+export function linkExperiences(dir: string, opts: { from: string; to: string; reason: string }): {
+  ok: boolean
+  from?: string
+  to?: string
+  noop?: boolean
+  at?: string
+  error?: string
+}
 
 /** 封存 / 解封：不删除任何东西；重复同一个动作是 noop */
 export function setSealed(dir: string, opts: { id: string; sealed?: boolean; note?: string }): {

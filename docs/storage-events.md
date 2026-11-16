@@ -19,6 +19,8 @@ then 写一次，永远不改；
 | 想起 | 事件，只追加 | `recall-events.jsonl` | 追加一行 `{id, at, query, chatKey?}`；走文件锁 |
 | 没弄完的事 | 事件，只追加 | `unfinished-events.jsonl` | 追加一行 `{id, at, day, choice, note?}`；走文件锁 |
 | 封存 / 解封 | 事件，只追加 | `seal-events.jsonl` | 追加一行 `{id, at, day, action, note?}`；锁内重读判断，重复动作不写 |
+| 事后联想 | 事件，只追加 | `link-events.jsonl` | 追加一行 `{from, to, at, day, reason}`；同一对（不分方向）只连一次 |
+| 人生章节 | 事件，只追加 | `chapter-events.jsonl` | `open` / `rename` / `close` 各一行；改名保留旧名 |
 | 日记 | 事实，只追加 | `autobiography.jsonl` | 追加一行 |
 | 设置 | 状态，可覆盖 | `self-settings.json` | 锁 + 临时文件 + rename |
 | 提示词 | 状态/历史 | `prompt-overlay/` | 锁 + 原子写，保留版本 |
@@ -31,6 +33,8 @@ recalls     = recall-events 里该 id 的事件数
 lastRecalledAt = 该 id 事件的最大 at
 unfinishedState = unfinished-events 里该 id 的最后一条；history 保留完整顺序
 sealed      = seal-events 里该 id 的最后一条是 seal（是 unseal 或没有就不算封存）
+links       = link-events 里涉及该 id 的每一对（两头都有）
+chapters    = 重放 chapter-events 得到的章节里，from ≤ day ≤ to 的那些
 refsInfo / citedBy = 由经历行里的 then.refs 派生（0.12 起）
 以上都接受截断时刻 until（翻回那天的自己）：只用那一刻之前的事件重放
 ```

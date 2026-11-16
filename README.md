@@ -84,7 +84,10 @@ node adapters/cli/memory-cli.mjs doctor
 | 用向量/RAG 找、用它来讲 | [和检索层怎么组合](docs/composition.md)：检索层只给 id，`then/later` 负责叙事 |
 | 她不想再被某件事提醒 | `seal --id`：不被召回、不进醒来块，原文还在；`unseal` 随时回来（[和删除的区别](docs/limits.md)） |
 | 给她写回想的材料 | `recap --days 7`：这几天写下的、改过的、感觉变的、想通或放下的、还没弄完的；只列事实，带 id 方便写出处 |
-| 备份与换机器 | [备份与搬家](docs/backup.md)：五个文件缺一不可，恢复后怎么校验 |
+| 她发现两件事有关 | `link --from A --to B --reason "..."`：亲手连起来，必须说为什么；不按相似度自动连 |
+| 给一段日子起名字 | `chapter open --name "灯塔书店的那个秋天" --from 2026-11-01`；改名留着旧名，翻回那天看到的是那时的叫法 |
+| 把她的自传印成书 | `book --out 她的书.md`：按章节分节，当时原样、后来接在后面；封存的不收 |
+| 备份与换机器 | [备份与搬家](docs/backup.md)：七个文件缺一不可，恢复后怎么校验 |
 | 撑多大、做不到什么 | [上限与不保证](docs/limits.md)：实测规模、明文存储、删除语义 |
 | 什么时候递回记忆 | [注入时机](docs/injection.md)：七条规则、可抄的实现和反例 |
 | 这些思路从哪来 | [借了谁、改了什么、刻意不做什么](docs/related-work.md)：Generative Agents、Zep、MemoryBank、A-MEM、情感引擎 |

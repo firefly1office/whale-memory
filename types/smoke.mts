@@ -1,5 +1,5 @@
 // 类型冒烟：CI 里用 tsc --strict 跑这个文件，保证 .d.ts 与导出对得上
-import { selfExperience, evidencePolicy, evidenceFromExperience, selfPrompt, waking, unfinishedEvents, sealEvents, recap } from '../packages/core/index.js'
+import { selfExperience, evidencePolicy, evidenceFromExperience, selfPrompt, waking, unfinishedEvents, sealEvents, recap, linkEvents, chapterEvents, book } from '../packages/core/index.js'
 
 const rows = selfExperience.loadAll('/tmp/whale')
 const made = selfExperience.addExperience('/tmp/whale', { text: '灯塔', weight: 'important' })
@@ -36,3 +36,12 @@ const withSealed = selfExperience.recall('/tmp/whale', '灯塔', { includeSealed
 const rc = recap.recap('/tmp/whale', { days: 7 })
 const rcText: string = recap.renderRecap(rc)
 console.log(sealedRes.noop, stillSealed, withSealed[0]?.sealed?.note, rc.feelingShifts[0]?.now.join(), rc.settled[0]?.choice, rcText.length)
+
+// 0.14：事后联想、人生章节、她的书
+const linked = selfExperience.linkExperiences('/tmp/whale', { from: made.id, to: echo.id, reason: '都是在等' })
+const linkCount = linkEvents.linksByExp('/tmp/whale').get(made.id)?.length
+const opened = chapterEvents.open('/tmp/whale', { name: '灯塔书店的秋天', from: '2026-11-01' })
+const chs = chapterEvents.chapters('/tmp/whale')
+const inChapter = chapterEvents.chaptersOn(chs, '2026-11-16')[0]?.names.join()
+const md: string = book.renderBook('/tmp/whale', { asOf: '2026-11-16', includeSealed: false })
+console.log(linked.noop, linkCount, opened.row?.id, inChapter, rows[0]?.links?.[0]?.reason, rows[0]?.chapters?.[0]?.name, md.length)

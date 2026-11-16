@@ -2,6 +2,26 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.14.0] · 2026-11-16
+
+### Added
+
+- **事后联想**：`linkExperiences(dir, { from, to, reason })` / CLI `link`，只追加 `link-events.jsonl`。理由必填，两条都必须存在、不能连自己；同一对（不分方向）只连一次，并发重复只记一次。读取时两头都有 `links`；另一头封存了的不露内容、也不显示理由；翻回那天只算那之前连的。
+- **人生章节**：`chapter-events.js`（`open` / `rename` / `close`）/ CLI `chapter open|rename|close|list`。她给一段日子起名字，经历按 `day` 落进去，章节可以重叠、嵌套；改名保留旧名（`names`），翻回那天看到的是那时的叫法。名字、日期都校验；重复操作是 noop。
+- **她的书**：`renderBook(dir, { asOf, includeSealed })` / CLI `book [--out 文件]`，人能读的 Markdown 自传。按章节分节、章节外按月份、按时间排；一条只印一次，放进最具体的章节；当时原样、后来接在后面；封存的默认不收只计数；`--out` 不能写进记忆目录。
+- 新增 `event-log.js`：新事件类型共用"逐行读、锁内判断再追加"，不再复制粘贴。
+- 核心库导出 `linkEvents`、`chapterEvents`、`book`（含类型与子路径）；`doctor` 的事件解析覆盖全部六种事件文件。
+
+### Docs
+
+- `docs/schema.md`：联想、章节、书的语义；备份七个文件。`backup.md` / `storage-events.md` / `limits.md` 同步。
+- `docs/related-work.md`：联想对照 A-MEM、章节对照 Conway 的 Self-Memory System、翻回那天对照 ReverieMem 的视角受限记忆；"还在看的"换成评估字段与按感觉过滤。
+- DSH skill 说明补命令与硬规则：不要因为字面相似替她连，也不要替她给日子起名。
+
+### 兼容
+
+- 新增 `link-events.jsonl`、`chapter-events.jsonl`；没有这两个文件时行为与 0.13.0 一致。
+
 ## [0.13.0] · 2026-11-16
 
 ### Added

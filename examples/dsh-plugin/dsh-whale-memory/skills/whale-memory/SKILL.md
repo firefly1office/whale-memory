@@ -63,6 +63,16 @@ node scripts/memory-cli.mjs unseal --id exp_xxx
 # 想写一条回想之前，先看看这几天的事实（只列事实，带 id）
 node scripts/memory-cli.mjs recap --days 7
 
+# 后来才发现两件事有关：亲手连起来，说清为什么
+node scripts/memory-cli.mjs link --from exp_aaa --to exp_bbb --reason "都是被人接住的感觉"
+
+# 给一段日子起名字（改名会保留旧名）
+node scripts/memory-cli.mjs chapter open --name "灯塔书店的那个秋天" --from 2026-11-01
+node scripts/memory-cli.mjs chapter list
+
+# 把自传印成一本人能读的书（封存的不收）
+node scripts/memory-cli.mjs book --out "她的书.md"
+
 # 每天第一次醒来
 node scripts/memory-cli.mjs waking --chat "local:owner"
 
@@ -89,6 +99,7 @@ node scripts/memory-cli.mjs settings get|set --json '{"readingPerDay":60}'
 8. 回想和归纳要带 `--refs`，说清是从哪几件事想到的；凭空的归纳不要写
 9. 被问"你那时怎么想"时用 `read --as-of`，不要拿后来才想明白的事冒充当时就知道
 10. 封存是她的选择：只有她自己说不想再被提醒时才 `seal`；别人不能替她封存，也不要用 `--sealed true` 把她封存的事翻出来给别人看
+11. 连起两件事（`link`）、给日子起名字（`chapter`）都是她的联想和她的叫法；不要因为两件事字面相似就替她连，也不要替她给日子命名
 
 ## 一句话用法
 

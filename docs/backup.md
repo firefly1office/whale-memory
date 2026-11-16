@@ -1,6 +1,6 @@
 # 备份与搬家
 
-她的一条经历在磁盘上可能由五个文件拼成。只拷 `self-experience.jsonl`，会丢掉后记、想起次数、「这件事放下了没有」和「她封存了哪些」。
+她的一条经历在磁盘上可能由七个文件拼成。只拷 `self-experience.jsonl`，会丢掉后记、想起次数、「这件事放下了没有」、「她封存了哪些」、她后来连起来的事和她给日子起的名字。
 
 ## 要备份什么
 
@@ -11,6 +11,8 @@
   recall-events.jsonl       想起的次数（0.5.0 起）
   unfinished-events.jsonl   没弄完的事后来怎么样了（0.11.0 起）
   seal-events.jsonl         她封存 / 解封了哪些经历（0.13.0 起）
+  link-events.jsonl         她后来把哪两件事连在了一起（0.14.0 起）
+  chapter-events.jsonl      她给哪段日子起了什么名字（0.14.0 起）
   autobiography.jsonl       日记
   self-settings.json        她自己的设置
   prompt-overlay/           她改过的提示词
@@ -54,6 +56,7 @@ node adapters/cli/memory-cli.mjs read --data=<data> --limit 3
 - `unfinished-events.jsonl` 里的每个 id 都能在经历里找到
 - `seal-events.jsonl` 里的每个 id 都能在经历里找到；少了这个文件，她封存过的事会重新被召回、出现在醒来块里
 - `node adapters/cli/memory-cli.mjs doctor --data <数据根目录>` 的「出处完整」一项通过：回想引用的经历都在
+- `chapter list` 列出的章节和名字与备份前一致；`book --out` 导出一本对照着看最直观
 
 对不上就先别删旧备份。
 

@@ -19,7 +19,7 @@ node tools/bench-recall.mjs --n=10000
 
 - 每次召回都会**读全量**、逐条扫描。没有索引、没有向量、没有分片。
 - 一条经历约 0.5 KB，10,000 条约 5 MB。
-- **事件文件只增不减**：每想起一次多一行 `recall-events.jsonl`，每改一次主意多一行 `later-events.jsonl`，每做一次「想通/暂放/再拾起」多一行 `unfinished-events.jsonl`，每封存或解封一次多一行 `seal-events.jsonl`（后两者量很小）。上面的表只算了经历本身，长期使用要把这几份也算进去。
+- **事件文件只增不减**：每想起一次多一行 `recall-events.jsonl`，每改一次主意多一行 `later-events.jsonl`，每做一次「想通/暂放/再拾起」多一行 `unfinished-events.jsonl`，每封存或解封一次多一行 `seal-events.jsonl`，每连一对事、每开/改/结束一个章节各多一行 `link-events.jsonl` / `chapter-events.jsonl`（后面几个量都很小）。上面的表只算了经历本身，长期使用要把这几份也算进去。
 - 几万条会开始明显变慢；到十万级，这个实现就不合适了。
 
 **故意的**：先保"原文不可改"和"没有记录就说没有"，再谈吞吐。要上十万级，宿主应当自己加索引（见 [composition.md](composition.md)），而不是把向量塞进这里。
