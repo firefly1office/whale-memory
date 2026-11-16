@@ -81,7 +81,7 @@ node adapters/cli/memory-cli.mjs read --limit 1
 
 Experiences live in `<WHALE_DATA_DIR>/plugin-data/biomimetic-memory/`. Records in one directory are read by the calling process. If you expose this over group chats, the host must check who is calling and what that conversation is allowed to see — especially before enabling diary reads. The CLI is meant for trusted local processes.
 
-`tools/` contains development and operations scripts; some connect to a running host, read conversations, or call a model. The demo above is enough for a first look. These two checks use synthetic data:
+`tools/` contains development and operations scripts; some connect to a running host, read conversations, or call a model — see [tools/README.md](tools/README.md) (Chinese) for which ones run standalone. The demo above is enough for a first look. These two checks use synthetic data:
 
 ```sh
 node --test tests/public-cli.test.mjs

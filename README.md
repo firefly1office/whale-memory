@@ -83,11 +83,11 @@ node adapters/cli/memory-cli.mjs read --limit 1
 
 经历保存在 `<WHALE_DATA_DIR>/plugin-data/biomimetic-memory/`。同一目录中的记录由调用进程读取。接入群聊时，宿主需要校验调用者和会话可见范围，尤其是开放日记读取前。CLI 适合受信的本机进程。
 
-`tools/` 中包含开发和运维脚本。有些会连接运行中的宿主、读取对话或调用模型。初次体验只需上面的演示。完整检查一条命令：
+`tools/` 中包含开发和运维脚本。有些会连接运行中的宿主、读取对话或调用模型，哪些能直接跑见 [tools/README.md](tools/README.md)。初次体验只需上面的演示。完整检查一条命令：
 
 ```sh
 npm install   # 没有依赖，只是初始化
-npm test      # 27+ 组测试，两条 CLI 都跑
+npm test      # tests/ 下全部测试，两条 CLI 都跑
 npm run check # 语法 + 副本一致性 + 测试 + 金丝雀 + 召回评测
 ```
 

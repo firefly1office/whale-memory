@@ -20,7 +20,7 @@
 
 ## 开发环境
 
-- Node.js 22.12 或更新（CI 同时跑 20 与 22）
+- Node.js 20 或更新（CI 同时跑 20 与 22）
 - 没有第三方依赖，`git clone` 完就能跑
 
 ```sh
@@ -73,7 +73,7 @@ Short version:
 
 - Contributions welcome: bug reports (especially lost records or cross-chat leaks), integration examples, tests, docs, translations.
 - Do **not** submit real chat logs, personal data, real session ids, local absolute paths, API keys, or cookies.
-- Node.js 22.12+; no dependencies. Run `node --test tests/` and `node tools/privacy-canary.mjs` before opening a PR.
+- Node.js 20+ (CI runs 20 and 22); no dependencies. Run `node --test tests/` and `node tools/privacy-canary.mjs` before opening a PR.
 - Design rules: `then` is immutable, `later` is append-only; never fabricate when evidence is missing; keep diary content to one-to-one conversations; let the character decide what to remember.
 - One PR = one change, with tests and a short "what / why / how verified" note. Data-format changes must stay backward compatible and describe migration.
 - When tests fail on data, back up `WHALE_DATA_DIR` first. In this project, data matters more than code.
