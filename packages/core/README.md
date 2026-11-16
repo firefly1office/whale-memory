@@ -39,6 +39,10 @@ npm install whale-memory-core
 
 已发布在 npm：`whale-memory-core`（[npmjs.com](https://www.npmjs.com/package/whale-memory-core)，最新版本以 npm 为准）。也可以从仓库本地安装：`npm install ./packages/core`。
 
+> 包名带 `-core`。npm 上不带 `-core` 的 `whale-memory` 是别人的包，和本项目无关，别装错。
+
+从零开始接一个角色，看 [30 分钟教程](https://github.com/firefly1office/whale-memory/blob/main/docs/tutorial.md)。
+
 ## 当 MCP 服务用
 
 包里带一个 MCP 服务（stdio、只在本机、零依赖），接到 Claude Desktop、Claude Code、Cursor 等客户端：

@@ -2,6 +2,28 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.17.0] · 2026-11-17
+
+这一版让她想不起来的时候更不会编，翻回那天也不会把她封存的事翻出来；也让别人第一次能用数字核对这些话。
+
+### Changed
+
+- **strict 召回换了口径**（`query-match.js` 的 `contentUnits` / `coverage` / `MIN_COVER`，`self-experience` 和 `self-memory` 共用）：至少对上一个两字词，并且查询的意思至少 70% 在这条经历里找得到（和左右的字连着出现记 1 分，单独出现记 0.5 分；「的、了、那、里」这类字和停用词不算）。在同一个开发集上，0.16 是首位 83.3%、沾边误召回 83.3%（「灯塔里的猫」会把灯塔那几条翻出来），0.17 是首位 100%、沾边误召回 0%；留出集上编造率 0%。**代价**：问一件真事里没记下的细节（「围巾是什么颜色」），strict 不给那件事，留出集 attr 为 0%，详见 [docs/eval.md](docs/eval.md)。strict 不再使用 `minRatio`（参数仍接受）；loose 不变。
+- **翻回那天也不翻出她现在封存着的**：以前 `asOf` 只按那一刻之前的封存事件算，翻回封存之前就能看到、召回到、写进那时的书和回顾。现在那时还没封存、但她现在封存着的，标成 `sealed: { …, afterAsOf: true }`，召回、列表、书、回顾、别的经历的出处和联想都不给；点名读照给，两段式写「这件事你后来封存了」，书里写「她后来封存了」。那时封存着、现在解封了的，那天的样子照实仍是封存。
+
+### Added
+
+- **whale-eval**（`tools/whale-eval.mjs`，`npm run eval`）：一条命令测四件事——想得起来准不准（首位 / 前三，分 exact / paraphrase / combo / attr）、没有就说没有（none / near 的编造率）、封存和抽屉不外露（105 个出口 × 10 个标记，覆盖核心库、CLI、MCP；外露必须为 0）、then 不可改（跑完各类写入后经历文件逐字节不变）。语料是虚构角色「小舟」的一个月（`eval/corpus.json`）；开发集 `eval/cases.json` 和留出集 `eval/holdout.json` 分开报；`--check` 按 `eval/thresholds.json` 判定，已加进 `npm run check`。
+- `docs/eval.md`：测什么、0.17.0 的结果（包括不好看的那部分）、怎么读这些数、strict 的口径、怎么加用例。
+- `docs/threat-model.md`：要保护什么、谁会碰到、13 条威胁与对策（群聊外露、改写过去、诱导写入、编造、封存外露、抽屉、overlay 注入、网页指令、读链接被引到本机、本机进程、备份、并发、导入越界）、出事了怎么办。
+- `docs/tutorial.md`：30 分钟从零接一个角色——写下、想起、改主意、第二天醒来、结案、封存、章节、她的书、接进宿主（CLI / MCP / import），每一步都实跑核对过。
+- 英文文档：`docs/en/architecture.md`、`docs/en/schema.md`、`docs/en/limits.md`（以中文为准）。
+- README 中英、core README：注明包名是 `whale-memory-core`，npm 上不带 `-core` 的 `whale-memory` 是别人的包。
+
+### 兼容
+
+- 数据格式不变。strict 召回结果会变：沾边的不再给，换说法的更容易找到。依赖旧口径的宿主请先跑 `npm run eval` 对比。
+
 ## [0.16.0] · 2026-11-17
 
 这一版让她的记忆走出一个宿主：任何支持 MCP 的客户端都能接上，规矩一条不少地跟过去。

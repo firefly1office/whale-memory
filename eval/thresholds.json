@@ -1,0 +1,9 @@
+{
+  "about": "回归闸：低于这些就算退步。开发集是调过口径的（数字偏乐观），留出集是 0.17.0 第一次跑的结果。外露与 then 不可改不在这里——那两条永远是 0，写死在脚本里。",
+  "strictTop1": 0.95,
+  "strictTop3": 0.95,
+  "strictFabrication": 0,
+  "looseTop3": 0.95,
+  "holdoutStrictTop3": 0.7,
+  "holdoutStrictFabrication": 0
+}

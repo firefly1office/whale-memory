@@ -65,7 +65,7 @@ test('封存：不被召回、不进醒来块、不进 memory，但原文和后�
   assert.equal(exp.currentView(dir, 'exp_hurt').sealed, undefined)
 })
 
-test('封存：别的回想引用它时不露摘要；翻回封存之前，那时还没封存', (t) => {
+test('封存：别的回想引用它时不露摘要；翻回封存之前也不翻出来（0.17 起），点名读写明是后来封存的', (t) => {
   const dir = tmp(t)
   put(dir, 'self-experience.jsonl', [
     row('exp_hurt', '2026-11-10T12:00:00.000Z', '那天被当众批评，很难堪'),
@@ -79,9 +79,24 @@ test('封存：别的回想引用它时不露摘要；翻回封存之前，那�
   assert.match(text, /是从这几件事想到的：（一件你封存了的事）/)
   assert.doesNotMatch(text, /批评/)
 
-  const then = exp.currentView(dir, 'exp_hurt', { asOf: '2026-11-11T20:00:00.000Z' })
-  assert.equal(then.sealed, undefined, '那时还没封存')
-  assert.equal(exp.recall(dir, '批评', { asOf: '2026-11-11T20:00:00.000Z' }).length, 1)
+  // 0.17：翻回封存之前，那时还没封存，但她现在封存着——照样不翻出来；点名读给，并写明是后来封存的
+  const asOf = '2026-11-11T20:00:00.000Z'
+  const then = exp.currentView(dir, 'exp_hurt', { asOf })
+  assert.equal(then.sealed.afterAsOf, true, '后来才封存的')
+  assert.match(exp.renderTwoPart(then), /这件事你后来封存了（2026-11-12）/)
+  assert.equal(exp.recall(dir, '批评', { asOf }).length, 0, '翻回那天也想不起她现在封存着的')
+  assert.deepEqual(exp.currentView(dir, 'exp_r', { asOf }).refsInfo, [{ id: 'exp_hurt', day: '2026-11-10', sealed: true }], '引用它的回想也不露摘要')
+  assert.ok(exp.loadAll(dir, { asOf }).find((r) => r.id === 'exp_hurt').sealed, '列表过滤照常生效')
+
+  // 解封之后，翻回那天又能看到了
+  exp.setSealed(dir, { id: 'exp_hurt', sealed: false })
+  assert.equal(exp.currentView(dir, 'exp_hurt', { asOf }).sealed, undefined)
+  assert.equal(exp.recall(dir, '批评', { asOf }).length, 1)
+
+  // 那时封存着、现在已经解封：那天的样子照实，仍是封存着的
+  const old = exp.currentView(dir, 'exp_hurt', { asOf: '2026-11-12T20:00:00.000Z' })
+  assert.equal(old.sealed.day, '2026-11-12')
+  assert.equal(old.sealed.afterAsOf, undefined)
 })
 
 test('封存：找不到的 id、歧义旧 id 都拒绝，什么都不写；并发同一封存只记一次', async (t) => {
@@ -187,3 +202,19 @@ for (const script of CLIS) {
     assert.ok(run(b, ['read', '--id', id]).items[0].sealed)
   })
 }
+
+test('封存（0.17）：翻回封存之前导出的书、回顾，也不收她现在封存着的', async (t) => {
+  const { renderBook } = await import('../packages/core/lib/book.js')
+  const dir = tmp(t)
+  put(dir, 'self-experience.jsonl', [
+    row('exp_hurt', '2026-11-10T12:00:00.000Z', '那天被当众批评，很难堪'),
+    row('exp_ok', '2026-11-10T13:00:00.000Z', '晚上读了一章灯塔')
+  ])
+  put(dir, 'seal-events.jsonl', [{ id: 'exp_hurt', at: '2026-11-12T12:00:00.000Z', day: '2026-11-12', action: 'seal', note: '' }])
+  const asOf = '2026-11-11T20:00:00.000Z'
+  const md = renderBook(dir, { asOf })
+  assert.doesNotMatch(md, /批评/)
+  assert.match(md, /灯塔/)
+  assert.match(md, /有 1 件她封存了的事没有收进来/)
+  assert.doesNotMatch(renderRecap(recap(dir, { days: 7, asOf, now: new Date('2026-11-11T20:00:00.000Z') })), /批评/)
+})

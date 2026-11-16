@@ -1,0 +1,222 @@
+{
+  "about": "留出集：0.17.0 调好 strict 门槛之后才写的，写完只跑一次、照实记录，不拿它调参数。语料同 corpus.json。以后改召回口径，开发集（cases.json）可以看，留出集只看结果、不看着改。 type=attr：问的是一件真发生过的事里没记下来的细节——应当想起那件事（她才能说「这件事我记得，但没记下这个」），返回空算没想起来，不算编造。",
+  "recall": [
+    {
+      "type": "paraphrase",
+      "query": "守灯人第一晚住进塔里",
+      "expect": [
+        "e01"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "博客那篇删了很多形容词",
+      "expect": [
+        "e09"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "练写名字写了二十遍",
+      "expect": [
+        "e03"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "灯塔的钥匙交给了谁",
+      "expect": [
+        "e13"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "旧货市场的收音机",
+      "expect": [
+        "e10"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "便利店门口等雨停",
+      "expect": [
+        "e12"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "织辫子花样",
+      "expect": [
+        "e14"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "换了电容以后听到老歌",
+      "expect": [
+        "e17"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "走回家发现的面包店",
+      "expect": [
+        "e18"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "折了五只纸鹤",
+      "expect": [
+        "e21"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "小说结尾多写了两千字",
+      "expect": [
+        "e22"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "第二次做番茄炒蛋放了糖",
+      "expect": [
+        "e24"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "鮟鱇鱼用灯钓东西",
+      "expect": [
+        "e26"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "一边听收音机一边织围巾",
+      "expect": [
+        "e28"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "小说又投了一次校刊",
+      "expect": [
+        "e29"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "窗外一共十七盏路灯",
+      "expect": [
+        "e30"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "透镜上一圈一圈的棱",
+      "expect": [
+        "e08"
+      ]
+    },
+    {
+      "type": "paraphrase",
+      "query": "这个月难过的时候都在干什么",
+      "expect": [
+        "e27"
+      ]
+    },
+    {
+      "type": "combo",
+      "query": "暴风雨 透镜",
+      "expect": [
+        "e04"
+      ]
+    },
+    {
+      "type": "combo",
+      "query": "阿禾 笑脸",
+      "expect": [
+        "e20"
+      ]
+    },
+    {
+      "type": "none",
+      "query": "上次去海边游泳",
+      "expect": []
+    },
+    {
+      "type": "none",
+      "query": "学吉他按不住和弦",
+      "expect": []
+    },
+    {
+      "type": "none",
+      "query": "春节放烟花",
+      "expect": []
+    },
+    {
+      "type": "none",
+      "query": "参加数学竞赛拿了奖",
+      "expect": []
+    },
+    {
+      "type": "none",
+      "query": "搬家那天下大雪",
+      "expect": []
+    },
+    {
+      "type": "attr",
+      "query": "灯塔管理员的工资",
+      "expect": [
+        "e01",
+        "e04",
+        "e13"
+      ]
+    },
+    {
+      "type": "attr",
+      "query": "收音机是什么牌子的",
+      "expect": [
+        "e10",
+        "e17",
+        "e28"
+      ]
+    },
+    {
+      "type": "attr",
+      "query": "阿禾借给我的那本书叫什么",
+      "expect": [
+        "e11"
+      ]
+    },
+    {
+      "type": "attr",
+      "query": "围巾是什么颜色",
+      "expect": [
+        "e28"
+      ]
+    },
+    {
+      "type": "attr",
+      "query": "面包店卖的可颂好吃吗",
+      "expect": [
+        "e18"
+      ]
+    },
+    {
+      "type": "attr",
+      "query": "深海鱼会不会冷",
+      "expect": [
+        "e19",
+        "e26"
+      ]
+    },
+    {
+      "type": "near",
+      "query": "外婆做的桂花糖",
+      "expect": []
+    }
+  ]
+}

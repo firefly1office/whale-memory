@@ -8,7 +8,7 @@ import * as unfinishedEvents from './unfinished-events.js'
 import * as sealEvents from './seal-events.js'
 import * as linkEvents from './link-events.js'
 import * as chapterEvents from './chapter-events.js'
-import { queryTerms, requiredOverlap, matchedTerms, normalizeText } from './query-match.js'
+import { queryTerms, requiredOverlap, matchedTerms, normalizeText, contentUnits, coverage, MIN_COVER } from './query-match.js'
 import { parseAsOf, before, dayOf } from './as-of.js'
 
 const FILE = 'self-experience.jsonl'
@@ -143,6 +143,10 @@ export function loadAll(dir, { asOf = null } = {}) {
   // 她选择封存的：不再被主动想起，但还在
   let sealedMap = new Map()
   try { sealedMap = sealEvents.sealedByExp(dir, { until }) } catch { }
+  // 翻回那天时，她**现在**封存着的也不翻出来：封存说的是她现在不想被提起，而翻回那天正是在提起旧事。
+  // 那时还没封存的，标成 afterAsOf（后来才封存），各处过滤照常生效；点名读仍然给，并写明是后来封存的
+  let sealedNowMap = sealedMap
+  if (until !== null) { try { sealedNowMap = sealEvents.sealedByExp(dir) } catch { sealedNowMap = new Map() } }
 
   const viewed = rows.map((r) => {
     const keys = r.formerId ? [r.id, r.formerId] : [r.id]
@@ -165,6 +169,12 @@ export function loadAll(dir, { asOf = null } = {}) {
     for (const k of keys) {
       const s = sealedMap.get(k)
       if (s) next.sealed = s
+    }
+    if (!next.sealed && until !== null) {
+      for (const k of keys) {
+        const s = sealedNowMap.get(k)
+        if (s) next.sealed = { ...s, afterAsOf: true }
+      }
     }
     let count = 0
     let lastAt = ''
@@ -423,6 +433,7 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, mi
   const parsed = queryTerms(q)
   const { terms } = parsed
   const required = requiredOverlap(parsed, { mode, minOverlap, minRatio })
+  const units = contentUnits(q)
 
   const measure = (r) => {
     const fields = []
@@ -450,14 +461,15 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, mi
     ].join(' '))
     // 记录自身的规模：长记录天然更容易碰巧命中，排序时按 √长度 归一化
     const size = Math.max(1, all.length - 1)
-    return { n: matched.size, size, matchedIn: fields, matchedLater }
+    return { n: matched.size, size, matchedIn: fields, matchedLater, cover: coverage(units, all) }
   }
   const weightOf = (r) => (r.weight === 'important' ? 3 : r.weight === 'minor' ? 0.5 : 1)
   const picked = rows.map((r) => {
-    const { n, size, matchedIn, matchedLater } = measure(r)
-    return { r: { ...r, matchedIn, matchedLater }, n, s: (n / Math.sqrt(size)) * weightOf(r) }
+    const { n, size, matchedIn, matchedLater, cover } = measure(r)
+    return { r: { ...r, matchedIn, matchedLater }, n, cover, s: (n / Math.sqrt(size)) * weightOf(r) * (0.5 + cover) }
   })
-    .filter((x) => (q ? x.n >= required : true))
+    // strict（0.17 起）：至少对上一个词，并且查询的意思至少 MIN_COVER 在这段记忆里找得到；loose：对上 minOverlap 个词
+    .filter((x) => (!q ? true : mode === 'loose' ? x.n >= required : x.n >= minOverlap && x.cover >= MIN_COVER))
     .sort((a, b) => b.s - a.s || String(b.r.at).localeCompare(String(a.r.at)))
     .slice(0, limit).map((x) => x.r)
 
@@ -510,7 +522,7 @@ export function renderTwoPart(entry, { now = new Date() } = {}) {
     lines.push('', '【现在】')
     lines.push('- 现在时间：' + now.toLocaleString('zh-CN', { hour12: false }))
   }
-  if (entry.sealed) lines.push('- 这件事你封存了（' + entry.sealed.day + '）：不会再被主动想起；它还在，想解封随时可以')
+  if (entry.sealed) lines.push('- 这件事你' + (entry.sealed.afterAsOf ? '后来' : '') + '封存了（' + entry.sealed.day + '）：不会再被主动想起；它还在，想解封随时可以')
   lines.push('- 这条被你想起过 ' + Number(entry.recalls || 0) + ' 次' + (entry.lastRecalledAt ? '，上次是 ' + String(entry.lastRecalledAt).slice(0, 10) : ''))
   const later = Array.isArray(entry.later) ? entry.later : []
   if (later.length) {

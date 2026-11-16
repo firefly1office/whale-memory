@@ -1,7 +1,7 @@
 {
   "name": "whale-memory",
   "private": true,
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "Autobiographical memory for an AI companion: then / later, append-only",
   "type": "module",
   "engines": {
@@ -9,9 +9,10 @@
   },
   "scripts": {
     "test": "node tools/run-tests.mjs",
-    "check": "node tools/check-syntax.mjs && node tools/sync-dsh-core.mjs --check && node tools/run-tests.mjs && node tools/privacy-canary.mjs && node tools/eval-recall.mjs",
+    "check": "node tools/check-syntax.mjs && node tools/sync-dsh-core.mjs --check && node tools/run-tests.mjs && node tools/privacy-canary.mjs && node tools/eval-recall.mjs && node tools/whale-eval.mjs --check",
     "demo": "node packages/core/demo.mjs",
-    "eval": "node tools/eval-recall.mjs",
+    "eval": "node tools/whale-eval.mjs",
+    "eval:small": "node tools/eval-recall.mjs",
     "metrics": "node tools/metrics.mjs",
     "sync": "node tools/sync-dsh-core.mjs",
     "types": "npx --yes --package typescript@5.6.3 tsc --noEmit --strict --target es2022 --module nodenext --moduleResolution nodenext types/smoke.mts"

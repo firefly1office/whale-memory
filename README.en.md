@@ -68,8 +68,9 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | Let DSH read and write experiences through commands | [Standalone DSH skill and install notes](examples/dsh-plugin/dsh-whale-memory/README.md) |
 | Add tools to your own agent | [CLI adapter](adapters/README.md) — emits JSON; the host decides when to call it |
 | Plug into an MCP client (Claude Desktop, Claude Code, Cursor…) | [MCP adapter](adapters/mcp/README.md): `npx -y -p whale-memory-core whale-memory-mcp --data <dir>` — stdio, local only, zero dependencies |
-| Use it directly from JavaScript | [Self-layer core](packages/core/README.md) (`npm install whale-memory-core`) and [porting guide](docs/porting.md) |
-| Inspect the data format | [Schema](docs/schema.md) and [fictional samples](examples/samples/) |
+| Use it directly from JavaScript | [Self-layer core](packages/core/README.md) (`npm install whale-memory-core`) and [porting guide](docs/porting.md). Mind the `-core`: the unscoped `whale-memory` package on npm belongs to someone else and is unrelated |
+| Wire up a character from scratch | [30-minute tutorial](docs/tutorial.md) (Chinese): write, recall, change your mind, wake up the next day, seal, her book, plug into a host |
+| Inspect the data format | [Schema](docs/en/schema.md) and [fictional samples](examples/samples/) |
 | See another host surface yesterday | [First day, still connected the next](examples/first-day/): two processes, no recall command |
 | Look back at who she was that day | `read --id <id> --as-of 2026-11-15`: only notes and choices written up to that day are visible |
 | Record how it feels now, and what a reflection is based on | `revise --feeling relieved` (the original feeling never changes); `write --refs id1,id2` (every cited experience must exist) |
@@ -82,10 +83,12 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | Things she could not say | `unsaid leave --kind draft --text "..."`: drafts she did not send, questions she did not ask, things she held back; visible only via `unsaid list` in a one-on-one chat, never injected |
 | One-step backup and restore drill | `node tools/backup.mjs --data <root> --out <dir>`, `node tools/restore-check.mjs --from <backup> --data <root>` ([runbook](docs/runbook.md), Chinese) |
 | Backup and move machines | [Backup & migration](docs/backup.md): seven files plus her drawer, and how to verify after restore |
-| How far it goes, what it won't do | [Limits & non-guarantees](docs/limits.md): measured scale, plaintext storage, deletion semantics |
+| How far it goes, what it won't do | [Limits & non-guarantees](docs/en/limits.md): measured scale, plaintext storage, deletion semantics |
+| Is it accurate, does it make things up, does it leak | [whale-eval](docs/eval.md) (Chinese): `npm run eval`; dev and held-out sets reported separately; leaks and rewrites must be zero |
+| Who can reach her memory, and how we guard it | [Threat model](docs/threat-model.md) (Chinese) |
 | When to hand a memory back | [Injection timing](docs/injection.md): seven rules, a minimal implementation, anti-patterns |
 | Where these ideas come from | [What we borrowed, what we changed, what we refuse to do](docs/related-work.md) (Chinese) |
-| Understand the design | [Architecture](docs/architecture.md): layers, evidence policy, recall and write constraints |
+| Understand the design | [Architecture](docs/en/architecture.md): layers, evidence policy, recall and write constraints |
 | Check evidence rules | [Evidence policy (runnable subset)](docs/evidence.md): as-of, supersession, absence |
 
 > The full engine (vault storage, evidence policy, consolidator, injection budget — about 26k lines) is tightly coupled to one host deployment and is **not distributed with this repository**. The design is written up in [architecture.md](docs/architecture.md).

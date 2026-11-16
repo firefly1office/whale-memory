@@ -36,6 +36,45 @@ export function queryTerms(q) {
   return { cleaned, terms }
 }
 
+// 只起语法作用的单字：算「查询里有多少意思被这段记忆接住了」时不计入
+const STOP_CHARS = new Set([...'的了吗呢吧啊呀么着过在里那这个些次段事就也都还又很把被给跟和与及或是有我你他她它们嘛啦哦呃'])
+// 停用词里只有这些（时间、代词、虚词）整个跳过；「买了 / 说了 / 去了」这类带动作的，动作那个字要算
+const SKIP_WORDS = new Set([...STOP].filter((w) => !['买了', '说了', '去了', '来了', '做了', '看到', '了什'].includes(w)))
+
+// 查询里要被接住的单位：拉丁字母按整词；其余按单字，并记下它左右两个两字组（用来判断是不是连着出现）
+export function contentUnits(q) {
+  const lower = String(q || '').toLowerCase()
+  const units = []
+  for (const w of lower.match(/[a-z]+/g) || []) if (w.length >= 2 && !STOP.has(w)) units.push({ u: w, pairs: [] })
+  for (const run of lower.replace(/[a-z]+/g, ' ').split(/[\s\p{P}\p{S}]+/u)) {
+    const skip = new Set()
+    for (let i = 0; i + 2 <= run.length; i++) if (SKIP_WORDS.has(run.slice(i, i + 2))) { skip.add(i); skip.add(i + 1) }
+    for (let i = 0; i < run.length; i++) {
+      if (skip.has(i) || STOP_CHARS.has(run[i])) continue
+      units.push({ u: run[i], pairs: [i > 0 ? run.slice(i - 1, i + 1) : '', i + 1 < run.length ? run.slice(i, i + 2) : ''].filter(Boolean) })
+    }
+  }
+  return units
+}
+
+// 覆盖率：查询里的意思有几成在这段记忆里找得到（0~1）
+//   和左右任一个字连着出现在记忆里 → 1 分；只是单独出现 → 0.5 分；没有 → 0
+// 「灯塔里的猫」：灯塔连着在，猫不在 → 2/3，不算想起来；「守灯人修透镜那段」→ 5.5/6
+export function coverage(units, text) {
+  if (!units.length) return 0
+  const t = normalizeText(text)
+  let got = 0
+  for (const x of units) {
+    if (!x.pairs.length) { if (t.includes(x.u)) got += 1; continue }
+    if (x.pairs.some((p) => t.includes(p))) got += 1
+    else if (t.includes(x.u)) got += 0.5
+  }
+  return got / units.length
+}
+
+// strict 的门槛：至少对上一个两字词（有个落脚点），并且查询的意思至少有这么多被接住
+export const MIN_COVER = 0.7
+
 // mode='strict'：长查询（≥8 字）要求 ≥minRatio 的词命中，宁可不召回也不硬凑
 // mode='loose'：只要求 minOverlap 个词命中
 export function requiredOverlap({ cleaned, terms }, { mode = 'strict', minOverlap = 1, minRatio = 0.6 } = {}) {

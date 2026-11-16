@@ -76,7 +76,8 @@ node adapters/cli/memory-cli.mjs doctor
 | 让 DSH 通过命令读写经历 | [可独立复制的 DSH skill 和安装说明](examples/dsh-plugin/dsh-whale-memory/README.md) |
 | 给自己的 Agent 接入工具 | [命令行适配器](adapters/README.md)输出 JSON，由宿主决定何时调用 |
 | 接到 Claude Desktop / Claude Code / Cursor 等 MCP 客户端 | [MCP 适配器](adapters/mcp/README.md)：`npx -y -p whale-memory-core whale-memory-mcp --data <目录>`，stdio、只在本机、零依赖 |
-| 在 JavaScript 中直接读写 | [自传层内核](packages/core/README.md)（`npm install whale-memory-core`）和[宿主移植指南](docs/porting.md) |
+| 在 JavaScript 中直接读写 | [自传层内核](packages/core/README.md)（`npm install whale-memory-core`）和[宿主移植指南](docs/porting.md)。注意包名带 `-core`：npm 上不带 `-core` 的 `whale-memory` 是别人的包，和本项目无关 |
+| 从零开始接一个角色 | [30 分钟教程](docs/tutorial.md)：写下、想起、改主意、第二天醒来、封存、她的书、接进宿主 |
 | 看数据结构 | [数据格式 schema](docs/schema.md) 与[虚构样本](examples/samples/) |
 | 看别人的宿主怎么接 | [第一天的故事，第二天还接得上](examples/first-day/)：两个进程，隔天自动递回，不输入 recall |
 | 翻回那天的自己 | `read --id <id> --as-of 2026-11-15`：只看那天之前写下的后记和选择，之后的都看不见（[语义](docs/schema.md#翻回那天的自己0120-起)） |
@@ -92,6 +93,8 @@ node adapters/cli/memory-cli.mjs doctor
 | 一键备份、恢复演练 | `node tools/backup.mjs --data <根> --out <目录>`、`node tools/restore-check.mjs --from <备份包> --data <根>`（[运维手册](docs/runbook.md)） |
 | 备份与换机器 | [备份与搬家](docs/backup.md)：七个文件加一个抽屉，恢复后怎么校验 |
 | 撑多大、做不到什么 | [上限与不保证](docs/limits.md)：实测规模、明文存储、删除语义 |
+| 它到底准不准、会不会编、会不会漏 | [whale-eval](docs/eval.md)：`npm run eval`，开发集与留出集分开报，外露与改写永远是 0 |
+| 谁能碰到她的记忆、怎么防 | [威胁模型](docs/threat-model.md)：群聊外露、改写过去、诱导写入、网页指令、出事了怎么办 |
 | 什么时候递回记忆 | [注入时机](docs/injection.md)：七条规则、可抄的实现和反例 |
 | 这些思路从哪来 | [借了谁、改了什么、刻意不做什么](docs/related-work.md)：Generative Agents、Zep、MemoryBank、A-MEM、情感引擎 |
 | 了解整体设计 | [架构说明](docs/architecture.md)：分层、证据策略、召回与写入约束 |

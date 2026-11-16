@@ -3,7 +3,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { loadAll } from './self-experience.js'
-import { queryTerms, requiredOverlap, matchedTerms } from './query-match.js'
+import { queryTerms, requiredOverlap, matchedTerms, contentUnits, coverage, MIN_COVER } from './query-match.js'
 
 function readJsonl(file) {
   try {
@@ -44,8 +44,10 @@ export function recall(dir, query, { includeDiary = false, limit = 4, minOverlap
   const q = String(query || '')
   const parsed = queryTerms(q)
   const required = requiredOverlap(parsed, { mode, minOverlap, minRatio })
-  const scored = pool.map((r) => ({ r, score: q ? matchedTerms(parsed.terms, [r.text, r.thought, r.later || ''].join(' ')).size : 0 }))
-    .filter((x) => (q ? x.score >= required : true))
+  const units = contentUnits(q)
+  const scored = pool.map((r) => { const text = [r.text, r.thought, r.later || ''].join(' '); return { r, score: q ? matchedTerms(parsed.terms, text).size : 0, cover: q ? coverage(units, text) : 0 } })
+    // 与 self-experience 同一口径：strict 要求意思被接住至少 MIN_COVER
+    .filter((x) => (!q ? true : mode === 'loose' ? x.score >= required : x.score >= minOverlap && x.cover >= MIN_COVER))
     .sort((a, b) => (b.score - a.score) || (String(b.r.at).localeCompare(String(a.r.at))))
   const out = [], seen = new Set()
   for (const x of scored) {

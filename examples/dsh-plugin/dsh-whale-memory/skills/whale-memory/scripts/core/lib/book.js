@@ -34,7 +34,7 @@ function entry(r) {
     out.push('- 「' + t.unfinished + '」' + word + '（' + st.day + '）', '')
   }
   if (Array.isArray(r.links) && r.links.length) out.push('- 后来连在一起的：' + r.links.map((l) => l.sealed ? ptr(l) : ptr(l) + '——' + l.reason).join('；'), '')
-  if (r.sealed) out.push('- （这件事她封存了：' + r.sealed.day + '）', '')
+  if (r.sealed) out.push('- （这件事她' + (r.sealed.afterAsOf ? '后来' : '') + '封存了：' + r.sealed.day + '）', '')
   return out
 }
 
