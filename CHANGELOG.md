@@ -2,6 +2,18 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Changed
+
+- 对外报错改成英文在前、原中文原样跟在后面（「English（原中文）」）：核心库 76 条、CLI 33 条（含用法说明）、MCP 28 条。
+- `renderTwoPart`、`buildWakingBlock` 加 `lang`（`zh` 默认，输出与以前逐字一致；`en`）；demo、CLI、MCP 按 `--lang` / `WHALE_LANG` / 系统语言选择。demo 英文模式连示例内容一起换成英文。
+
+### Added
+
+- `docs/en/porting.md`；英文 README 链到它，没有英文版的文档标明 (Chinese)。
+
+
 ## [0.17.0] · 2026-11-17
 
 这一版让她想不起来的时候更不会编，翻回那天也不会把她封存的事翻出来；也让别人第一次能用数字核对这些话。
