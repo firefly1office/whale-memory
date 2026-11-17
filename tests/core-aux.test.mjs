@@ -78,6 +78,10 @@ test('她的提示词：版本只追加，能回退', (t) => {
   assert.equal(back.ok, true)
   assert.equal(prompt.load(dataDir), '说话短一点')
   assert.equal(prompt.history(dataDir, 10).length, 3, '回退本身也是一次新版本')
+
+  const evil = prompt.revert(dataDir, '../../../../not-a-snapshot')
+  assert.equal(evil.ok, false, '不在 history 里的版本名不能被拼进路径')
+  assert.equal(prompt.load(dataDir), '说话短一点', '拒绝后当前内容不变')
 })
 
 test('她的提示词：空内容和超长内容都拒绝', (t) => {

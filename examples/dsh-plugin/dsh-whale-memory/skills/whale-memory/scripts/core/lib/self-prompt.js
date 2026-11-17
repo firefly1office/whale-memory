@@ -83,8 +83,12 @@ export function history(dataDir, limit = 10) {
 
 export function revert(dataDir, version, reason = '') {
   try {
+    const key = String(version)
+    // 只接受 history.jsonl 里真实出现过的快照名：不把调用方给的字符串直接拼进路径
+    const known = history(dataDir, 100000).some((h) => String(h.snapshot) === key)
+    if (!known) return { ok: false, error: 'Version not found.（找不到这个版本。）' }
     const d = base(dataDir)
-    const body = fs.readFileSync(path.join(d, VERSIONS, String(version) + '.md'), 'utf8')
+    const body = fs.readFileSync(path.join(d, VERSIONS, key + '.md'), 'utf8')
     return save(dataDir, body, reason || ('回退到 ' + version))
   } catch { return { ok: false, error: 'Version not found.（找不到这个版本。）' } }
 }

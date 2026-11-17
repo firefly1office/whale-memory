@@ -12,6 +12,12 @@
 ### Added
 
 - `docs/en/porting.md`；英文 README 链到它，没有英文版的文档标明 (Chinese)。
+- `docs/pitfalls.md`：接入前要知道的坑（字面检索、单写者、封存不是删除、主人门要靠宿主、评测很小、已知未修）。
+- `docs/paper/`：技术报告（中文 PDF，28 页）与 Markdown 源；README 明确标注“不是同行评审论文”。
+
+### Fixed
+
+- `self-prompt.revert` 只接受 `history.jsonl` 里出现过的快照名，不再把调用方给的字符串直接拼进路径；补回归测试。第一个部署的插件版仍是旧实现，尚未升级。
 
 
 ## [0.17.0] · 2026-11-17

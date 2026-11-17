@@ -93,6 +93,8 @@ node adapters/cli/memory-cli.mjs doctor
 | 一键备份、恢复演练 | `node tools/backup.mjs --data <根> --out <目录>`、`node tools/restore-check.mjs --from <备份包> --data <根>`（[运维手册](docs/runbook.md)） |
 | 备份与换机器 | [备份与搬家](docs/backup.md)：七个文件加一个抽屉，恢复后怎么校验 |
 | 撑多大、做不到什么 | [上限与不保证](docs/limits.md)：实测规模、明文存储、删除语义 |
+| **接之前先看容易踩的坑** | [已知坑与边界](docs/pitfalls.md)：字面检索、单写者、封存不是删除、主人门要靠宿主、评测很小 |
+| **读完整技术报告** | [whale-memory 技术报告](docs/paper/README.md)（PDF，28 页；不是同行评审论文，数字与已知问题都写在里面） |
 | 它到底准不准、会不会编、会不会漏 | [whale-eval](docs/eval.md)：`npm run eval`，开发集与留出集分开报，外露与改写永远是 0 |
 | 谁能碰到她的记忆、怎么防 | [威胁模型](docs/threat-model.md)：群聊外露、改写过去、诱导写入、网页指令、出事了怎么办 |
 | 什么时候递回记忆 | [注入时机](docs/injection.md)：七条规则、可抄的实现和反例 |

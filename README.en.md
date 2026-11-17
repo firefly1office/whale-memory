@@ -86,6 +86,8 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | One-step backup and restore drill | `node tools/backup.mjs --data <root> --out <dir>`, `node tools/restore-check.mjs --from <backup> --data <root>` ([runbook](docs/runbook.md), Chinese) |
 | Backup and move machines | [Backup & migration](docs/backup.md) (Chinese): seven files plus her drawer, and how to verify after restore |
 | How far it goes, what it won't do | [Limits & non-guarantees](docs/en/limits.md): measured scale, plaintext storage, deletion semantics |
+| Read before integrating | [Known pitfalls](docs/pitfalls.md) (Chinese): lexical recall, single writer, sealing is not deletion, host must enforce the owner gate |
+| Read the technical report | [whale-memory technical report](docs/paper/README.md) (Chinese PDF, 28 pages; not peer-reviewed) |
 | Is it accurate, does it make things up, does it leak | [whale-eval](docs/eval.md) (Chinese): `npm run eval`; dev and held-out sets reported separately; leaks and rewrites must be zero |
 | Who can reach her memory, and how we guard it | [Threat model](docs/threat-model.md) (Chinese) |
 | When to hand a memory back | [Injection timing](docs/injection.md) (Chinese): seven rules, a minimal implementation, anti-patterns |
