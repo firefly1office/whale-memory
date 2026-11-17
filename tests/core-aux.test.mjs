@@ -164,6 +164,7 @@ test('提示词护栏：锁住时写入报错而不是覆盖', (t) => {
   const res = prompt.save(dataDir, '第二版', '', { timeoutMs: 80 })
   assert.equal(res.ok, false)
   assert.match(res.error, /锁/)
+  assert.match(res.error, /locked by another process/)
   fs.rmSync(lock, { recursive: true, force: true })
   assert.equal(prompt.load(dataDir), '第一版', '失败时不能动生效文件')
 })

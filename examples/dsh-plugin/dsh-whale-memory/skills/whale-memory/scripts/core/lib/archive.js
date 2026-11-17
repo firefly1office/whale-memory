@@ -42,21 +42,21 @@ export function inside(a, b) {
 // 再用解析后的绝对路径确认确实落在 root 里面（不靠枚举写法）
 export function safeJoin(root, name) {
   const n = String(name || '')
-  if (!n || n.includes('\0')) throw new Error('导出里有可疑路径：' + JSON.stringify(name))
-  if (path.isAbsolute(n) || path.win32.isAbsolute(n) || /^[a-zA-Z]:/.test(n)) throw new Error('导出里有绝对路径：' + n)
-  if (n.split(/[\\/]+/).includes('..')) throw new Error('导出里有越界路径：' + n)
+  if (!n || n.includes('\0')) throw new Error('Suspicious path in export: ' + JSON.stringify(name) + '（导出里有可疑路径：' + JSON.stringify(name) + '）')
+  if (path.isAbsolute(n) || path.win32.isAbsolute(n) || /^[a-zA-Z]:/.test(n)) throw new Error('Absolute path in export: ' + n + '（导出里有绝对路径：' + n + '）')
+  if (n.split(/[\\/]+/).includes('..')) throw new Error('Path in export escapes the export directory: ' + n + '（导出里有越界路径：' + n + '）')
   const rootAbs = path.resolve(root)
   const abs = path.resolve(rootAbs, n)
-  if (abs !== rootAbs && !abs.startsWith(rootAbs + path.sep)) throw new Error('导出里有越界路径：' + n)
+  if (abs !== rootAbs && !abs.startsWith(rootAbs + path.sep)) throw new Error('Path in export escapes the export directory: ' + n + '（导出里有越界路径：' + n + '）')
   return abs
 }
 
 // 打包：outDir 下新建 <name>/（默认 memory-export-<时间>），不能和记忆目录互相包含
 export function exportArchive(memDir, outDir, { name = '' } = {}) {
-  if (!fs.existsSync(memDir)) throw new Error('没有找到记忆目录：' + memDir)
+  if (!fs.existsSync(memDir)) throw new Error('Memory directory not found: ' + memDir + '（没有找到记忆目录：' + memDir + '）')
   const target = path.resolve(outDir, name || 'memory-export-' + stamp())
-  if (inside(target, memDir) || inside(memDir, target)) throw new Error('导出目录不能和记忆目录互相包含：' + target)
-  if (fs.existsSync(target)) throw new Error('导出目录已存在：' + target)
+  if (inside(target, memDir) || inside(memDir, target)) throw new Error('Export directory and memory directory must not be inside each other: ' + target + '（导出目录不能和记忆目录互相包含：' + target + '）')
+  if (fs.existsSync(target)) throw new Error('Export directory already exists: ' + target + '（导出目录已存在：' + target + '）')
 
   const files = collectFiles(memDir)
   fs.mkdirSync(target, { recursive: true })
@@ -95,20 +95,20 @@ export function exportArchive(memDir, outDir, { name = '' } = {}) {
 export function verifyArchive(fromDir) {
   const src = path.resolve(fromDir)
   const manifestFile = path.join(src, 'manifest.json')
-  if (!fs.existsSync(manifestFile)) throw new Error('不是 whale-memory 导出目录（缺 manifest.json）：' + src)
+  if (!fs.existsSync(manifestFile)) throw new Error('Not a whale-memory export directory (manifest.json is missing): ' + src + '（不是 whale-memory 导出目录（缺 manifest.json）：' + src + '）')
   let manifest
   try { manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8')) } catch {
-    throw new Error('manifest.json 读不出来：' + manifestFile)
+    throw new Error('Cannot read manifest.json: ' + manifestFile + '（manifest.json 读不出来：' + manifestFile + '）')
   }
   if (!manifest || manifest.format !== FORMAT || !Array.isArray(manifest.files)) {
-    throw new Error('manifest.json 格式不对：' + manifestFile)
+    throw new Error('manifest.json is malformed: ' + manifestFile + '（manifest.json 格式不对：' + manifestFile + '）')
   }
   for (const f of manifest.files) {
     const n = String(f.name || '')
     const abs = safeJoin(src, n)
-    if (!fs.existsSync(abs)) throw new Error('导出缺少文件：' + n)
+    if (!fs.existsSync(abs)) throw new Error('File missing from export: ' + n + '（导出缺少文件：' + n + '）')
     const buf = fs.readFileSync(abs)
-    if (sha256(buf) !== f.sha256) throw new Error('文件校验不通过：' + n)
+    if (sha256(buf) !== f.sha256) throw new Error('Checksum mismatch: ' + n + '（文件校验不通过：' + n + '）')
   }
   return manifest
 }
@@ -118,7 +118,7 @@ export function importArchive(fromDir, memDir, { force = false } = {}) {
   const src = path.resolve(fromDir)
   const manifest = verifyArchive(src)
   const exists = fs.existsSync(memDir) && fs.readdirSync(memDir).length > 0
-  if (exists && !force) throw new Error('目标已有数据：' + memDir + '。确认覆盖请加 --force true（会先备份）')
+  if (exists && !force) throw new Error('Target already has data: ' + memDir + '. To overwrite, add --force true (the existing data is backed up first).（目标已有数据：' + memDir + '。确认覆盖请加 --force true（会先备份））')
   let backup = ''
   if (exists && force) {
     backup = memDir + '.pre-import-' + stamp()

@@ -16,14 +16,14 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/
 
 function checkName(name) {
   const s = String(name || '').trim()
-  if (!s) throw new Error('章节要有个名字，比如「在灯塔书店打工的那个月」。')
-  if ([...s].length > LIMIT_NAME) throw new Error(`章节名太长（${[...s].length}/${LIMIT_NAME} 字）。`)
+  if (!s) throw new Error('A chapter needs a name, e.g. "the month I worked at the lighthouse bookshop".（章节要有个名字，比如「在灯塔书店打工的那个月」。）')
+  if ([...s].length > LIMIT_NAME) throw new Error(`Chapter name is too long (${[...s].length}/${LIMIT_NAME} chars).（章节名太长（${[...s].length}/${LIMIT_NAME} 字）。）`)
   return s
 }
 
 function checkDay(v, label) {
   const s = String(v || '').trim()
-  if (!DATE.test(s)) throw new Error(`${label} 要写成 2026-11-01 这样的日期。`)
+  if (!DATE.test(s)) throw new Error(`${label} must be a date like 2026-11-01.（${label} 要写成 2026-11-01 这样的日期。）`)
   parseAsOf(s) // 不存在的日期（2026-02-30）在这里报错
   return s
 }
@@ -49,7 +49,7 @@ export function open(memDir, { name, from, to = '', note = '' } = {}, opts = {})
   const n = checkName(name)
   const f = checkDay(from || new Date().toLocaleDateString('sv-SE'), 'from')
   const t = to ? checkDay(to, 'to') : ''
-  if (t && t < f) throw new Error('结束日期不能早于开始日期。')
+  if (t && t < f) throw new Error('End date cannot be earlier than start date.（结束日期不能早于开始日期。）')
   return log.decide(memDir, (rows) => rows.some((r) => r.action === 'open' && r.name === n && r.from === f)
     ? null
     : { id: 'ch_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...stamp(), action: 'open', name: n, from: f, to: t, note: String(note || '').slice(0, 200) }, opts)
@@ -72,7 +72,7 @@ export function rename(memDir, { id, name } = {}, opts = {}) {
   const n = checkName(name)
   return log.decide(memDir, (rows) => {
     const ch = current(rows, id)
-    if (!ch) throw new Error('找不到这个章节：' + id)
+    if (!ch) throw new Error('Chapter not found: ' + id + '（找不到这个章节：' + id + '）')
     return ch.name === n ? null : { id: String(id), ...stamp(), action: 'rename', name: n }
   }, opts)
 }
@@ -82,8 +82,8 @@ export function close(memDir, { id, to } = {}, opts = {}) {
   const t = checkDay(to || new Date().toLocaleDateString('sv-SE'), 'to')
   return log.decide(memDir, (rows) => {
     const ch = current(rows, id)
-    if (!ch) throw new Error('找不到这个章节：' + id)
-    if (t < ch.from) throw new Error('结束日期不能早于开始日期（' + ch.from + '）。')
+    if (!ch) throw new Error('Chapter not found: ' + id + '（找不到这个章节：' + id + '）')
+    if (t < ch.from) throw new Error('End date cannot be earlier than the start date (' + ch.from + ').（结束日期不能早于开始日期（' + ch.from + '）。）')
     return ch.to === t ? null : { id: String(id), ...stamp(), action: 'close', to: t }
   }, opts)
 }

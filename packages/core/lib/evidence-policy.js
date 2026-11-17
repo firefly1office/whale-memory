@@ -103,9 +103,9 @@ export function query(facts, { subject, slot = 'default', at = new Date().toISOS
 export function hasSuccessor(facts, id, at = new Date().toISOString()) {
   const all = normalizeFacts(facts)
   const base = all.find((f) => f.id === id)
-  if (!base) return { ok: false, reason: '找不到这条记录' }
+  if (!base) return { ok: false, reason: 'Record not found（找不到这条记录）' }
   const atT = ts(at)
-  if (atT === null) return { ok: false, reason: 'as-of 时间不合法' }
+  if (atT === null) return { ok: false, reason: 'Invalid as-of time（as-of 时间不合法）' }
   const later = all.filter((f) => f.subject === base.subject && f.slot === base.slot && f.t > base.t && f.t <= atT)
   return { ok: true, hasSuccessor: later.length > 0, successors: later }
 }

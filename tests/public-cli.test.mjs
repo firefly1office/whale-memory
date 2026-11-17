@@ -66,6 +66,7 @@ for (const script of CLIS) {
     const blank = run(['write', '--text', '   '])
     assert.equal(blank.status, 1)
     assert.match(JSON.parse(blank.stdout).error, /不能是空白/)
+    assert.match(JSON.parse(blank.stdout).error, /^Missing --text \(it cannot be blank\)（/, 'English first, Chinese kept after it')
 
     const tooLong = run(['write', '--text', '字'.repeat(2001)])
     assert.equal(tooLong.status, 1)
@@ -95,6 +96,7 @@ for (const script of CLIS) {
     const neg = run(['read', '--limit', '-1'])
     assert.equal(neg.status, 1)
     assert.match(JSON.parse(neg.stdout).error, /非负整数/)
+    assert.match(JSON.parse(neg.stdout).error, /--limit must be a non-negative integer/)
   })
 
   test(`空 query（${path.basename(path.dirname(script))}）：最近 N 条，不是报错也不是硬凑`, t => {

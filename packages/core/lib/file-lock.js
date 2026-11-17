@@ -17,7 +17,7 @@ export function withFileLock(lockPath, fn, { timeoutMs = 3000 } = {}) {
         const st = fs.statSync(lockPath)
         if (Date.now() - st.mtimeMs > 10000) { fs.rmSync(lockPath, { recursive: true, force: true }); continue }
       } catch { /* 锁刚被释放 */ }
-      if (Date.now() - start > timeoutMs) throw new Error('文件被另一个进程锁着，稍后再试。')
+      if (Date.now() - start > timeoutMs) throw new Error('The file is locked by another process; try again shortly.（文件被另一个进程锁着，稍后再试。）')
       sleep(20)
     }
   }

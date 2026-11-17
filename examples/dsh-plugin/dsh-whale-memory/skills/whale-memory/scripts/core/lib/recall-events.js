@@ -19,7 +19,7 @@ function ensureDir(memDir) {
 
 
 export function append(memDir, { id, query = '', chatKey = '', backfilled = false } = {}, opts = {}) {
-  if (!String(id || '').trim()) throw new Error('id 不能为空')
+  if (!String(id || '').trim()) throw new Error('id cannot be empty（id 不能为空）')
   const row = {
     id: String(id),
     at: new Date().toISOString(),

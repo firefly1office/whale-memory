@@ -30,7 +30,7 @@ function arg(name, fallback = null) {
   const i = process.argv.indexOf('--' + name)
   if (i < 0) return fallback
   const v = process.argv[i + 1]
-  if (v === undefined || v.startsWith('--')) throw new Error('--' + name + ' 缺少参数值')
+  if (v === undefined || v.startsWith('--')) throw new Error('--' + name + ' is missing a value（--' + name + ' 缺少参数值）')
   return v
 }
 
@@ -38,13 +38,13 @@ function arg(name, fallback = null) {
 function limitArg(name, fallback) {
   const v = arg(name, null)
   if (v === null) return fallback
-  if (!/^\d+$/.test(v)) throw new Error('--' + name + ' 必须是非负整数')
+  if (!/^\d+$/.test(v)) throw new Error('--' + name + ' must be a non-negative integer（--' + name + ' 必须是非负整数）')
   return Number(v)
 }
 
 function weightArg() {
   const w = arg('weight', 'normal') || 'normal'
-  if (!WEIGHTS.has(w)) throw new Error('--weight 只能是 important / normal / minor')
+  if (!WEIGHTS.has(w)) throw new Error('--weight must be important / normal / minor（--weight 只能是 important / normal / minor）')
   return w
 }
 
@@ -182,13 +182,16 @@ function doDoctor() {
 const cmd = process.argv[2]
 let DATA = ''
 let MEM_DIR = ''
+let LANG = 'zh'
 try {
   // 数据根目录（下面有 plugin-data/）：--data 优先，其次 WHALE_DATA_DIR，最后是当前目录下的 data/
   DATA = path.resolve(arg('data', '') || process.env.WHALE_DATA_DIR || path.join(process.cwd(), 'data'))
+  // 输出语言（两段式、醒来块的标签）：--lang en|zh；不给就看 WHALE_LANG，再看系统语言
+  LANG = (arg('lang', '') || process.env.WHALE_LANG || (/^zh/i.test(String(process.env.LC_ALL || process.env.LANG || Intl.DateTimeFormat().resolvedOptions().locale || '')) ? 'zh' : 'en')) === 'zh' ? 'zh' : 'en'
   MEM_DIR = path.join(DATA, 'plugin-data', 'biomimetic-memory')
   if (cmd === 'write') {
     const text = arg('text')
-    if (typeof text !== 'string' || !text.trim()) throw new Error('缺少 --text（不能是空白）')
+    if (typeof text !== 'string' || !text.trim()) throw new Error('Missing --text (it cannot be blank)（缺少 --text（不能是空白））')
     const row = exp.addExperience(MEM_DIR, {
       text,
       scene: arg('scene', '') || '',
@@ -207,11 +210,11 @@ try {
     const n = limitArg('limit', 3)
     const mark = String(arg('mark', 'false')) === 'true'
     const mode = String(arg('mode', 'strict'))
-    if (mode !== 'strict' && mode !== 'loose') throw new Error('--mode 只能是 strict 或 loose')
+    if (mode !== 'strict' && mode !== 'loose') throw new Error('--mode must be strict or loose（--mode 只能是 strict 或 loose）')
     const asOf = arg('as-of', '') || null
     const includeSealed = String(arg('sealed', 'false')) === 'true'
     const rows = n === 0 ? [] : exp.recall(MEM_DIR, q, { limit: n, mark, mode, asOf, includeSealed })
-    out({ ok: true, ...(asOf ? { asOf } : {}), items: rows.map((r) => ({ id: r.id, day: r.day, weight: r.weight, ...(r.sealed ? { sealed: true } : {}), text: exp.renderTwoPart(r) })) })
+    out({ ok: true, ...(asOf ? { asOf } : {}), items: rows.map((r) => ({ id: r.id, day: r.day, weight: r.weight, ...(r.sealed ? { sealed: true } : {}), text: exp.renderTwoPart(r, { lang: LANG }) })) })
   } else if (cmd === 'read') {
     // --as-of 2026-11-15：翻回那天的自己；--id：只看这一条，并附上两段式全文
     // 她封存了的默认不列；--sealed true 才列，--id 点名要看的那一条照给（带封存标记）
@@ -233,7 +236,7 @@ try {
         later: (r.later || []).map((x) => x.thought),
         refs: r.then.refs || [], citedBy: (r.citedBy || []).map((x) => x.id),
         ...(r.sealed ? { sealed: r.sealed } : {}),
-        ...(only ? { view: exp.renderTwoPart(r) } : {})
+        ...(only ? { view: exp.renderTwoPart(r, { lang: LANG }) } : {})
       }))
     }
     if (!only && !includeSealed) {
@@ -248,17 +251,17 @@ try {
   } else if (cmd === 'revise') {
     const id = arg('id')
     const thought = arg('thought')
-    if (!id || typeof thought !== 'string' || !thought.trim()) throw new Error('需要 --id 与 --thought（不能是空白）')
+    if (!id || typeof thought !== 'string' || !thought.trim()) throw new Error('Need --id and --thought (they cannot be blank)（需要 --id 与 --thought（不能是空白））')
     const res = exp.reviseExperience(MEM_DIR, { id, thought, reason: arg('reason', '') || '', feeling: arg('feeling', '') || '' })
     out(res)
     if (!res.ok) process.exitCode = 1
   } else if (cmd === 'export') {
     const dir = arg('out')
-    if (!dir) throw new Error('需要 --out <目录>')
+    if (!dir) throw new Error('Need --out <dir>（需要 --out <目录>）')
     out(doExport(dir))
   } else if (cmd === 'import') {
     const from = arg('from')
-    if (!from) throw new Error('需要 --from <导出目录>')
+    if (!from) throw new Error('Need --from <export-dir>（需要 --from <导出目录>）')
     const force = String(arg('force', 'false')) === 'true'
     out(doImport(from, force))
   } else if (cmd === 'purge') {
@@ -268,14 +271,14 @@ try {
   } else if (cmd === 'unfinished') {
     const id = arg('id')
     const state = arg('state')
-    if (!id || !state) throw new Error('需要 --id 与 --state done|shelved|reopen')
+    if (!id || !state) throw new Error('Need --id and --state done|shelved|reopen（需要 --id 与 --state done|shelved|reopen）')
     const res = exp.setUnfinishedState(MEM_DIR, { id, choice: state, note: arg('note', '') || '' })
     out(res)
     if (!res.ok) process.exitCode = 1
   } else if (cmd === 'seal' || cmd === 'unseal') {
     // 她不想再被这件事主动提醒：封存。不删除任何东西；想回来就 unseal
     const id = arg('id')
-    if (!id) throw new Error('需要 --id')
+    if (!id) throw new Error('Need --id（需要 --id）')
     const res = exp.setSealed(MEM_DIR, { id, sealed: cmd === 'seal', note: arg('note', '') || '' })
     out(res)
     if (!res.ok) process.exitCode = 1
@@ -301,7 +304,7 @@ try {
       const list = chapterEvents.chapters(MEM_DIR, { until: parseAsOf(asOf) })
       const rows = exp.loadAll(MEM_DIR, { asOf })
       out({ ok: true, ...(asOf ? { asOf } : {}), chapters: list.map((c) => ({ ...c, experiences: rows.filter((r) => (r.chapters || []).some((x) => x.id === c.id)).length })) })
-    } else throw new Error('chapter 子命令：open --name .. [--from 2026-11-01 --to ..] / rename --id .. --name .. / close --id .. [--to ..] / list [--as-of ..]')
+    } else throw new Error('chapter subcommands: open --name .. [--from 2026-11-01 --to ..] / rename --id .. --name .. / close --id .. [--to ..] / list [--as-of ..]（chapter 子命令：open --name .. [--from 2026-11-01 --to ..] / rename --id .. --name .. / close --id .. [--to ..] / list [--as-of ..]）')
     if (res) out({ ok: true, noop: res.noop, ...(res.row ? { chapter: res.row } : {}) })
   } else if (cmd === 'unsaid') {
     // 没说出口的抽屉：只在一对一会话里打开（--chat 默认 local:owner）；永不自动注入
@@ -312,7 +315,7 @@ try {
     else if (sub === 'list') res = unsaid.listUnsaid(MEM_DIR, { chatKey, all: String(arg('all', 'false')) === 'true' })
     else if (sub === 'spoken') res = unsaid.markUnsaidSpoken(MEM_DIR, { chatKey, id: arg('id', '') || '' })
     else if (sub === 'discard') res = unsaid.discardUnsaid(MEM_DIR, { chatKey, id: arg('id', '') || '' })
-    else throw new Error('unsaid 子命令：leave --kind draft|question|held --text ".." [--reason ..] / list [--all true] / spoken --id .. / discard --id ..（都可带 --chat，默认 local:owner）')
+    else throw new Error('unsaid subcommands: leave --kind draft|question|held --text ".." [--reason ..] / list [--all true] / spoken --id .. / discard --id .. (all accept --chat, default local:owner)（unsaid 子命令：leave --kind draft|question|held --text ".." [--reason ..] / list [--all true] / spoken --id .. / discard --id ..（都可带 --chat，默认 local:owner））')
     out(res)
     if (!res.ok) process.exitCode = 1
   } else if (cmd === 'book') {
@@ -321,14 +324,14 @@ try {
     const file = arg('out', '') || ''
     if (file) {
       const target = path.resolve(file)
-      if (target === MEM_DIR || target.startsWith(MEM_DIR + path.sep)) throw new Error('书不要写进记忆目录里：' + target)
+      if (target === MEM_DIR || target.startsWith(MEM_DIR + path.sep)) throw new Error('Do not write the book inside the memory directory: ' + target + '（书不要写进记忆目录里：' + target + '）')
       fs.mkdirSync(path.dirname(target), { recursive: true })
       fs.writeFileSync(target, md, 'utf8')
       out({ ok: true, file: target, chars: md.length })
     } else out({ ok: true, markdown: md })
   } else if (cmd === 'waking') {
     const chat = arg('chat', 'local:owner') || 'local:owner'
-    const block = waking.buildWakingBlock(DATA, chat)
+    const block = waking.buildWakingBlock(DATA, chat, { lang: LANG })
     out({ ok: true, block })
     // 打印成功即视为已展示；只想预览不占用今天的额度，加 --peek true
     if (block && String(arg('peek', 'false')) !== 'true') waking.consumeWaking(DATA, chat)
@@ -346,40 +349,40 @@ try {
       const n = limitArg('limit', 10)
       out({ ok: true, versions: n === 0 ? [] : prompt.history(DATA, n) })
     } else if (sub === 'revert') out(prompt.revert(DATA, arg('version') || ''))
-    else throw new Error('prompt 子命令：get/set/history/revert')
+    else throw new Error('prompt subcommands: get/set/history/revert（prompt 子命令：get/set/history/revert）')
   } else if (cmd === 'settings') {
     const sub = process.argv[3]
     if (sub === 'get') out({ ok: true, settings: settings.load(DATA) })
     else if (sub === 'set') {
       const patch = JSON.parse(arg('json', '{}') || '{}')
       out({ ok: true, settings: settings.save(DATA, patch, arg('reason', '') || '') })
-    } else throw new Error('settings 子命令：get/set')
+    } else throw new Error('settings subcommands: get/set（settings 子命令：get/set）')
   } else {
     out({
       ok: false,
       usage: [
-        '全局：--data <数据根目录>（下面有 plugin-data/；不给就用 WHALE_DATA_DIR，再不给用 ./data）',
-        'write --text "..." [--scene .. --feeling a,b --thought .. --unfinished .. --quote .. --source .. --weight important|normal|minor --kind 读书 --refs id1,id2]   （--refs：这条是从哪几件事想到的，必须是已写下的经历）',
-        'recall --query "..." [--limit 3] [--mark true] [--mode strict|loose] [--as-of 2026-11-15] [--sealed true]   （空 query = 最近 N 条；默认只读，strict 宁可不召回；--as-of 在那天的自己里找；默认不召回她封存的）',
-        'read [--limit 8] [--id ...] [--as-of 2026-11-15] [--sealed true]   （--as-of：翻回那天的自己；--id：只看这一条，附两段式全文；封存的默认不列）',
-        'revise --id ... --thought "..." [--reason .. --feeling a,b]   （--feeling：现在再想起的感觉；当时的感觉不会被改）',
-        'unfinished --id ... --state done|shelved|reopen [--note ..]   这件事想通/先放下/再接着想',
-        'seal --id ... [--note ..] / unseal --id ...   她不想再被这件事主动提醒：不会被召回、不进醒来块；不删除，随时可以解封',
-        'recap [--days 7] [--as-of ..]   这几天写下的、改过的、感觉变的、想通/放下的、还没弄完的（只列事实，给她写回想用）',
-        'link --from .. --to .. --reason "..."   事后联想：她发现两件事有关，亲手连起来（必须说为什么；同一对只连一次）',
-        'chapter open --name ".." [--from 2026-11-01 --to ..] | rename --id .. --name .. | close --id .. [--to ..] | list [--as-of ..]   人生章节：给一段日子起名字',
-        'book [--out 她的书.md] [--as-of ..] [--sealed true] [--title ..]   导出人能读的自传（按章节；封存的默认不收）',
-        'unsaid leave --kind draft|question|held --text ".." [--reason ..] | list [--all true] | spoken --id .. | discard --id ..   没说出口的抽屉：只在一对一会话里打开，永不自动注入（--chat 默认 local:owner）',
-        'export --out <目录>   把整份记忆打包（含 manifest 与校验和）',
-        'import --from <导出目录> [--force true]   恢复；--force 会先备份现有目录',
-        'purge [--yes true]   列出/删除记忆目录、导入前备份、迁移备份（默认只列不删）',
-        'doctor   能力层体检：写入→读回（含感觉、出处、翻回那天、封存）、导出→导入、事件解析、出处完整、醒来白名单（临时目录）',
-        'waking [--chat private:100000000] [--peek true]   （默认打印即记为已展示）',
+        'Global: --data <data-root>   data root that contains plugin-data/; if omitted, WHALE_DATA_DIR, then ./data（全局：--data <数据根目录>（下面有 plugin-data/；不给就用 WHALE_DATA_DIR，再不给用 ./data））',
+        'write --text "..." [--scene .. --feeling a,b --thought .. --unfinished .. --quote .. --source .. --weight important|normal|minor --kind 读书 --refs id1,id2]   --refs: which experiences this one grew out of; they must already be written（--refs：这条是从哪几件事想到的，必须是已写下的经历）',
+        'recall --query "..." [--limit 3] [--mark true] [--mode strict|loose] [--as-of 2026-11-15] [--sealed true]   empty query = the latest N; read-only by default; strict prefers returning nothing over a loose match; --as-of searches the self of that day; sealed ones are not recalled by default（空 query = 最近 N 条；默认只读，strict 宁可不召回；--as-of 在那天的自己里找；默认不召回她封存的）',
+        'read [--limit 8] [--id ...] [--as-of 2026-11-15] [--sealed true]   --as-of: look back at yourself on that day; --id: only this one, with the full then/now view; sealed ones are not listed by default（--as-of：翻回那天的自己；--id：只看这一条，附两段式全文；封存的默认不列）',
+        'revise --id ... --thought "..." [--reason .. --feeling a,b]   --feeling: how it feels to recall it now; the original feeling is never changed（--feeling：现在再想起的感觉；当时的感觉不会被改）',
+        'unfinished --id ... --state done|shelved|reopen [--note ..]   figured it out / set it aside / pick it up again（这件事想通/先放下/再接着想）',
+        'seal --id ... [--note ..] / unseal --id ...   she no longer wants to be reminded of it: not recalled, not in the waking block; nothing is deleted, unseal any time（她不想再被这件事主动提醒：不会被召回、不进醒来块；不删除，随时可以解封）',
+        'recap [--days 7] [--as-of ..]   what was written, revised, felt differently, figured out / set aside, or is still unfinished in the last few days (facts only, for her look-back)（这几天写下的、改过的、感觉变的、想通/放下的、还没弄完的（只列事实，给她写回想用））',
+        'link --from .. --to .. --reason "..."   link two experiences she later sees as related (a reason is required; each pair is linked once)（事后联想：她发现两件事有关，亲手连起来（必须说为什么；同一对只连一次））',
+        'chapter open --name ".." [--from 2026-11-01 --to ..] | rename --id .. --name .. | close --id .. [--to ..] | list [--as-of ..]   life chapters: give a stretch of days a name（人生章节：给一段日子起名字）',
+        'book [--out her-book.md] [--as-of ..] [--sealed true] [--title ..]   export a human-readable autobiography (by chapter; sealed ones are left out by default)（导出人能读的自传（按章节；封存的默认不收））',
+        'unsaid leave --kind draft|question|held --text ".." [--reason ..] | list [--all true] | spoken --id .. | discard --id ..   the unsaid drawer: opens only in one-to-one chats and is never injected automatically (--chat defaults to local:owner)（没说出口的抽屉：只在一对一会话里打开，永不自动注入（--chat 默认 local:owner））',
+        'export --out <dir>   pack the whole memory (with manifest and checksums)（把整份记忆打包（含 manifest 与校验和））',
+        'import --from <export-dir> [--force true]   restore; --force backs up the existing directory first（恢复；--force 会先备份现有目录）',
+        'purge [--yes true]   list / delete the memory directory, pre-import backups and migration backups (list only by default)（列出/删除记忆目录、导入前备份、迁移备份（默认只列不删））',
+        'doctor   capability check: write → read back (incl. feelings, refs, as-of, sealing), export → import, event parsing, ref integrity, waking allowlist (in a temp directory)（能力层体检：写入→读回（含感觉、出处、翻回那天、封存）、导出→导入、事件解析、出处完整、醒来白名单（临时目录））',
+        'waking [--chat private:100000000] [--peek true]   printing it counts as shown by default（默认打印即记为已展示）',
         'memory --query "..." [--diary true --limit 4]',
         'prompt get|set --text ...|history|revert --version ...',
         'settings get|set --json {...}',
         '',
-        '--limit 是非负整数；0 = 一条都不要'
+        '--limit is a non-negative integer; 0 = return nothing（--limit 是非负整数；0 = 一条都不要）'
       ]
     })
   }

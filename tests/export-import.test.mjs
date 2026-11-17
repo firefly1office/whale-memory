@@ -69,6 +69,7 @@ for (const cliPath of CLIS) {
     const again = cli(cliPath, ['import', '--data', data, '--from', e.dir])
     assert.notEqual(again.status, 0)
     assert.match(again.json.error, /目标已有数据/)
+    assert.match(again.json.error, /^Target already has data: .*--force true/)
 
     const forced = cli(cliPath, ['import', '--data', data, '--from', e.dir, '--force', 'true'])
     assert.equal(forced.status, 0, forced.stdout + forced.stderr)

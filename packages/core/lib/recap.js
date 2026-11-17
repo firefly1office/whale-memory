@@ -8,7 +8,7 @@ const snippet = (s, n = 40) => { const c = [...String(s || '')]; return c.length
 
 // days：往回看几天（1–366）；asOf：以那一刻为"今天"往回看（只看那时的她）
 export function recap(dir, { days = 7, asOf = null, now = new Date() } = {}) {
-  if (!Number.isInteger(days) || days < 1 || days > 366) throw new Error('days 要是 1 到 366 之间的整数。')
+  if (!Number.isInteger(days) || days < 1 || days > 366) throw new Error('days must be an integer from 1 to 366.（days 要是 1 到 366 之间的整数。）')
   const cut = parseAsOf(asOf)
   const end = cut === null ? now.getTime() : cut
   // 按自然日：含"今天"在内往回 days 天，从那天本地零点算起

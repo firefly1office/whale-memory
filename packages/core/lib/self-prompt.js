@@ -41,8 +41,8 @@ export function load(dataDir) {
 
 export function save(dataDir, text, reason = '', opts = {}) {
   const body = clean(text)
-  if (!body) return { ok: false, error: '空的，不写。' }
-  if (body.length > MAX_CHARS) return { ok: false, error: '太长了（' + body.length + '/' + MAX_CHARS + ' 字），删一些再试。' }
+  if (!body) return { ok: false, error: 'Empty, nothing written.（空的，不写。）' }
+  if (body.length > MAX_CHARS) return { ok: false, error: 'Too long (' + body.length + '/' + MAX_CHARS + ' chars); shorten it and try again.（太长了（' + body.length + '/' + MAX_CHARS + ' 字），删一些再试。）' }
 
   const current = load(dataDir)
   if (current === body) return { ok: true, noop: true, reason: '和当前版本一样，没有写入。' }
@@ -86,7 +86,7 @@ export function revert(dataDir, version, reason = '') {
     const d = base(dataDir)
     const body = fs.readFileSync(path.join(d, VERSIONS, String(version) + '.md'), 'utf8')
     return save(dataDir, body, reason || ('回退到 ' + version))
-  } catch { return { ok: false, error: '找不到这个版本。' } }
+  } catch { return { ok: false, error: 'Version not found.（找不到这个版本。）' } }
 }
 
 // 生效内容 = 默认段 + 她的 overlay；超总长会明确报告截断，不悄悄切

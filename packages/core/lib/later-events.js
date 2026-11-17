@@ -13,8 +13,8 @@ export function eventsFile(memDir) {
 }
 
 export function append(memDir, { id, thought, reason = '', feeling = [] } = {}, opts = {}) {
-  if (!String(id || '').trim()) throw new Error('id 不能为空')
-  if (!String(thought || '').trim()) throw new Error('thought 不能为空')
+  if (!String(id || '').trim()) throw new Error('id cannot be empty（id 不能为空）')
+  if (!String(thought || '').trim()) throw new Error('thought cannot be empty（thought 不能为空）')
   const now = new Date()
   const row = {
     id: String(id),

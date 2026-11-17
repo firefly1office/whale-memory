@@ -22,7 +22,7 @@ export const internals = { FILE: log.FILE }
 export const badLines = (dir) => log.readAll(dir).bad
 
 function gate(chatKey) {
-  if (!isPrivateKey(chatKey)) throw new Error('这个抽屉只在一对一的私聊里打开；群聊和认不出的会话一律不给。')
+  if (!isPrivateKey(chatKey)) throw new Error('This drawer only opens in a one-to-one private chat; group chats and unrecognized sessions are refused.（这个抽屉只在一对一的私聊里打开；群聊和认不出的会话一律不给。）')
 }
 
 // 重放：每条留下的话现在是什么状态
@@ -44,7 +44,7 @@ function replay(rows) {
 const fail = (e) => ({ ok: false, error: String(e && e.message ? e.message : e) })
 const tooLong = (name, v, max) => {
   const s = String(v || '')
-  if ([...s].length > max) throw new Error(`${name} 太长（${[...s].length}/${max} 字）。`)
+  if ([...s].length > max) throw new Error(`${name} is too long (${[...s].length}/${max} chars).（${name} 太长（${[...s].length}/${max} 字）。）`)
   return s
 }
 
@@ -52,9 +52,9 @@ const tooLong = (name, v, max) => {
 export function leaveUnsaid(dir, { chatKey, kind = 'draft', text, reason = '' } = {}) {
   try {
     gate(chatKey)
-    if (!KINDS.has(kind)) throw new Error('kind 只能是 draft（打了没发）/ question（想问没问）/ held（忍住了）。')
+    if (!KINDS.has(kind)) throw new Error('kind must be draft (typed but not sent) / question (wanted to ask but did not) / held (held back).（kind 只能是 draft（打了没发）/ question（想问没问）/ held（忍住了）。）')
     const t = tooLong('text', String(text || '').trim(), LIMITS.text)
-    if (!t) throw new Error('text 不能是空的。')
+    if (!t) throw new Error('text cannot be empty.（text 不能是空的。）')
     const why = tooLong('reason', String(reason || '').trim(), LIMITS.reason)
     const res = log.decide(dir, (rows) => {
       const same = [...replay(rows).values()].find((x) => x.status === 'open' && x.kind === kind && x.text === t)
@@ -86,12 +86,12 @@ export function listUnsaid(dir, { chatKey, all = false } = {}) {
 function mark(dir, { chatKey, id }, status) {
   try {
     gate(chatKey)
-    if (!String(id || '').trim()) throw new Error('需要 id')
+    if (!String(id || '').trim()) throw new Error('Missing id（需要 id）')
     const res = log.decide(dir, (rows) => {
       const item = replay(rows).get(String(id))
-      if (!item) throw new Error('抽屉里没有这一条：' + id)
+      if (!item) throw new Error('No such item in the drawer: ' + id + '（抽屉里没有这一条：' + id + '）')
       if (item.status === status) return null
-      if (item.status === 'discarded') throw new Error('这一条已经丢掉了。')
+      if (item.status === 'discarded') throw new Error('This item has already been discarded.（这一条已经丢掉了。）')
       return { id: String(id), ...stamp(), status }
     })
     return { ok: true, id: String(id), status, noop: res.noop }

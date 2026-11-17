@@ -26,7 +26,14 @@ export function isPrivateKey(chatKey) {
 // 调用方确认真的把这段注入了，再调 consumeWaking 记「已展示」
 // 安全默认：没有 chatKey、或不是认得出的一对一会话（未显式 allowGroup）→ 返回空
 // 醒来块里可能有昨天私下的话，默认不该流到群里
-export function buildWakingBlock(dataDir, chatKey, { now = new Date(), allowGroup = false } = {}) {
+// 醒来块的文字：zh（默认，原样不变）/ en
+const WAKE = {
+  zh: { head: (d) => '【醒来】今天是 ' + d + '。', yesterday: '昨天你自己的时候：', none: '昨天你没有留下自己的记录。', note: '昨天睡前你给今天留了一句：', unfinished: '- 你还没弄完：', tail: '（这些是记录，不是别人告诉你的。要不要接着想，你自己定。）' },
+  en: { head: (d) => '[Waking up] Today is ' + d + '.', yesterday: 'Yesterday, in your own time:', none: 'You left no record of your own yesterday.', note: 'Before sleeping you left a line for today: ', unfinished: '- Still unfinished: ', tail: '(These are your own records, not something someone told you. Whether to keep thinking about them is up to you.)' }
+}
+
+export function buildWakingBlock(dataDir, chatKey, { now = new Date(), allowGroup = false, lang = 'zh' } = {}) {
+  const W = WAKE[lang === 'en' ? 'en' : 'zh']
   const key = String(chatKey || '').trim()
   if (!mayShow(key, allowGroup)) return ''
 
@@ -55,17 +62,17 @@ export function buildWakingBlock(dataDir, chatKey, { now = new Date(), allowGrou
   const notes = readJsonl(path.join(dir, 'notes-to-tomorrow.jsonl'))
   const lastNote = [...notes].reverse().find((n) => n.day === y)
 
-  const lines = ['【醒来】今天是 ' + today + '。']
+  const lines = [W.head(today)]
   if (yRows.length) {
-    lines.push('昨天你自己的时候：')
+    lines.push(W.yesterday)
     for (const r of yRows.slice(-3)) lines.push('- ' + String(r.text).slice(0, 60))
   } else {
-    lines.push('昨天你没有留下自己的记录。')
+    lines.push(W.none)
   }
-  if (lastNote && lastNote.text) lines.push('昨天睡前你给今天留了一句：' + String(lastNote.text).slice(0, 120))
+  if (lastNote && lastNote.text) lines.push(W.note + String(lastNote.text).slice(0, 120))
   const unfinished = rows.filter((r) => r.unfinished && !(r.state && (r.state.choice === 'done' || r.state.choice === 'shelved'))).slice(-2)
-  for (const r of unfinished) lines.push('- 你还没弄完：' + String(r.unfinished).slice(0, 50))
-  lines.push('（这些是记录，不是别人告诉你的。要不要接着想，你自己定。）')
+  for (const r of unfinished) lines.push(W.unfinished + String(r.unfinished).slice(0, 50))
+  lines.push(W.tail)
   return lines.join('\n')
 }
 

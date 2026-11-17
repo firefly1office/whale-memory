@@ -83,6 +83,7 @@ test('抽屉：说出口 / 丢掉都是追加事件，原文不删；重复标�
   assert.equal(unsaid.discardUnsaid(dir, { chatKey: OWNER, id: b.id }).noop, false)
   assert.equal(unsaid.discardUnsaid(dir, { chatKey: OWNER, id: b.id }).noop, true)
   assert.match(unsaid.markUnsaidSpoken(dir, { chatKey: OWNER, id: b.id }).error, /已经丢掉了/)
+  assert.match(unsaid.markUnsaidSpoken(dir, { chatKey: OWNER, id: b.id }).error, /already been discarded/)
   assert.match(unsaid.markUnsaidSpoken(dir, { chatKey: OWNER, id: 'unsaid_nope' }).error, /没有这一条/)
 
   assert.deepEqual(unsaid.listUnsaid(dir, { chatKey: OWNER }).items, [], '默认只给开着的')

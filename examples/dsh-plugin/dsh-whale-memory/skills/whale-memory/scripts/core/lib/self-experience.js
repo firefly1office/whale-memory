@@ -26,7 +26,7 @@ function readAll(dir, { rewriting = false } = {}) {
   for (const line of raw.split('\n').filter(line => line.trim())) {
     try { rows.push(JSON.parse(line)) }
     catch {
-      if (rewriting) throw new Error('经历文件含损坏记录，请备份并修复后再修改。')
+      if (rewriting) throw new Error('The experiences file contains corrupted records; back it up and repair it before making changes.（经历文件含损坏记录，请备份并修复后再修改。）')
     }
   }
   return rows
@@ -40,16 +40,16 @@ function feelingList(feeling, { name = 'feeling', perWord = false } = {}) {
   const raw = Array.isArray(feeling) ? feeling : String(feeling || '').split(/[,，、]/)
   const out = []
   for (const f of raw.map((x) => String(x || '').trim()).filter(Boolean)) {
-    if (perWord && f.length > LIMITS.feelingWord) throw new Error(`${name} 里的「${f.slice(0, 10)}…」太长（${f.length}/${LIMITS.feelingWord} 字），感觉写成词就好。`)
+    if (perWord && f.length > LIMITS.feelingWord) throw new Error(`${name} item "${f.slice(0, 10)}…" is too long (${f.length}/${LIMITS.feelingWord} chars); write a feeling as a word, not a sentence.（${name} 里的「${f.slice(0, 10)}…」太长（${f.length}/${LIMITS.feelingWord} 字），感觉写成词就好。）`)
     if (!out.includes(f)) out.push(f)
   }
-  if (out.length > LIMITS.feelings) throw new Error(`${name} 最多 ${LIMITS.feelings} 个，现在是 ${out.length} 个。`)
+  if (out.length > LIMITS.feelings) throw new Error(`${name} allows at most ${LIMITS.feelings} items; got ${out.length}.（${name} 最多 ${LIMITS.feelings} 个，现在是 ${out.length} 个。）`)
   return out
 }
 
 function tooLong(name, value, max) {
   const n = String(value || '').length
-  if (n > max) throw new Error(`${name} 太长（${n}/${max} 字），删一些或拆成两条再写。`)
+  if (n > max) throw new Error(`${name} is too long (${n}/${max} chars); shorten it or split it into two entries.（${name} 太长（${n}/${max} 字），删一些或拆成两条再写。）`)
   return String(value || '')
 }
 
@@ -232,15 +232,15 @@ export function loadAll(dir, { asOf = null } = {}) {
 
 // 事后联想：她发现两件事有关，亲手连起来，并说清为什么。两条都必须存在；同一对只连一次
 export function linkExperiences(dir, { from, to, reason = '' } = {}) {
-  if (!String(from || '').trim() || !String(to || '').trim()) return { ok: false, error: '需要 from 与 to 两条经历的 id' }
-  if (!String(reason || '').trim()) return { ok: false, error: '说一句为什么把它们连起来（reason）。说不出来就先别连。' }
+  if (!String(from || '').trim() || !String(to || '').trim()) return { ok: false, error: 'Need the ids of two experiences: from and to（需要 from 与 to 两条经历的 id）' }
+  if (!String(reason || '').trim()) return { ok: false, error: 'Say why you are linking them (reason). If you cannot say why, do not link them yet.（说一句为什么把它们连起来（reason）。说不出来就先别连。）' }
   try {
     const why = tooLong('reason', String(reason).trim(), LIMITS.laterReason)
     const a = resolveId(dir, String(from))
     const b = resolveId(dir, String(to))
     for (const [x, t] of [[from, a], [to, b]]) {
-      if (t.ambiguous) return { ok: false, error: '这个旧 id 有好几条旧经历共用：' + x + '。用 read 里列出的当前 id。' }
-      if (!t.id) return { ok: false, error: '找不到这条经历：' + x + '。先用 read 看一下 id。' }
+      if (t.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + x + '. Use the current id listed by `read`.（这个旧 id 有好几条旧经历共用：' + x + '。用 read 里列出的当前 id。）' }
+      if (!t.id) return { ok: false, error: 'Experience not found: ' + x + '. Run `read` to check the id.（找不到这条经历：' + x + '。先用 read 看一下 id。）' }
     }
     const res = linkEvents.link(dir, { from: a.id, to: b.id, reason: why })
     return { ok: true, from: a.id, to: b.id, noop: res.noop, ...(res.row ? { at: res.row.at } : {}) }
@@ -252,11 +252,11 @@ export function linkExperiences(dir, { from, to, reason = '' } = {}) {
 // 封存 / 解封：她不想再被这件事主动提醒了，或者又愿意了
 // 不删除任何东西；重复同一个动作不写第二条
 export function setSealed(dir, { id, sealed = true, note = '' } = {}) {
-  if (!String(id || '').trim()) return { ok: false, error: '需要 id' }
+  if (!String(id || '').trim()) return { ok: false, error: 'Missing id（需要 id）' }
   try {
     const target = resolveId(dir, String(id))
-    if (target.ambiguous) return { ok: false, error: '这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id。' }
-    if (!target.id) return { ok: false, error: '找不到这条经历：' + id + '。先用 read 看一下 id。' }
+    if (target.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + id + '. Use the current id listed by `read`.（这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id。）' }
+    if (!target.id) return { ok: false, error: 'Experience not found: ' + id + '. Run `read` to check the id.（找不到这条经历：' + id + '。先用 read 看一下 id。）' }
     const action = sealed ? 'seal' : 'unseal'
     const decided = sealEvents.decide(dir, { id: target.id, action, note: tooLong('note', note, 200) })
     return { ok: true, id: target.id, sealed: Boolean(sealed), at: decided.row ? decided.row.at : '', noop: decided.noop }
@@ -295,13 +295,13 @@ function resolveId(dir, id) {
 function resolveRefs(dir, refs) {
   const list = (Array.isArray(refs) ? refs : String(refs || '').split(/[,，\s]+/)).map((s) => String(s || '').trim()).filter(Boolean)
   if (!list.length) return []
-  if (list.length > LIMITS.refs) throw new Error(`出处最多 ${LIMITS.refs} 条，现在是 ${list.length} 条。挑最主要的几件写。`)
+  if (list.length > LIMITS.refs) throw new Error(`refs allows at most ${LIMITS.refs} entries; got ${list.length}. Pick the most important ones.（出处最多 ${LIMITS.refs} 条，现在是 ${list.length} 条。挑最主要的几件写。）`)
   const { rows, owners } = identify(dir)
   const out = []
   for (const x of list) {
     const hit = rows.find((r) => r.id === x) || rows.find((r) => r.formerId === x)
-    if (!hit && (owners.get(x) || []).length > 1) throw new Error('出处里的旧 id 有几条经历共用：' + x + '。用 read 里列出的当前 id。')
-    if (!hit) throw new Error('出处里有找不到的经历：' + x + '。回想只能引用已经写下的经历。')
+    if (!hit && (owners.get(x) || []).length > 1) throw new Error('A legacy id in refs is shared by several experiences: ' + x + '. Use the current id listed by `read`.（出处里的旧 id 有几条经历共用：' + x + '。用 read 里列出的当前 id。）')
+    if (!hit) throw new Error('refs points to an experience that does not exist: ' + x + '. A look-back can only cite experiences already written.（出处里有找不到的经历：' + x + '。回想只能引用已经写下的经历。）')
     if (!out.includes(hit.id)) out.push(hit.id)
   }
   return out
@@ -310,14 +310,14 @@ function resolveRefs(dir, refs) {
 // 写下时的"当时"：她写的 + 系统能自动带的状态（情绪/时间/场合）
 // refs：这条是从哪几件事想到的（回想、归纳时用）。写入时就校验，引用不存在的经历直接拒绝
 export function addExperience(dir, { text, scene = '', feeling = [], thought = '', unfinished = '', quote = null, weight = 'normal', kind = '其它', state = null, source = 'own-time', refs = [] }) {
-  if (!String(text || '').trim()) throw new Error('text 不能是空的。')
+  if (!String(text || '').trim()) throw new Error('text cannot be empty.（text 不能是空的。）')
   const safeText = tooLong('text', text, LIMITS.text)
   const safeScene = tooLong('scene', scene, LIMITS.scene)
   const safeThought = tooLong('thought', thought, LIMITS.thought)
   const safeUnfinished = tooLong('unfinished', unfinished, LIMITS.unfinished)
   const safeKind = tooLong('kind', kind || '其它', LIMITS.kind)
   const feelings = (Array.isArray(feeling) ? feeling : [feeling]).map((f) => String(f || '').trim()).filter(Boolean)
-  if (feelings.length > LIMITS.feelings) throw new Error(`feeling 最多 ${LIMITS.feelings} 个，现在是 ${feelings.length} 个。`)
+  if (feelings.length > LIMITS.feelings) throw new Error(`feeling allows at most ${LIMITS.feelings} items; got ${feelings.length}.（feeling 最多 ${LIMITS.feelings} 个，现在是 ${feelings.length} 个。）`)
   const refIds = resolveRefs(dir, refs)
 
   fs.mkdirSync(dir, { recursive: true })
@@ -361,15 +361,15 @@ export function addExperience(dir, { text, scene = '', feeling = [], thought = '
 // 先确认这条经历真的在：id 抄错时明说找不到，不留一条谁也看不见的后记
 // feeling：她现在再想起这件事的感觉。当时的感觉留在 then.feeling 里不动；系统从不替她"淡化"
 export function reviseExperience(dir, { id, thought, reason = '', feeling = [] }) {
-  if (!String(id || '').trim()) return { ok: false, error: '需要 id' }
-  if (!String(thought || '').trim()) return { ok: false, error: 'thought 不能是空的。' }
+  if (!String(id || '').trim()) return { ok: false, error: 'Missing id（需要 id）' }
+  if (!String(thought || '').trim()) return { ok: false, error: 'thought cannot be empty.（thought 不能是空的。）' }
   try {
     const safeThought = tooLong('thought', thought, LIMITS.laterThought)
     const safeReason = tooLong('reason', reason, LIMITS.laterReason)
     const feelings = feelingList(feeling, { name: 'feeling', perWord: true })
     const target = resolveId(dir, String(id))
-    if (target.ambiguous) return { ok: false, error: '这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id 来改。' }
-    if (!target.id) return { ok: false, error: '找不到这条经历：' + id + '。先用 read 或 recall 看一下 id。' }
+    if (target.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + id + '. Use the current id listed by `read` to revise it.（这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id 来改。）' }
+    if (!target.id) return { ok: false, error: 'Experience not found: ' + id + '. Run `read` or `recall` to check the id.（找不到这条经历：' + id + '。先用 read 或 recall 看一下 id。）' }
     const row = laterEvents.append(dir, { id: target.id, thought: safeThought, reason: safeReason, feeling: feelings })
     return { ok: true, id: row.id, at: row.at, ...(feelings.length ? { feeling: feelings } : {}) }
   } catch (e) {
@@ -381,14 +381,14 @@ export function reviseExperience(dir, { id, thought, reason = '', feeling = [] }
 // 只追加一条状态事件；不改 then.unfinished，也不写成后记
 // 重复同一个选择不写第二条；没关过的事 reopen 是空操作
 export function setUnfinishedState(dir, { id, choice, note = '' } = {}) {
-  if (!String(id || '').trim()) return { ok: false, error: '需要 id' }
-  if (!unfinishedEvents.CHOICES.has(choice)) return { ok: false, error: 'state 只能是 done / shelved / reopen' }
+  if (!String(id || '').trim()) return { ok: false, error: 'Missing id（需要 id）' }
+  if (!unfinishedEvents.CHOICES.has(choice)) return { ok: false, error: 'state must be done / shelved / reopen（state 只能是 done / shelved / reopen）' }
   try {
     const target = resolveId(dir, String(id))
-    if (target.ambiguous) return { ok: false, error: '这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id。' }
-    if (!target.id) return { ok: false, error: '找不到这条经历：' + id + '。先用 read 或 recall 看一下 id。' }
+    if (target.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + id + '. Use the current id listed by `read`.（这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id。）' }
+    if (!target.id) return { ok: false, error: 'Experience not found: ' + id + '. Run `read` or `recall` to check the id.（找不到这条经历：' + id + '。先用 read 或 recall 看一下 id。）' }
     const row = rowsById(dir, target.id)
-    if (!row || !row.then || !row.then.unfinished) return { ok: false, error: '这条经历没有「还没弄完」的内容，不需要结案。' }
+    if (!row || !row.then || !row.then.unfinished) return { ok: false, error: 'This experience has no "unfinished" part, so there is nothing to close.（这条经历没有「还没弄完」的内容，不需要结案。）' }
 
     // 重读、判断、追加都在同一把锁里：两个进程同时提交同一选择，只有一个会写
     const decided = unfinishedEvents.decide(dir, { id: target.id, choice, note: tooLong('note', note, 200) })
@@ -429,7 +429,7 @@ export function currentView(dir, id, { asOf = null } = {}) {
 // gate：strict 下用哪套门槛。'cover'（默认，0.17 起）= 至少对上一个词 + 意思至少 70% 被接住；
 //       'legacy' = 0.16 及以前的口径（长查询要 60% 的两字词对上），排序也照旧。宿主想保持旧行为时用
 export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover' } = {}) {
-  if (mark && asOf !== null && asOf !== undefined && asOf !== '') throw new Error('翻回旧日子时不记「想起」：mark 和 asOf 不能一起用。')
+  if (mark && asOf !== null && asOf !== undefined && asOf !== '') throw new Error('Looking back at an earlier day does not record a recall: mark and asOf cannot be used together.（翻回旧日子时不记「想起」：mark 和 asOf 不能一起用。）')
   const rows = loadAll(dir, { asOf }).filter((r) => includeSealed || !r.sealed)
   const q = String(query || '')
   const parsed = queryTerms(q)
@@ -489,28 +489,78 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, mi
 const laterDay = (l) => l.day || String(l.at || '').slice(0, 10)
 const sameLater = (a, b) => a === b || (a.at === b.at && a.thought === b.thought)
 
-const refLine = (x) => x.missing ? '（' + x.id + '，找不到了）' : x.sealed ? '（一件你封存了的事）' : x.day + '「' + x.text + '」'
+// 两段式的文字：zh（默认，原样不变）/ en。宿主按自己的用户选；鲸鲸的插件不传 lang，照旧是中文
+const TEXT = {
+  zh: {
+    missing: (id) => '（' + id + '，找不到了）', sealedRef: '（一件你封存了的事）', ref: (x) => x.day + '「' + x.text + '」',
+    then: '【当时】', time: '- 时间：', scene: '- 场景：', quote: '- 我读到的原文：', src: (s) => '（' + s + '）', text: '- 我写下的话：',
+    refs: '- 是从这几件事想到的：', sep: '；', feelSep: '、', feeling: '- 当时的感觉：', thought: '- 当时的想法：', unfinished: '- 还没完的：',
+    mood: '- 记录里的情绪：', legacy: '- （这条只留下感想，当时的原文没记）',
+    asOfHead: (d) => '【那时（截至 ' + d + '）】', asOfNote: (d) => '- 这是截至 ' + d + ' 的样子；那之后写下的后记和选择不在这里',
+    nowHead: '【现在】', nowTime: '- 现在时间：', locale: 'zh-CN',
+    sealed: (s) => '- 这件事你' + (s.afterAsOf ? '后来' : '') + '封存了（' + s.day + '）：不会再被主动想起；它还在，想解封随时可以',
+    recalls: (n, last) => '- 这条被你想起过 ' + n + ' 次' + (last ? '，上次是 ' + last : ''),
+    hit: '- 这次想起它，是因为后来写过：', latest: '- 最近一次回头想：', laterOnly: '- 后来你想过：', day: (d) => '（' + d + '）',
+    more: (all, rest) => '- （后来一共回头想过 ' + all + ' 次，这里没列出的 ' + rest + ' 次可以用 read 看）',
+    felt: '- 后来再想起的感觉：', noLater: '- 还没有文字后记',
+    citedBy: (n, list, more) => '- 后来有 ' + n + ' 条回想提到它：' + list + (more ? '；……' : ''),
+    links: '- 你后来把它和这些事连在一起：', linkReason: (r, d) => '——' + r + '（' + d + '）',
+    chapters: (names) => '- 你把那段日子叫做' + names.map((c) => '「' + c + '」').join('、'),
+    done: (prev) => (prev === 'shelved' ? '放下过，后来想通了' : '后来想通了'),
+    shelved: (prev) => (prev === 'done' ? '想通过一次，后来又决定先放下' : '先放下了，还没想通'),
+    reopen: (prev) => (prev === 'done' ? '想通过一次，后来又决定接着想' : '放下过，后来又决定接着想'),
+    unfinishedState: (u, p, d) => '- 当时没弄完的「' + u + '」：' + p + '（' + d + '）',
+    end: '以上是那天留下的全部；没留下的，我不记得。'
+  },
+  en: {
+    missing: (id) => '(' + id + ', can no longer be found)', sealedRef: '(something you sealed)', ref: (x) => x.day + ' "' + x.text + '"',
+    then: '[Then]', time: '- When: ', scene: '- Scene: ', quote: '- What I read: ', src: (s) => ' (' + s + ')', text: '- What I wrote: ',
+    refs: '- What made me think of it: ', sep: '; ', feelSep: ', ', feeling: '- How I felt then: ', thought: '- What I thought then: ', unfinished: '- Left unfinished: ',
+    mood: '- Mood on record: ', legacy: '- (Only the reflection was kept; the original text was not recorded)',
+    asOfHead: (d) => '[As of ' + d + ']', asOfNote: (d) => '- This is how it looked as of ' + d + '; later notes and choices are not shown',
+    nowHead: '[Now]', nowTime: '- Current time: ', locale: 'en-CA',
+    sealed: (s) => '- You ' + (s.afterAsOf ? 'later ' : '') + 'sealed this (' + s.day + '): it will not be brought up again; it still exists and can be unsealed any time',
+    recalls: (n, last) => '- You have recalled this ' + n + ' time' + (n === 1 ? '' : 's') + (last ? ', last on ' + last : ''),
+    hit: '- Recalled this time because of a later note: ', latest: '- Most recent look back: ', laterOnly: '- Later you thought: ', day: (d) => ' (' + d + ')',
+    more: (all, rest) => '- (You looked back ' + all + ' times in all; the other ' + rest + ' are in `read`)',
+    felt: '- How it felt when recalled later: ', noLater: '- No later notes yet',
+    citedBy: (n, list, more) => '- Later, ' + n + ' look-back' + (n === 1 ? '' : 's') + ' mentioned it: ' + list + (more ? '; …' : ''),
+    links: '- Later you linked it with: ', linkReason: (r, d) => ' — ' + r + ' (' + d + ')',
+    chapters: (names) => '- You call that time ' + names.map((c) => '"' + c + '"').join(', '),
+    done: (prev) => (prev === 'shelved' ? 'set aside once, then resolved' : 'resolved later'),
+    shelved: (prev) => (prev === 'done' ? 'resolved once, then set aside again' : 'set aside, not resolved yet'),
+    reopen: (prev) => (prev === 'done' ? 'resolved once, then picked up again' : 'set aside once, then picked up again'),
+    unfinishedState: (u, p, d) => '- The unfinished "' + u + '": ' + p + ' (' + d + ')',
+    end: 'That is everything left from that day; what was not written down, I do not remember.'
+  }
+}
+const textOf = (lang) => TEXT[lang === 'en' ? 'en' : 'zh']
+const refLineIn = (L) => (x) => x.missing ? L.missing(x.id) : x.sealed ? L.sealedRef : L.ref(x)
+const refLine = refLineIn(TEXT.zh)
 
 // 「当时 / 现在」两段式：模板拼，不调模型；没有的字段就如实说没有
 // 后记：这次是被哪条后记想起的，就把那条原样给她；再给最近的一条。各带各的日子，不截断
 // 翻回那天（entry.viewAsOf）时，第二段是【那时】：只有那天之前的后记和选择
-export function renderTwoPart(entry, { now = new Date() } = {}) {
+// lang：'zh'（默认）或 'en'。只换标签，她写下的内容原样不动
+export function renderTwoPart(entry, { now = new Date(), lang = 'zh' } = {}) {
   if (!entry) return ''
+  const L = textOf(lang)
+  const ref = refLineIn(L)
   const t = entry.then
   const when = new Date(entry.at || entry.day)
   const hh = Number.isNaN(when.getTime()) ? '' : when.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
   const lines = []
-  lines.push('【当时】')
-  lines.push('- 时间：' + (entry.day || '') + (hh ? ' ' + hh : ''))
-  if (t.scene) lines.push('- 场景：' + t.scene)
-  if (t.quote && t.quote.text) lines.push('- 我读到的原文：' + t.quote.text + (t.quote.source ? '（' + t.quote.source + '）' : ''))
-  lines.push('- 我写下的话：' + t.text)
-  if (Array.isArray(entry.refsInfo) && entry.refsInfo.length) lines.push('- 是从这几件事想到的：' + entry.refsInfo.map(refLine).join('；'))
-  if ((t.feeling || []).length) lines.push('- 当时的感觉：' + t.feeling.join('、'))
-  if (t.thought) lines.push('- 当时的想法：' + t.thought)
-  if (t.unfinished) lines.push('- 还没完的：' + t.unfinished)
-  if (t.state && t.state.mood) lines.push('- 记录里的情绪：' + t.state.mood)
-  if (entry.legacy && !t.quote) lines.push('- （这条只留下感想，当时的原文没记）')
+  lines.push(L.then)
+  lines.push(L.time + (entry.day || '') + (hh ? ' ' + hh : ''))
+  if (t.scene) lines.push(L.scene + t.scene)
+  if (t.quote && t.quote.text) lines.push(L.quote + t.quote.text + (t.quote.source ? L.src(t.quote.source) : ''))
+  lines.push(L.text + t.text)
+  if (Array.isArray(entry.refsInfo) && entry.refsInfo.length) lines.push(L.refs + entry.refsInfo.map(ref).join(L.sep))
+  if ((t.feeling || []).length) lines.push(L.feeling + t.feeling.join(L.feelSep))
+  if (t.thought) lines.push(L.thought + t.thought)
+  if (t.unfinished) lines.push(L.unfinished + t.unfinished)
+  if (t.state && t.state.mood) lines.push(L.mood + t.state.mood)
+  if (entry.legacy && !t.quote) lines.push(L.legacy)
   // 截在一天的最后一刻就只写日期；截在一天当中就写到分钟，免得让人以为整天都算进去了
   let asOfDay = ''
   if (entry.viewAsOf) {
@@ -519,38 +569,38 @@ export function renderTwoPart(entry, { now = new Date() } = {}) {
     asOfDay = dayOf(d.getTime()) + (endOfDay ? '' : ' ' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }))
   }
   if (asOfDay) {
-    lines.push('', '【那时（截至 ' + asOfDay + '）】')
-    lines.push('- 这是截至 ' + asOfDay + ' 的样子；那之后写下的后记和选择不在这里')
+    lines.push('', L.asOfHead(asOfDay))
+    lines.push(L.asOfNote(asOfDay))
   } else {
-    lines.push('', '【现在】')
-    lines.push('- 现在时间：' + now.toLocaleString('zh-CN', { hour12: false }))
+    lines.push('', L.nowHead)
+    lines.push(L.nowTime + now.toLocaleString(L.locale, { hour12: false }))
   }
-  if (entry.sealed) lines.push('- 这件事你' + (entry.sealed.afterAsOf ? '后来' : '') + '封存了（' + entry.sealed.day + '）：不会再被主动想起；它还在，想解封随时可以')
-  lines.push('- 这条被你想起过 ' + Number(entry.recalls || 0) + ' 次' + (entry.lastRecalledAt ? '，上次是 ' + String(entry.lastRecalledAt).slice(0, 10) : ''))
+  if (entry.sealed) lines.push(L.sealed(entry.sealed))
+  lines.push(L.recalls(Number(entry.recalls || 0), entry.lastRecalledAt ? String(entry.lastRecalledAt).slice(0, 10) : ''))
   const later = Array.isArray(entry.later) ? entry.later : []
   if (later.length) {
     const last = later[later.length - 1]
     const hits = (entry.matchedLater || []).filter((l) => !sameLater(l, last))
-    for (const l of hits) lines.push('- 这次想起它，是因为后来写过：' + String(l.thought || '') + '（' + laterDay(l) + '）')
-    lines.push((hits.length ? '- 最近一次回头想：' : '- 后来你想过：') + String(last.thought || '') + '（' + laterDay(last) + '）')
+    for (const l of hits) lines.push(L.hit + String(l.thought || '') + L.day(laterDay(l)))
+    lines.push((hits.length ? L.latest : L.laterOnly) + String(last.thought || '') + L.day(laterDay(last)))
     const shown = hits.length + 1
-    if (later.length > shown) lines.push('- （后来一共回头想过 ' + later.length + ' 次，这里没列出的 ' + (later.length - shown) + ' 次可以用 read 看）')
+    if (later.length > shown) lines.push(L.more(later.length, later.length - shown))
     // 后来再想起时的感觉：取最近一条写了感觉的后记；她没写，就不替她说
     const felt = [...later].reverse().find((l) => Array.isArray(l.feeling) && l.feeling.length)
-    if (felt) lines.push('- 后来再想起的感觉：' + felt.feeling.join('、') + '（' + laterDay(felt) + '）')
+    if (felt) lines.push(L.felt + felt.feeling.join(L.feelSep) + L.day(laterDay(felt)))
   } else {
-    lines.push('- 还没有文字后记')
+    lines.push(L.noLater)
   }
   if (Array.isArray(entry.citedBy) && entry.citedBy.length) {
     const shownRefs = entry.citedBy.slice(-3)
-    lines.push('- 后来有 ' + entry.citedBy.length + ' 条回想提到它：' + shownRefs.map(refLine).join('；') + (entry.citedBy.length > shownRefs.length ? '；……' : ''))
+    lines.push(L.citedBy(entry.citedBy.length, shownRefs.map(ref).join(L.sep), entry.citedBy.length > shownRefs.length))
   }
   // 事后联想：另一头封存了的，连理由也不给（理由本身也会把那件事带回来）
   if (Array.isArray(entry.links) && entry.links.length) {
-    lines.push('- 你后来把它和这些事连在一起：' + entry.links.map((l) => l.sealed ? refLine(l) : refLine(l) + '——' + l.reason + '（' + l.linkDay + '）').join('；'))
+    lines.push(L.links + entry.links.map((l) => l.sealed ? ref(l) : ref(l) + L.linkReason(l.reason, l.linkDay)).join(L.sep))
   }
   if (Array.isArray(entry.chapters) && entry.chapters.length) {
-    lines.push('- 你把那段日子叫做' + entry.chapters.map((c) => '「' + c.name + '」').join('、'))
+    lines.push(L.chapters(entry.chapters.map((c) => c.name)))
   }
   const st = entry.unfinishedState
   if (st && t.unfinished) {
@@ -558,13 +608,10 @@ export function renderTwoPart(entry, { now = new Date() } = {}) {
     const history = st.history || []
     // 只看最近一次决定之前的那一次，不用 includes 猜
     const prev = history.length >= 2 ? history[history.length - 2] : ''
-    let phrase = ''
-    if (st.choice === 'done') phrase = prev === 'shelved' ? '放下过，后来想通了' : '后来想通了'
-    else if (st.choice === 'shelved') phrase = prev === 'done' ? '想通过一次，后来又决定先放下' : '先放下了，还没想通'
-    else if (st.choice === 'reopen') phrase = prev === 'done' ? '想通过一次，后来又决定接着想' : '放下过，后来又决定接着想'
-    if (phrase) lines.push('- 当时没弄完的「' + t.unfinished + '」：' + phrase + '（' + when2 + '）')
+    const phrase = L[st.choice] ? L[st.choice](prev) : ''
+    if (phrase) lines.push(L.unfinishedState(t.unfinished, phrase, when2))
   }
-  lines.push('', '以上是那天留下的全部；没留下的，我不记得。')
+  lines.push('', L.end)
   return lines.join('\n')
 }
 

@@ -6,7 +6,7 @@ export function parseAsOf(v) {
   if (v === undefined || v === null || v === '') return null
   if (v instanceof Date) {
     const t = v.getTime()
-    if (!Number.isFinite(t)) throw new Error('as-of 时间不合法。')
+    if (!Number.isFinite(t)) throw new Error('Invalid as-of time.（as-of 时间不合法。）')
     return t
   }
   const s = String(v).trim()
@@ -14,11 +14,11 @@ export function parseAsOf(v) {
   if (day) {
     const [y, m, d] = [Number(day[1]), Number(day[2]), Number(day[3])]
     const end = new Date(y, m - 1, d, 23, 59, 59, 999)
-    if (end.getFullYear() !== y || end.getMonth() !== m - 1 || end.getDate() !== d) throw new Error('as-of 日期不存在：' + s)
+    if (end.getFullYear() !== y || end.getMonth() !== m - 1 || end.getDate() !== d) throw new Error('as-of date does not exist: ' + s + '（as-of 日期不存在：' + s + '）')
     return end.getTime()
   }
   const t = Date.parse(s)
-  if (!Number.isFinite(t)) throw new Error('as-of 时间看不懂：' + s + '（用 2026-11-15 这样的日期，或完整的 ISO 时间）')
+  if (!Number.isFinite(t)) throw new Error('Cannot parse as-of time: ' + s + ' (use a date like 2026-11-15, or a full ISO time).（as-of 时间看不懂：' + s + '（用 2026-11-15 这样的日期，或完整的 ISO 时间））')
   return t
 }
 

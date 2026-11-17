@@ -38,8 +38,8 @@ function appendUnlocked(memDir, row) {
 
 // 同一把锁里「重读当前状态 → 判断 → 追加」：已经封存的再封存、没封存的解封，都是空操作，不写第二条
 export function decide(memDir, { id, action, note = '' } = {}, opts = {}) {
-  if (!String(id || '').trim()) throw new Error('id 不能为空')
-  if (!ACTIONS.has(action)) throw new Error('action 只能是 seal / unseal')
+  if (!String(id || '').trim()) throw new Error('id cannot be empty（id 不能为空）')
+  if (!ACTIONS.has(action)) throw new Error('action must be seal / unseal（action 只能是 seal / unseal）')
   fs.mkdirSync(memDir, { recursive: true })
   return withFileLock(eventsFile(memDir) + '.lock', () => {
     const rows = readAll(memDir).rows.filter((r) => r.id === String(id))

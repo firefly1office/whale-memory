@@ -15,5 +15,6 @@ if (!files.length) {
 }
 
 console.log('测试文件：' + files.map((f) => path.basename(f)).join(', '))
-const res = spawnSync(process.execPath, ['--test', ...files], { stdio: 'inherit' })
+// 输出语言固定成中文：断言里的标签是中文；英文另有专门的测试显式传 --lang en
+const res = spawnSync(process.execPath, ['--test', ...files], { stdio: 'inherit', env: { ...process.env, WHALE_LANG: process.env.WHALE_LANG || 'zh' } })
 process.exit(res.status === null ? 1 : res.status)

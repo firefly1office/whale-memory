@@ -146,7 +146,8 @@ export function setSealed(dir: string, opts: { id: string; sealed?: boolean; not
   error?: string
 }
 
-export function renderTwoPart(entry: Experience, opts?: { now?: Date }): string
+/** lang：'zh'（默认）或 'en'，只换标签，她写下的内容原样 */
+export function renderTwoPart(entry: Experience, opts?: { now?: Date; lang?: 'zh' | 'en' }): string
 
 export interface PendingLegacyEvents {
   /** 几条旧经历共用的旧 id */

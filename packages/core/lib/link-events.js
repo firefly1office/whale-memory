@@ -13,8 +13,8 @@ const pair = (a, b) => [String(a), String(b)].sort().join('|')
 
 // 同一对经历（不分方向）只连一次；重复提交是 noop
 export function link(memDir, { from, to, reason }, opts = {}) {
-  if (!from || !to) throw new Error('需要两条经历的 id')
-  if (String(from) === String(to)) throw new Error('不能把一件事和它自己连起来。')
+  if (!from || !to) throw new Error('Need the ids of two experiences（需要两条经历的 id）')
+  if (String(from) === String(to)) throw new Error('Cannot link an experience to itself.（不能把一件事和它自己连起来。）')
   return log.decide(memDir, (rows) => rows.some((r) => pair(r.from, r.to) === pair(from, to))
     ? null
     : { from: String(from), to: String(to), ...stamp(), reason: String(reason) }, opts)

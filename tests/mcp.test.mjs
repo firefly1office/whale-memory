@@ -56,6 +56,8 @@ for (const entry of ENTRIES) {
     assert.equal(c.init.result.protocolVersion, '2025-06-18')
     assert.equal(c.init.result.serverInfo.name, 'whale-memory')
     assert.match(c.init.result.instructions, /不要编/)
+    assert.match(c.init.result.instructions, /do not make anything up/)
+    for (const tool of (await c.request('tools/list')).result.tools) assert.match(tool.description, /^[A-Za-z][^\p{Script=Han}]*（.*\p{Script=Han}/u,tool.name + '：description 英文在前、中文在后')
     const names = (await c.request('tools/list')).result.tools.map((x) => x.name)
     for (const n of ['memory_recall', 'memory_read', 'memory_write', 'memory_revise', 'memory_unfinished', 'memory_seal', 'memory_link', 'memory_chapter', 'memory_recap', 'memory_book', 'memory_waking', 'memory_chapters']) assert.ok(names.includes(n), n)
     assert.ok(!names.includes('memory_unsaid'), '没给 --owner 时抽屉不出现')
@@ -154,6 +156,7 @@ test('MCP：--readonly 只给读的工具，醒来只看不占用', async (t) =>
   assert.match((await c.call('memory_waking', {})).data.block, /还没弄完的/, '只读模式不算今天已经醒来')
   const t2 = await c.request('tools/call', { name: 'memory_write', arguments: { text: 'x' } })
   assert.equal(t2.error.code, -32602)
+  assert.match(t2.error.message, /^No such tool: memory_write（没有这个工具：memory_write）$/)
 })
 
 test('MCP：坏输入都有明确答复，进程不崩', async (t) => {

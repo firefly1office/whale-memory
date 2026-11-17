@@ -68,6 +68,7 @@ test('翻回那天：只写日期时，截到那天本地时间的最后一刻�
   assert.equal(view.unfinishedState.choice, 'done')
   assert.match(exp.renderTwoPart(view), new RegExp('【那时（截至 ' + day2 + '）】'))
   assert.throws(() => parseAsOf('2026-02-30'), /日期不存在/)
+  assert.throws(() => parseAsOf('2026-02-30'), /as-of date does not exist: 2026-02-30/)
   assert.throws(() => parseAsOf('上周二'), /看不懂/)
 })
 

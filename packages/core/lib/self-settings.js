@@ -25,7 +25,7 @@ function readSaved(f) {
     const j = JSON.parse(raw)
     if (j && typeof j === 'object' && !Array.isArray(j)) return j
   } catch { }
-  throw new Error('设置文件损坏（' + f + '），先备份并修好再改，避免把她改过的设置冲掉。')
+  throw new Error('Settings file is corrupted (' + f + '); back it up and fix it before changing settings, so her saved settings are not overwritten.（设置文件损坏（' + f + '），先备份并修好再改，避免把她改过的设置冲掉。）')
 }
 
 // 读的时候宽容：坏了就先按默认跑，不让宿主起不来；写的时候才严格
@@ -34,7 +34,7 @@ export function load(dataDir) {
 }
 
 export function save(dataDir, patch, reason = '') {
-  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('设置要是一个对象，例如 {"readingPerDay": 50}。')
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('Settings must be an object, e.g. {"readingPerDay": 50}.（设置要是一个对象，例如 {"readingPerDay": 50}。）')
   const f = fileOf(dataDir)
   fs.mkdirSync(path.dirname(f), { recursive: true })
   const next = withFileLock(f + '.lock', () => {

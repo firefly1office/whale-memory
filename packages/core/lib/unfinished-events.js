@@ -42,8 +42,8 @@ function appendUnlocked(memDir, row) {
 }
 
 export function append(memDir, { id, choice, note = '' } = {}, opts = {}) {
-  if (!String(id || '').trim()) throw new Error('id 不能为空')
-  if (!CHOICES.has(choice)) throw new Error('choice 只能是 done / shelved / reopen')
+  if (!String(id || '').trim()) throw new Error('id cannot be empty（id 不能为空）')
+  if (!CHOICES.has(choice)) throw new Error('choice must be done / shelved / reopen（choice 只能是 done / shelved / reopen）')
   const row = makeRow({ id, choice, note })
   fs.mkdirSync(memDir, { recursive: true })
   return withFileLock(eventsFile(memDir) + '.lock', () => appendUnlocked(memDir, row), opts)
@@ -52,8 +52,8 @@ export function append(memDir, { id, choice, note = '' } = {}, opts = {}) {
 // 在同一个锁里「重读最近状态 → 判断 → 追加」：
 // 两个进程同时提交同一选择，第二个会看到第一个的结果并返回 noop，不会写出第二条
 export function decide(memDir, { id, choice, note = '' } = {}, opts = {}) {
-  if (!String(id || '').trim()) throw new Error('id 不能为空')
-  if (!CHOICES.has(choice)) throw new Error('choice 只能是 done / shelved / reopen')
+  if (!String(id || '').trim()) throw new Error('id cannot be empty（id 不能为空）')
+  if (!CHOICES.has(choice)) throw new Error('choice must be done / shelved / reopen（choice 只能是 done / shelved / reopen）')
   fs.mkdirSync(memDir, { recursive: true })
   return withFileLock(eventsFile(memDir) + '.lock', () => {
     const rows = readAll(memDir).rows.filter((r) => r.id === String(id))

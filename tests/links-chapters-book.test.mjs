@@ -71,6 +71,7 @@ test('事后联想：要理由、不能连自己、两条都得在；同一对�
   assert.match(exp.linkExperiences(dir, { from: a.id, to: b.id }).error, /为什么/)
   assert.match(exp.linkExperiences(dir, { from: a.id, to: a.id, reason: 'x' }).error, /和它自己/)
   assert.match(exp.linkExperiences(dir, { from: a.id, to: 'exp_nope', reason: 'x' }).error, /找不到这条经历：exp_nope/)
+  assert.match(exp.linkExperiences(dir, { from: a.id, to: 'exp_nope', reason: 'x' }).error, /^Experience not found: exp_nope\. .*（找不到这条经历：exp_nope。/)
   assert.equal(fs.existsSync(linkEvents.eventsFile(dir)), false)
 
   const worker = path.join(dir, 'link-worker.mjs')
@@ -108,6 +109,7 @@ test('人生章节：名字、日期都要合法；重复开是空操作；改�
   assert.equal(chapterEvents.open(dir, { name: '秋天', from: '2026-11-01' }).noop, true)
   assert.equal(chapterEvents.rename(dir, { id: first.row.id, name: '秋天' }).noop, true, '同名不算改名')
   assert.throws(() => chapterEvents.rename(dir, { id: 'ch_nope', name: '冬天' }), /找不到这个章节/)
+  assert.throws(() => chapterEvents.rename(dir, { id: 'ch_nope', name: '冬天' }), /^Error: Chapter not found: ch_nope（找不到这个章节：ch_nope）$/)
   assert.throws(() => chapterEvents.close(dir, { id: first.row.id, to: '2026-10-01' }), /早于开始日期/)
   assert.equal(chapterEvents.close(dir, { id: first.row.id, to: '2026-11-30' }).noop, false)
   assert.equal(chapterEvents.chapters(dir)[0].to, '2026-11-30')
