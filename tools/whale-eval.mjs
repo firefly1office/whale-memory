@@ -17,6 +17,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import * as exp from '../packages/core/lib/self-experience.js'
 import * as mem from '../packages/core/lib/self-memory.js'
+import { recallDetail } from '../packages/core/lib/detail-recall.js'
 import * as waking from '../packages/core/lib/waking.js'
 import * as chapterEvents from '../packages/core/lib/chapter-events.js'
 import * as unsaid from '../packages/core/lib/unsaid.js'
@@ -104,11 +105,27 @@ const markers = [
   ...Object.entries(corpus.sealedMarkers).flatMap(([id, ms]) => ms.map((m) => ({ kind: '封存', id, text: m }))),
   ...corpus.unsaidMarkers.map((m) => ({ kind: '抽屉', id: '', text: m }))
 ]
+const detailCases = holdout.recall.filter(c => c.type === 'attr').map(c => {
+  const start = performance.now()
+  const result = recallDetail(M, c.query)
+  return { query: c.query, hit: result.candidates.some(item => c.expect.includes(item.id)),
+    status: result.status, value: result.value, ms: performance.now() - start,
+    chars: JSON.stringify(result).length }
+})
+const lostDetailHits = [...cases.recall, ...holdout.recall].filter(c => c.expect.length).filter(c => {
+  const old = exp.recall(M, c.query)
+  return old.some(r => c.expect.includes(r.id)) &&
+    !recallDetail(M, c.query).candidates.some(r => c.expect.includes(r.id))
+}).map(c => c.query)
 const asOf = corpus.asOfBeforeSeal
 const surfaces = []
 const look = (name, text) => surfaces.push({ name, text: typeof text === 'string' ? text : JSON.stringify(text) })
 
 // 核心库
+for (const m of markers) {
+  look('detail', recallDetail(M, m.text + '是什么颜色'))
+  look('detail 翻回那天', recallDetail(M, m.text + '是什么颜色', { asOf }))
+}
 for (const m of markers) for (const mode of ['strict', 'loose']) {
   look('recall ' + mode, exp.recall(M, m.text, { limit: 10, mode }).map(exp.renderTwoPart))
   look('recall ' + mode + ' 翻回那天', exp.recall(M, m.text, { limit: 10, mode, asOf }).map(exp.renderTwoPart))
@@ -179,7 +196,9 @@ const immut = { fileUnchanged: bytesAfter.equals(bytesBefore), thenChanged }
 fs.rmSync(data, { recursive: true, force: true })
 
 // ── 汇总 ────────────────────────────────────────────────────────────────
+if (!asJson) console.log('细节旧漏题：正确经历进入前三 ' + detailCases.filter(c => c.hit).length + '/' + detailCases.length)
 const report = {
+  detailCases, lostDetailHits,
   corpus: { experiences: corpus.experiences.length, operations: corpus.operations.length, recallCases: cases.recall.length, holdoutCases: holdout.recall.length, leakChecks: surfaces.length * markers.length },
   recall: { strict: recallStrict, loose: recallLoose, legacy: legacyDev },
   holdout: { strict: holdStrict, loose: holdLoose, legacy: legacyHold },
@@ -188,6 +207,8 @@ const report = {
   immutability: immut
 }
 const gates = [
+  ['细节查询保住既有正例的前三命中', lostDetailHits.length === 0],
+  ['缺失的细节不生成答案值', detailCases.every(c => c.value === null)],
   ['封存和抽屉外露次数 = 0', leaks.length === 0],
   ['对照：点名读和抽屉自己能看到', control.sealedNamedRead && control.unsaidOwnerList && control.unsaidGroupRefused],
   ['经历文件逐字节不变', immut.fileUnchanged && thenChanged.length === 0],

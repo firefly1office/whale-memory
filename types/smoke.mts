@@ -1,6 +1,10 @@
 // 类型冒烟：CI 里用 tsc --strict 跑这个文件，保证 .d.ts 与导出对得上
 import { selfExperience, evidencePolicy, evidenceFromExperience, selfPrompt, waking, unfinishedEvents, sealEvents, recap, linkEvents, chapterEvents, book, unsaid, archive } from '../packages/core/index.js'
 
+import { recallDetail } from '../packages/core/index.js'
+const detail = recallDetail('/tmp/whale', '围巾是什么颜色')
+const excerpt: string | undefined = detail.candidates[0]?.evidence[0]?.text
+console.log(detail.status, excerpt)
 const rows = selfExperience.loadAll('/tmp/whale')
 const made = selfExperience.addExperience('/tmp/whale', { text: '灯塔', weight: 'important' })
 selfExperience.reviseExperience('/tmp/whale', { id: made.id, thought: '在等船' })

@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import * as exp from '../../packages/core/lib/self-experience.js'
+import { recallDetail } from '../../packages/core/lib/detail-recall.js'
 import * as mem from '../../packages/core/lib/self-memory.js'
 import * as waking from '../../packages/core/lib/waking.js'
 import * as prompt from '../../packages/core/lib/self-prompt.js'
@@ -204,6 +205,8 @@ try {
       refs: arg('refs', '') || ''
     })
     out({ ok: true, id: row.id, day: row.day, ...(row.then.refs ? { refs: row.then.refs } : {}) })
+  } else if (cmd === 'detail') {
+    out(recallDetail(MEM_DIR, arg('query'), { asOf: arg('as-of') || null }))
   } else if (cmd === 'recall') {
     // 空 query = 最近 N 条（不是“什么都不返回”）；想看最近就用空 query，想按相关度就给词
     const q = arg('query', '') || ''
@@ -361,6 +364,7 @@ try {
     out({
       ok: false,
       usage: [
+        'detail --query "那条围巾是什么颜色？" [--as-of YYYY-MM-DD]   recall candidates and check the requested detail（只读，附经历出处与核对结果）',
         'Global: --data <data-root>   data root that contains plugin-data/; if omitted, WHALE_DATA_DIR, then ./data（全局：--data <数据根目录>（下面有 plugin-data/；不给就用 WHALE_DATA_DIR，再不给用 ./data））',
         'write --text "..." [--scene .. --feeling a,b --thought .. --unfinished .. --quote .. --source .. --weight important|normal|minor --kind 读书 --refs id1,id2]   --refs: which experiences this one grew out of; they must already be written（--refs：这条是从哪几件事想到的，必须是已写下的经历）',
         'recall --query "..." [--limit 3] [--mark true] [--mode strict|loose] [--as-of 2026-11-15] [--sealed true]   empty query = the latest N; read-only by default; strict prefers returning nothing over a loose match; --as-of searches the self of that day; sealed ones are not recalled by default（空 query = 最近 N 条；默认只读，strict 宁可不召回；--as-of 在那天的自己里找；默认不召回她封存的）',

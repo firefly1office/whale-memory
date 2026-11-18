@@ -1,0 +1,14 @@
+[
+  {"query":"风筝是什么颜色？","records":["风筝是淡黄色的。"],"status":"supported","value":"淡黄色"},
+  {"query":"你还记得那本字帖多少钱吗？","records":["字帖的价格是18元。"],"status":"supported","value":"18元"},
+  {"query":"耳机是什么品牌","records":["耳机的品牌是星图。"],"status":"supported","value":"星图"},
+  {"query":"冰箱贴的颜色","records":["挑了海豚形状的冰箱贴，贴在柜门上。","杯垫是绿色的。"],"status":"related","id":"r0"},
+  {"query":"自行车是什么牌子的","records":["推着自行车过桥，车筐里装着青菜。","自行车锁的品牌是北斗。"],"status":"ambiguous","id":"r0"},
+  {"query":"阿晴的纸袋是什么颜色","records":["阿梨的纸袋是棕色。"],"status":"unmatched"},
+  {"query":"校牌是什么颜色","records":["校牌可能是蓝色，等明天确认。"],"status":"related","id":"r0"},
+  {"query":"画册多少钱","records":["画册的价格是五元。","画册的价格是八元。"],"status":"ambiguous"},
+  {"query":"封套的颜色","records":["封套是蓝色。旁边那个标签是白色的。"],"status":"related","id":"r0"},
+  {"query":"炒锅的品牌","records":["炒锅的品牌是东山。"],"sealed":true,"status":"unmatched"},
+  {"query":"杯盖是什么颜色","records":["杯盖是粉色。"],"later":"换了一个。","asOf":"2026-01-02","status":"supported","value":"粉色"},
+  {"query":"杯盖是什么颜色","records":["杯盖是粉色。"],"later":"换了一个。","status":"related","id":"r0"}
+]

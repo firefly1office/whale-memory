@@ -2,6 +2,7 @@
 // 只放通用模块；宿主相关的工具注册与提示词拼接由使用者自己实现
 export * as selfExperience from './lib/self-experience.js'
 export * as selfMemory from './lib/self-memory.js'
+export { recallDetail } from './lib/detail-recall.js'
 export * as waking from './lib/waking.js'
 export * as selfPrompt from './lib/self-prompt.js'
 export * as selfSettings from './lib/self-settings.js'

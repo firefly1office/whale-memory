@@ -34,8 +34,20 @@ function countLines(file) {
 
 // a 是否等于 b 或在 b 里面（都按解析后的绝对路径比）
 export function inside(a, b) {
-  const x = path.resolve(a), y = path.resolve(b)
-  return x === y || x.startsWith(y + path.sep)
+  const relative = path.relative(physicalPath(b), physicalPath(a))
+  return relative === '' || (!path.isAbsolute(relative) && relative !== '..' && !relative.startsWith('..' + path.sep))
+}
+
+// Resolve existing parents too, so junctions and differently cased Windows paths
+// cannot disguise overlapping source and destination directories.
+function physicalPath(file) {
+  const abs = path.resolve(file)
+  try { return fs.realpathSync(abs) } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+    const parent = path.dirname(abs)
+    if (parent === abs) throw error
+    return path.join(physicalPath(parent), path.basename(abs))
+  }
 }
 
 // 导出包里的相对路径：正反斜杠、绝对路径、盘符相对路径、任何 '..' 段都拒绝，
@@ -107,8 +119,10 @@ export function verifyArchive(fromDir) {
     const n = String(f.name || '')
     const abs = safeJoin(src, n)
     if (!fs.existsSync(abs)) throw new Error('File missing from export: ' + n + '（导出缺少文件：' + n + '）')
+    if (!inside(abs, src)) throw new Error('File link escapes export directory: ' + n + '（文件链接越出导出目录）')
     const buf = fs.readFileSync(abs)
     if (sha256(buf) !== f.sha256) throw new Error('Checksum mismatch: ' + n + '（文件校验不通过：' + n + '）')
+    if (buf.length !== f.bytes) throw new Error('File size mismatch: ' + n + '（文件大小校验不通过）')
   }
   return manifest
 }
@@ -116,20 +130,42 @@ export function verifyArchive(fromDir) {
 // 恢复：先整包校验；目标已有数据时默认拒绝，force 会先把现有目录改名备份
 export function importArchive(fromDir, memDir, { force = false } = {}) {
   const src = path.resolve(fromDir)
+  if (inside(src, memDir) || inside(memDir, src)) throw new Error('Import source and target directories must not overlap（导入源与目标目录不能互相包含）')
   const manifest = verifyArchive(src)
   const exists = fs.existsSync(memDir) && fs.readdirSync(memDir).length > 0
   if (exists && !force) throw new Error('Target already has data: ' + memDir + '. To overwrite, add --force true (the existing data is backed up first).（目标已有数据：' + memDir + '。确认覆盖请加 --force true（会先备份））')
+  const target = path.resolve(memDir)
+  fs.mkdirSync(path.dirname(target), { recursive: true })
+  const stage = fs.mkdtempSync(target + '.import-stage-')
   let backup = ''
-  if (exists && force) {
-    backup = memDir + '.pre-import-' + stamp()
-    fs.renameSync(memDir, backup)
+  let moved = false
+  try {
+    for (const f of manifest.files) {
+      const source = safeJoin(src, f.name)
+      if (!inside(source, src)) throw new Error('File link escapes export directory: ' + f.name)
+      const dest = safeJoin(stage, f.name)
+      fs.mkdirSync(path.dirname(dest), { recursive: true })
+      fs.copyFileSync(source, dest)
+      const copied = fs.readFileSync(dest)
+      if (copied.length !== f.bytes || sha256(copied) !== f.sha256) {
+        throw new Error('Export changed during import: ' + f.name + '（导入期间备份内容发生变化）')
+      }
+    }
+    const loaded = loadAll(stage)
+    if (exists && force) {
+      backup = target + '.pre-import-' + stamp() + '-' + crypto.randomUUID()
+      fs.renameSync(target, backup)
+      moved = true
+    } else if (fs.existsSync(target)) {
+      // rmdir only accepts an empty directory; concurrent new data is preserved.
+      fs.rmdirSync(target)
+    }
+    try { fs.renameSync(stage, target) } catch (error) {
+      if (moved) fs.renameSync(backup, target)
+      throw error
+    }
+    return { ok: true, files: manifest.files.length, restoreTo: memDir, backup, counts: { experiences: loaded.length } }
+  } finally {
+    fs.rmSync(stage, { recursive: true, force: true })
   }
-  fs.mkdirSync(memDir, { recursive: true })
-  for (const f of manifest.files) {
-    const dest = safeJoin(memDir, f.name)
-    fs.mkdirSync(path.dirname(dest), { recursive: true })
-    fs.copyFileSync(safeJoin(src, f.name), dest)
-  }
-  const loaded = loadAll(memDir)
-  return { ok: true, files: manifest.files.length, restoreTo: memDir, backup, counts: { experiences: loaded.length } }
 }

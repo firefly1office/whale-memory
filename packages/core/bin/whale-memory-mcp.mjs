@@ -18,6 +18,7 @@ import path from 'node:path'
 import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
 import * as exp from '../lib/self-experience.js'
+import { recallDetail } from '../lib/detail-recall.js'
 import * as waking from '../lib/waking.js'
 import * as chapterEvents from '../lib/chapter-events.js'
 import * as recapLib from '../lib/recap.js'
@@ -54,6 +55,12 @@ const feelingNow = (r) => { const l = [...(r.later || [])].reverse().find((x) =>
 export function buildTools(cfg) {
   const M = cfg.mem
   const tools = [
+    {
+      name: 'memory_detail', title: '回想一件事的细节', annotations: READ,
+      description: 'Look up a detail in visible experiences. Only supported supplies a value. Related gives excerpts to check, ambiguous gives alternatives, unmatched means this search found nothing.（查经历的细节，只有 supported 提供值。related 给原文待核对，ambiguous 有多条可能，unmatched 表示本次没查到。）',
+      inputSchema: S({ query: str('完整问题，保留人物、时间和否定'), asOf: ASOF }, ['query']),
+      run: (a) => recallDetail(M, a.query, { asOf: a.asOf || null })
+    },
     {
       name: 'memory_recall', title: '想起', annotations: READ,
       description: 'Recall your own experiences related to this. If nothing is found, an empty list comes back: none means none, do not make anything up. Sealed experiences are never recalled. Empty query = the latest few.（从自己的经历里想起和这件事有关的。召回不到就返回空列表——没有就是没有，不要编。封存了的不会被想起。空 query = 最近几条。）',
@@ -204,7 +211,7 @@ export function buildTools(cfg) {
 const INSTRUCTIONS = [
   'This is the autobiographical memory of an AI character, kept by herself. Three rules:（这是一个 AI 角色自己的自传体记忆。三条规矩：）',
   '1. What was written then is never changed; if a view changes, append with memory_revise.（1. 当时写下的永远不改；想法变了用 memory_revise 追加。）',
-  '2. If you cannot remember, say so: an empty memory_recall result means there is no record of it, so do not make anything up. A non-empty result only means she wrote about something related; check the details in the question against the record, and if they do not match, say so plainly.（2. 想不起来就说想不起来：memory_recall 返回空，就是没有这件事的记录，不要编。返回了东西，也只说明她写过相关的事——问题里的细节要和记录对一下，对不上就照实说。）',
+  '2. An empty result means this search found nothing; do not make anything up. For a specific detail use memory_detail; distinguish related events from support for an answer.（2. 查空只说明这次没找到，不要编。核对细节时用 memory_detail，按原文能支持的范围回答。）',
   '3. Do not bring up what she has sealed; only she opens the unsaid drawer.（3. 她封存了的事不要主动提起；没说出口的抽屉只有她自己打开。）'
 ].join('\n')
 

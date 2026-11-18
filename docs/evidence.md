@@ -66,6 +66,14 @@ bridge.ask(experiences, { slot: 'mood', at: '2026-11-11T00:00:00+08:00' })
 
 ---
 
+## 追问经历里的细节
+
+在项目根目录执行 `node adapters/cli/memory-cli.mjs detail --data <数据根目录> --query "那条围巾是什么颜色？"`。JavaScript 可从 `whale-memory-core` 导入 `recallDetail`，传记忆目录和完整问题。MCP 工具名为 `memory_detail`。CLI 的 `--as-of` 和库的 `{ asOf }` 可以限定可见时间。宿主应先按会话选择允许读取的记忆目录。
+
+结果最多带三条候选，每条有经历 ID、日期和带字段出处的原文摘录。只有 `supported` 有直接提取的值；`related` 表示可结合原文核对，`ambiguous` 表示有多条可能，`unmatched` 表示本次查询无候选。仅词语同现时标为 `match: "terms"`，据此还无法判定谁借给谁。候选为零或三条候选均缺细节时，都应限定在本次查询范围内回答。
+
+首版识别部分中文问法，可从主体明确、单句直接记录的颜色、品牌和元价中提取原文值。复杂叙述、猜测、冲突或追加后记时优先提供摘录。摘录可以由宿主在当前回合阅读，工具自身只读，不调用模型。通用召回与自动注入仍由原有入口提供。
+
 ## English
 
 `evidence-policy.js` is a testable subset of the full engine: judgment only, no storage. It implements **as-of**, **supersession**, and **absence of successor**, over generic facts `{subject, slot, value, at, supersedes?}`. `query()` returns `known` with evidence chain, or `unknown` with a reason — never a guess. Facts are a different layer from experiences: experiences are self-authored and never overwritten; facts are extracted claims that can be superseded.
