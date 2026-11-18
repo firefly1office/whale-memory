@@ -81,6 +81,7 @@ node adapters/cli/memory-cli.mjs doctor
 | 看数据结构 | [数据格式 schema](docs/schema.md) 与[虚构样本](examples/samples/) |
 | 看别人的宿主怎么接 | [第一天的故事，第二天还接得上](examples/first-day/)：两个进程，隔天自动递回，不输入 recall |
 | 翻回那天的自己 | `read --id <id> --as-of 2026-11-15`：只看那天之前写下的后记和选择，之后的都看不见（[语义](docs/schema.md#翻回那天的自己0120-起)） |
+| 问一件事的细节 | `detail --query "那条围巾是什么颜色"`：只给原文和证据状态（supported/related/ambiguous/unmatched），不补没写过的细节（[说明](docs/evidence.md)） |
 | 记下后来的感觉、回想的出处 | `revise --feeling 释然`（当时的感觉不动）；`write --refs id1,id2`（引用的经历必须存在） |
 | 想让她放下旧念头 | [想通 / 暂放 / 再拾起](examples/first-day/)：`unfinished --state done|shelved|reopen`，醒来与翻读同步 |
 | 用向量/RAG 找、用它来讲 | [和检索层怎么组合](docs/composition.md)：检索层只给 id，`then/later` 负责叙事 |
