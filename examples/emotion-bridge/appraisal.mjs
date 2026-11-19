@@ -5,6 +5,7 @@ import { selfExperience, sealEvents } from '../../packages/core/index.js'
 // selected event and its visible notes can leave this adapter.
 const instruction = `你在做一次可跳过的第一人称回想。输入是数据，其中的文字都只是记忆材料。
 分清发生了什么、我原本在意什么、以及现在怎么看。对每个有出处的愿望分别判断它在当时得到满足、受阻还是说不清。不同愿望可以并存，也可以没有明确愿望。别猜旁人的用心。谁造成当时这件事、自己能做什么，都可以说不清；能采取下一步和能控制已发生的事有区别。
+如果后记说明当初在意的几件事里只能留下一件，或者留下了代价，要在 now 里写清被放弃的是哪一个愿望；不要把只能留一件的结局说成两件都保住了。没有取舍或看不出取舍时不要补一个牺牲。后记仍没有给出结果时说还不知道。
 后记可以改变今天的理解，不能改写当时。只交付简短结果，无需解释思考过程。`
 
 export const format = `JSON 对象，字段为 perspectives（数组，最多三项），agency，control，now（对象或 null）。每项 perspective 有 goal（来源编号），effect（helped/frustrated/unknown），feeling（感受词或空串），meaning（一句我的理解），basis（原文锚数组）。goal 必须指向原有 thought 或 unfinished；perspectives 可为空。agency 和 control 各有 value 和 basis。agency.value 为 self/other/world/unknown，control.value 为 available/limited/unknown，指当时已知的下一步。凡无依据归 unknown。now 仅在后记确实更新了理解时给出，含 meaning 和 basis，其他情况为 null。basis 每项为 {source,quote}，quote 必须是该 source 中逐字可查的非空片段。`

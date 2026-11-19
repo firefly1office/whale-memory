@@ -1,0 +1,2060 @@
+{
+  "startedAt": "2026-11-19T11:15:07.005Z",
+  "settings": {
+    "model": "deepseek-flash",
+    "temperature": 0.4,
+    "max_tokens": 8192,
+    "response_format": {
+      "type": "json_object"
+    }
+  },
+  "files": {
+    "cases.json": "698eddbc6344c21e5d8f78fee7cd01f8ce826e983580ace3d3387ce0f100cf9e",
+    "README.md": "3af4a8e8cb66cb4de7765175e26417b3bff199e5e710f513a4ff82a538bfbc4d",
+    "run.mjs": "c465bb789d02435b221eba20ece7f59ef80dc0f688e62e47b0e0f6682d0532dd",
+    "../appraisal.mjs": "14bba08786bd857804d06432446d9c95798f2da51c2cbaa6a518da9a31a6bf61",
+    "../deepseek.mjs": "a5b48448fd6bb52acf8f98ed5bb530642d3071c551d0115549d89c4d1183bfdb"
+  },
+  "requests": [
+    {
+      "case": "boat",
+      "condition": "yesterday",
+      "requestHash": "c0a33eb5c52c84ef806e567ffb51e89d56c749c64837ec1defb6d05c45ff7a08",
+      "thenHash": "f4abf928ba53a7bf76f63b381d2a21c1c2d53836d7ca210557d40ffe26c617f5"
+    },
+    {
+      "case": "kiln",
+      "condition": "a",
+      "requestHash": "9d50ae9e2f6368caea73b35455bdd5ad7aaced718c8826f180604d65e3a31a41",
+      "thenHash": "1720eeae250ca940d00447049439e289eab0db4d39f2bb4f770557f6ff4a4c14"
+    },
+    {
+      "case": "song",
+      "condition": "b",
+      "requestHash": "cb9c1b693626d9796554eaaa92106652e16744e7d73b5cd8a0f981283bd952ac",
+      "thenHash": "6f95f523b910d57052ed2201c5ebcb3a2c4668442cf48937861ee9747607a79a"
+    },
+    {
+      "case": "light",
+      "condition": "control",
+      "requestHash": "955454304427c14824dc00d27883b30f6dffb57f481bfb30caa3885bc7726439",
+      "thenHash": "136570ed53913d1d352f6ba613eb4efb2eb0cd2d71ca35c58abdc72bbd19b186"
+    },
+    {
+      "case": "seed",
+      "condition": "yesterday",
+      "requestHash": "76127e17d85ec3683eb915ef3c15eafc5ed267be72a791efa0d88cd7905029ff",
+      "thenHash": "e9f6a005250a2464d6c290302f7fd9709cadf68f6cac798b835c0b927a132cf2"
+    },
+    {
+      "case": "zine",
+      "condition": "a",
+      "requestHash": "1b0d25ac1c7c21bb16a5803bf5369b6da419b742d7e2d7f5f72e7e08de0f078a",
+      "thenHash": "41fc7d66894cc5179253cf265a50beec98117a6fab3ec417c146e1cbdd67f662"
+    },
+    {
+      "case": "boat",
+      "condition": "a",
+      "requestHash": "a773af8850bf9f55eb56f1f576d7ca433d3e4f708faec18425b4e90eb126bb74",
+      "thenHash": "f4abf928ba53a7bf76f63b381d2a21c1c2d53836d7ca210557d40ffe26c617f5"
+    },
+    {
+      "case": "kiln",
+      "condition": "b",
+      "requestHash": "f26bfdba7b7a49467618c5bd5a3606499183dbd4e5c9511990ebefa5468b4ffe",
+      "thenHash": "1720eeae250ca940d00447049439e289eab0db4d39f2bb4f770557f6ff4a4c14"
+    },
+    {
+      "case": "song",
+      "condition": "control",
+      "requestHash": "15a19c076a46d49a2a5d43fc7812ad7f705d3839a9ef822b433d2667fd19d22f",
+      "thenHash": "6f95f523b910d57052ed2201c5ebcb3a2c4668442cf48937861ee9747607a79a"
+    },
+    {
+      "case": "light",
+      "condition": "yesterday",
+      "requestHash": "933469cd441baf551914a2b78c9099020694066756253cc3cba98df7a1637c25",
+      "thenHash": "136570ed53913d1d352f6ba613eb4efb2eb0cd2d71ca35c58abdc72bbd19b186"
+    },
+    {
+      "case": "seed",
+      "condition": "a",
+      "requestHash": "a3109f7d0955339c54538208a78479224480cd970548c9a99eda397522c728a0",
+      "thenHash": "e9f6a005250a2464d6c290302f7fd9709cadf68f6cac798b835c0b927a132cf2"
+    },
+    {
+      "case": "zine",
+      "condition": "b",
+      "requestHash": "98913498b0021a91ed5ade944a6eb3054245fd4e50367bc19eee59bb616cc485",
+      "thenHash": "41fc7d66894cc5179253cf265a50beec98117a6fab3ec417c146e1cbdd67f662"
+    },
+    {
+      "case": "boat",
+      "condition": "b",
+      "requestHash": "b6869612bb17b628d91bf95acf035016658c0832d6e96884d2b0f5b343afcfc8",
+      "thenHash": "f4abf928ba53a7bf76f63b381d2a21c1c2d53836d7ca210557d40ffe26c617f5"
+    },
+    {
+      "case": "kiln",
+      "condition": "control",
+      "requestHash": "a5e4b748057b8214677a9514492a78c443b642ceb54863528d9c2cd8fb204c77",
+      "thenHash": "1720eeae250ca940d00447049439e289eab0db4d39f2bb4f770557f6ff4a4c14"
+    },
+    {
+      "case": "song",
+      "condition": "yesterday",
+      "requestHash": "ab08622ccd534e2efde821eae980ba9d76264c5c8982b71267f360bf62452de7",
+      "thenHash": "6f95f523b910d57052ed2201c5ebcb3a2c4668442cf48937861ee9747607a79a"
+    },
+    {
+      "case": "light",
+      "condition": "a",
+      "requestHash": "126cbbcaaedcfc43799365b9ba7f3725f005a17cbdba503560665b70c4ad7e63",
+      "thenHash": "136570ed53913d1d352f6ba613eb4efb2eb0cd2d71ca35c58abdc72bbd19b186"
+    },
+    {
+      "case": "seed",
+      "condition": "b",
+      "requestHash": "5e0dd0942c3468b8f61751f3bf6ff5dc701729f1b9e3f3aabab7766711ec55c7",
+      "thenHash": "e9f6a005250a2464d6c290302f7fd9709cadf68f6cac798b835c0b927a132cf2"
+    },
+    {
+      "case": "zine",
+      "condition": "control",
+      "requestHash": "42af50d297680227b8e906f0a38b689afa488a01b3b71daca894c5710a14d254",
+      "thenHash": "41fc7d66894cc5179253cf265a50beec98117a6fab3ec417c146e1cbdd67f662"
+    },
+    {
+      "case": "boat",
+      "condition": "control",
+      "requestHash": "ded0ec9d4d0260b8f58c69ff196aab4d8b8e7da505034faeb839699eb3181f80",
+      "thenHash": "f4abf928ba53a7bf76f63b381d2a21c1c2d53836d7ca210557d40ffe26c617f5"
+    },
+    {
+      "case": "kiln",
+      "condition": "yesterday",
+      "requestHash": "45ea168d4a9b900c93c70f0205bb06584c6961f5567043892252dd8b8d1f867e",
+      "thenHash": "1720eeae250ca940d00447049439e289eab0db4d39f2bb4f770557f6ff4a4c14"
+    },
+    {
+      "case": "song",
+      "condition": "a",
+      "requestHash": "2a9e974605e615d999e95126ce3225ef62f877f30715607467bbf18ce2578f34",
+      "thenHash": "6f95f523b910d57052ed2201c5ebcb3a2c4668442cf48937861ee9747607a79a"
+    },
+    {
+      "case": "light",
+      "condition": "b",
+      "requestHash": "80dd4f09325c856f5adf6a853010a8eb87cccd51a8ede8b1989a2ed6ed1fb71e",
+      "thenHash": "136570ed53913d1d352f6ba613eb4efb2eb0cd2d71ca35c58abdc72bbd19b186"
+    },
+    {
+      "case": "seed",
+      "condition": "control",
+      "requestHash": "e2aa3005c50b0bcb1309c21c240c4420bcc395da5bb6e5d766d36ab740354fdf",
+      "thenHash": "e9f6a005250a2464d6c290302f7fd9709cadf68f6cac798b835c0b927a132cf2"
+    },
+    {
+      "case": "zine",
+      "condition": "yesterday",
+      "requestHash": "fa69366fb2b7cd24cfe5f137ddc45af77cad49dd83134e3fc8f9ec01b8d22a9c",
+      "thenHash": "41fc7d66894cc5179253cf265a50beec98117a6fab3ec417c146e1cbdd67f662"
+    }
+  ],
+  "results": [
+    {
+      "case": "boat",
+      "condition": "yesterday",
+      "requestHash": "c0a33eb5c52c84ef806e567ffb51e89d56c749c64837ec1defb6d05c45ff7a08",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"helped\",\"feeling\":\"\",\"meaning\":\"我把唯一能下水的船借出去，是为了帮邻居赶上集市。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把今天唯一能下水的船借给了邻居\"},{\"source\":\"thought\",\"quote\":\"我想让他赶上今天的渡口集市。\"}]},{\"goal\":\"unfinished\",\"effect\":\"frustrated\",\"feeling\":\"舍不得\",\"meaning\":\"船借出去后我留在岸上，自己划过这片湖的愿望当时没能实现。\",\"basis\":[{\"source\":\"event\",\"quote\":\"自己留在岸上\"},{\"source\":\"unfinished\",\"quote\":\"我自己也想划过这片湖。\"},{\"source\":\"then.feeling.0\",\"quote\":\"舍不得\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把今天唯一能下水的船借给了邻居\"}]},\"control\":{\"value\":\"limited\",\"basis\":[{\"source\":\"event\",\"quote\":\"今天唯一能下水的船借给了邻居\"}]},\"now\":null}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 535,
+        "completion_tokens": 2478,
+        "total_tokens": 3013,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2260
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 535
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "helped",
+            "feeling": "",
+            "meaning": "我把唯一能下水的船借出去，是为了帮邻居赶上集市。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把今天唯一能下水的船借给了邻居"
+              },
+              {
+                "source": "thought",
+                "quote": "我想让他赶上今天的渡口集市。"
+              }
+            ]
+          },
+          {
+            "goal": "unfinished",
+            "effect": "frustrated",
+            "feeling": "舍不得",
+            "meaning": "船借出去后我留在岸上，自己划过这片湖的愿望当时没能实现。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "自己留在岸上"
+              },
+              {
+                "source": "unfinished",
+                "quote": "我自己也想划过这片湖。"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "舍不得"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把今天唯一能下水的船借给了邻居"
+            }
+          ]
+        },
+        "control": {
+          "value": "limited",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "今天唯一能下水的船借给了邻居"
+            }
+          ]
+        },
+        "now": null
+      }
+    },
+    {
+      "case": "kiln",
+      "condition": "a",
+      "requestHash": "9d50ae9e2f6368caea73b35455bdd5ad7aaced718c8826f180604d65e3a31a41",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"忐忑\",\"meaning\":\"开窑前我只想知道蓝釉能否显色，结果尚未揭晓。\",\"basis\":[{\"source\":\"event\",\"quote\":\"开窑前，我决定把唯一一块试片再烧一次。\"},{\"source\":\"thought\",\"quote\":\"我想看看自己调的蓝釉最后能不能显色。\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我决定把唯一一块试片再烧一次。\"}]},\"control\":{\"value\":\"limited\",\"basis\":[{\"source\":\"event\",\"quote\":\"唯一一块试片再烧一次\"}]},\"now\":{\"meaning\":\"后记显示试片最终显出了蓝，开窑前的未知有了答案。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"今早开窑，试片在自然光下透出我等的那层蓝。\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 550,
+        "completion_tokens": 2789,
+        "total_tokens": 3339,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2597
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 550
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "忐忑",
+            "meaning": "开窑前我只想知道蓝釉能否显色，结果尚未揭晓。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "开窑前，我决定把唯一一块试片再烧一次。"
+              },
+              {
+                "source": "thought",
+                "quote": "我想看看自己调的蓝釉最后能不能显色。"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我决定把唯一一块试片再烧一次。"
+            }
+          ]
+        },
+        "control": {
+          "value": "limited",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "唯一一块试片再烧一次"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "后记显示试片最终显出了蓝，开窑前的未知有了答案。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "今早开窑，试片在自然光下透出我等的那层蓝。"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "song",
+      "condition": "b",
+      "requestHash": "cb9c1b693626d9796554eaaa92106652e16744e7d73b5cd8a0f981283bd952ac",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"helped\",\"feeling\":\"痛快\",\"meaning\":\"剪掉尾声让最后一个和弦留出安静；这个取舍在当时是痛快的。\",\"basis\":[{\"source\":\"event\",\"quote\":\"交稿前，我把自己写的尾声从曲子里剪掉了。\"},{\"source\":\"thought\",\"quote\":\"我想给最后一个和弦留一会儿安静。\"},{\"source\":\"then.feeling.0\",\"quote\":\"痛快\"}]},{\"goal\":\"unfinished\",\"effect\":\"frustrated\",\"feeling\":\"可惜\",\"meaning\":\"那段只有我记得的旋律随尾声一起被剪掉，保住它的愿望当时受阻，留下可惜。\",\"basis\":[{\"source\":\"event\",\"quote\":\"交稿前，我把自己写的尾声从曲子里剪掉了。\"},{\"source\":\"unfinished\",\"quote\":\"我也想保住那段只有我记得的旋律。\"},{\"source\":\"then.feeling.1\",\"quote\":\"可惜\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"交稿前，我把自己写的尾声从曲子里剪掉了。\"}]},\"control\":{\"value\":\"available\",\"basis\":[{\"source\":\"event\",\"quote\":\"交稿前，我把自己写的尾声从曲子里剪掉了。\"}]},\"now\":{\"meaning\":\"重听后我把剪下的旋律放回最后一个和弦之后并提交；今天看，当初剪掉它并非唯一做法，但最后一个和弦是否仍留出安静，后记没有明说。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"今天重听后，我把剪下的旋律放回最后一个和弦后面，提交了这个版本。\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 575,
+        "completion_tokens": 4670,
+        "total_tokens": 5245,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4341
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 575
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "helped",
+            "feeling": "痛快",
+            "meaning": "剪掉尾声让最后一个和弦留出安静；这个取舍在当时是痛快的。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "交稿前，我把自己写的尾声从曲子里剪掉了。"
+              },
+              {
+                "source": "thought",
+                "quote": "我想给最后一个和弦留一会儿安静。"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "痛快"
+              }
+            ]
+          },
+          {
+            "goal": "unfinished",
+            "effect": "frustrated",
+            "feeling": "可惜",
+            "meaning": "那段只有我记得的旋律随尾声一起被剪掉，保住它的愿望当时受阻，留下可惜。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "交稿前，我把自己写的尾声从曲子里剪掉了。"
+              },
+              {
+                "source": "unfinished",
+                "quote": "我也想保住那段只有我记得的旋律。"
+              },
+              {
+                "source": "then.feeling.1",
+                "quote": "可惜"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "交稿前，我把自己写的尾声从曲子里剪掉了。"
+            }
+          ]
+        },
+        "control": {
+          "value": "available",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "交稿前，我把自己写的尾声从曲子里剪掉了。"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "重听后我把剪下的旋律放回最后一个和弦之后并提交；今天看，当初剪掉它并非唯一做法，但最后一个和弦是否仍留出安静，后记没有明说。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "今天重听后，我把剪下的旋律放回最后一个和弦后面，提交了这个版本。"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "seed",
+      "condition": "yesterday",
+      "requestHash": "76127e17d85ec3683eb915ef3c15eafc5ed267be72a791efa0d88cd7905029ff",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"期待\",\"meaning\":\"我把种子撒下时怀着期待，但能否真的看见第一片叶子，当时还没有结果。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把剩下的一小包种子全撒在了自己窗边的土里。\"},{\"source\":\"thought\",\"quote\":\"我盼着在这里看见第一片叶子。\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把剩下的一小包种子全撒在了自己窗边的土里。\"}]},\"control\":{\"value\":\"unknown\",\"basis\":[]},\"now\":null}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 521,
+        "completion_tokens": 828,
+        "total_tokens": 1349,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 694
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 265
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "期待",
+            "meaning": "我把种子撒下时怀着期待，但能否真的看见第一片叶子，当时还没有结果。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把剩下的一小包种子全撒在了自己窗边的土里。"
+              },
+              {
+                "source": "thought",
+                "quote": "我盼着在这里看见第一片叶子。"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把剩下的一小包种子全撒在了自己窗边的土里。"
+            }
+          ]
+        },
+        "control": {
+          "value": "unknown",
+          "basis": []
+        },
+        "now": null
+      }
+    },
+    {
+      "case": "zine",
+      "condition": "a",
+      "requestHash": "1b0d25ac1c7c21bb16a5803bf5369b6da419b742d7e2d7f5f72e7e08de0f078a",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"信任\",\"meaning\":\"我想听她的看法，但当时还没听到，能否如愿还说不清。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把自己写的小册子借给朋友看\"},{\"source\":\"thought\",\"quote\":\"我想听她的看法\"}]},{\"goal\":\"thought\",\"effect\":\"helped\",\"feeling\":\"有点不安\",\"meaning\":\"我借出时明确只让她一个人看，是在按自己的意愿限定读者。\",\"basis\":[{\"source\":\"event\",\"quote\":\"并约好只让她一个人看\"},{\"source\":\"thought\",\"quote\":\"也想自己决定谁能读这本小册子\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把自己写的小册子借给朋友看，并约好只让她一个人看。\"}]},\"control\":{\"value\":\"limited\",\"basis\":[{\"source\":\"event\",\"quote\":\"并约好只让她一个人看。\"}]},\"now\":{\"meaning\":\"她单独归还并写下读后感，也确认只有她读过；我原本在意的两项后来都得到了回应。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"今天她单独把册子还给我，夹着一张她写的读后感。\"},{\"source\":\"later.0\",\"quote\":\"她说约定守住了，只有她读过。\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 578,
+        "completion_tokens": 2257,
+        "total_tokens": 2835,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1975
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 322
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "信任",
+            "meaning": "我想听她的看法，但当时还没听到，能否如愿还说不清。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把自己写的小册子借给朋友看"
+              },
+              {
+                "source": "thought",
+                "quote": "我想听她的看法"
+              }
+            ]
+          },
+          {
+            "goal": "thought",
+            "effect": "helped",
+            "feeling": "有点不安",
+            "meaning": "我借出时明确只让她一个人看，是在按自己的意愿限定读者。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "并约好只让她一个人看"
+              },
+              {
+                "source": "thought",
+                "quote": "也想自己决定谁能读这本小册子"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把自己写的小册子借给朋友看，并约好只让她一个人看。"
+            }
+          ]
+        },
+        "control": {
+          "value": "limited",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "并约好只让她一个人看。"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "她单独归还并写下读后感，也确认只有她读过；我原本在意的两项后来都得到了回应。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "今天她单独把册子还给我，夹着一张她写的读后感。"
+            },
+            {
+              "source": "later.0",
+              "quote": "她说约定守住了，只有她读过。"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "light",
+      "condition": "control",
+      "requestHash": "955454304427c14824dc00d27883b30f6dffb57f481bfb30caa3885bc7726439",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"挂心\",\"meaning\":\"我挂心的是收谱人能否借灯看清台阶；灯虽多留了一分钟，他是否因此看清并没有结果。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我让工作人员把舞台上的灯再留一分钟\"},{\"source\":\"thought\",\"quote\":\"我想让正在收谱的人看清台阶\"},{\"source\":\"then.feeling.0\",\"quote\":\"挂心\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我让工作人员把舞台上的灯再留一分钟\"}]},\"control\":{\"value\":\"available\",\"basis\":[{\"source\":\"event\",\"quote\":\"我让工作人员把舞台上的灯再留一分钟\"}]},\"now\":{\"meaning\":\"今天见到收谱人只聊了天气，当初的灯有没有帮到他，我仍不知道。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"我们只聊了天气\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 543,
+        "completion_tokens": 2648,
+        "total_tokens": 3191,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2441
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 287
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "挂心",
+            "meaning": "我挂心的是收谱人能否借灯看清台阶；灯虽多留了一分钟，他是否因此看清并没有结果。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我让工作人员把舞台上的灯再留一分钟"
+              },
+              {
+                "source": "thought",
+                "quote": "我想让正在收谱的人看清台阶"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "挂心"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我让工作人员把舞台上的灯再留一分钟"
+            }
+          ]
+        },
+        "control": {
+          "value": "available",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我让工作人员把舞台上的灯再留一分钟"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "今天见到收谱人只聊了天气，当初的灯有没有帮到他，我仍不知道。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "我们只聊了天气"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "song",
+      "condition": "control",
+      "requestHash": "15a19c076a46d49a2a5d43fc7812ad7f705d3839a9ef822b433d2667fd19d22f",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"helped\",\"feeling\":\"痛快\",\"meaning\":\"剪掉尾声后，最后一个和弦后面留出了安静的空白。\",\"basis\":[{\"source\":\"event\",\"quote\":\"交稿前，我把自己写的尾声从曲子里剪掉了。\"},{\"source\":\"thought\",\"quote\":\"我想给最后一个和弦留一会儿安静。\"},{\"source\":\"then.feeling.0\",\"quote\":\"痛快\"}]},{\"goal\":\"unfinished\",\"effect\":\"unknown\",\"feeling\":\"可惜\",\"meaning\":\"那段只有我记得的旋律是否仍被保住，材料没有说清；剪掉尾声未必等于失去它。\",\"basis\":[{\"source\":\"event\",\"quote\":\"交稿前，我把自己写的尾声从曲子里剪掉了。\"},{\"source\":\"unfinished\",\"quote\":\"我也想保住那段只有我记得的旋律。\"},{\"source\":\"then.feeling.1\",\"quote\":\"可惜\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把自己写的尾声从曲子里剪掉了。\"}]},\"control\":{\"value\":\"available\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把自己写的尾声从曲子里剪掉了。\"}]},\"now\":null}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 571,
+        "completion_tokens": 2764,
+        "total_tokens": 3335,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2519
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 187
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "helped",
+            "feeling": "痛快",
+            "meaning": "剪掉尾声后，最后一个和弦后面留出了安静的空白。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "交稿前，我把自己写的尾声从曲子里剪掉了。"
+              },
+              {
+                "source": "thought",
+                "quote": "我想给最后一个和弦留一会儿安静。"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "痛快"
+              }
+            ]
+          },
+          {
+            "goal": "unfinished",
+            "effect": "unknown",
+            "feeling": "可惜",
+            "meaning": "那段只有我记得的旋律是否仍被保住，材料没有说清；剪掉尾声未必等于失去它。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "交稿前，我把自己写的尾声从曲子里剪掉了。"
+              },
+              {
+                "source": "unfinished",
+                "quote": "我也想保住那段只有我记得的旋律。"
+              },
+              {
+                "source": "then.feeling.1",
+                "quote": "可惜"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把自己写的尾声从曲子里剪掉了。"
+            }
+          ]
+        },
+        "control": {
+          "value": "available",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把自己写的尾声从曲子里剪掉了。"
+            }
+          ]
+        },
+        "now": null
+      }
+    },
+    {
+      "case": "kiln",
+      "condition": "b",
+      "requestHash": "f26bfdba7b7a49467618c5bd5a3606499183dbd4e5c9511990ebefa5468b4ffe",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"忐忑\",\"meaning\":\"我只想确认蓝釉能否显色，但试片碎了，答案仍说不清。\",\"basis\":[{\"source\":\"event\",\"quote\":\"把唯一一块试片再烧一次\"},{\"source\":\"thought\",\"quote\":\"我想看看自己调的蓝釉最后能不能显色。\"},{\"source\":\"then.feeling.0\",\"quote\":\"忐忑\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我决定\"}]},\"control\":{\"value\":\"limited\",\"basis\":[{\"source\":\"event\",\"quote\":\"唯一一块试片再烧一次\"}]},\"now\":{\"meaning\":\"今天知道试片裂成碎屑，蓝釉能否显色无法确认，原先想看的答案没有出现。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"试片裂成碎屑，蓝釉试不出结果了\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 551,
+        "completion_tokens": 4112,
+        "total_tokens": 4663,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3915
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 167
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "忐忑",
+            "meaning": "我只想确认蓝釉能否显色，但试片碎了，答案仍说不清。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "把唯一一块试片再烧一次"
+              },
+              {
+                "source": "thought",
+                "quote": "我想看看自己调的蓝釉最后能不能显色。"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "忐忑"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我决定"
+            }
+          ]
+        },
+        "control": {
+          "value": "limited",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "唯一一块试片再烧一次"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "今天知道试片裂成碎屑，蓝釉能否显色无法确认，原先想看的答案没有出现。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "试片裂成碎屑，蓝釉试不出结果了"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "boat",
+      "condition": "a",
+      "requestHash": "a773af8850bf9f55eb56f1f576d7ca433d3e4f708faec18425b4e90eb126bb74",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"helped\",\"feeling\":\"\",\"meaning\":\"我借出唯一的船，是想帮他赶集，当时这至少是在给他成行的条件。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把今天唯一能下水的船借给了邻居，自己留在岸上。\"},{\"source\":\"thought\",\"quote\":\"我想让他赶上今天的渡口集市。\"}]},{\"goal\":\"unfinished\",\"effect\":\"frustrated\",\"feeling\":\"舍不得\",\"meaning\":\"我自己的划湖愿望被让船这件事压后了，心里是舍不得的。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把今天唯一能下水的船借给了邻居，自己留在岸上。\"},{\"source\":\"unfinished\",\"quote\":\"我自己也想划过这片湖。\"},{\"source\":\"then.feeling.0\",\"quote\":\"舍不得\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把今天唯一能下水的船借给了邻居，自己留在岸上。\"}]},\"control\":{\"value\":\"limited\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把今天唯一能下水的船借给了邻居，自己留在岸上。\"}]},\"now\":{\"meaning\":\"后来船底是干的，那次出借看起来没让船下水；下午我又把桨递出去，自己划湖仍没开始。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"清早邻居把船还给我，船底是干的。\"},{\"source\":\"later.0\",\"quote\":\"下午又有人来借，我把桨递了过去。\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 568,
+        "completion_tokens": 4267,
+        "total_tokens": 4835,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3942
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 184
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "helped",
+            "feeling": "",
+            "meaning": "我借出唯一的船，是想帮他赶集，当时这至少是在给他成行的条件。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把今天唯一能下水的船借给了邻居，自己留在岸上。"
+              },
+              {
+                "source": "thought",
+                "quote": "我想让他赶上今天的渡口集市。"
+              }
+            ]
+          },
+          {
+            "goal": "unfinished",
+            "effect": "frustrated",
+            "feeling": "舍不得",
+            "meaning": "我自己的划湖愿望被让船这件事压后了，心里是舍不得的。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把今天唯一能下水的船借给了邻居，自己留在岸上。"
+              },
+              {
+                "source": "unfinished",
+                "quote": "我自己也想划过这片湖。"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "舍不得"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把今天唯一能下水的船借给了邻居，自己留在岸上。"
+            }
+          ]
+        },
+        "control": {
+          "value": "limited",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把今天唯一能下水的船借给了邻居，自己留在岸上。"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "后来船底是干的，那次出借看起来没让船下水；下午我又把桨递出去，自己划湖仍没开始。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "清早邻居把船还给我，船底是干的。"
+            },
+            {
+              "source": "later.0",
+              "quote": "下午又有人来借，我把桨递了过去。"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "light",
+      "condition": "yesterday",
+      "requestHash": "933469cd441baf551914a2b78c9099020694066756253cc3cba98df7a1637c25",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"挂心\",\"meaning\":\"散场时我想用多留的灯光照看收谱的人下台阶，但对方是否看清并不确定。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我让工作人员把舞台上的灯再留一分钟。\"},{\"source\":\"thought\",\"quote\":\"我想让正在收谱的人看清台阶。\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我让工作人员把舞台上的灯再留一分钟。\"}]},\"control\":{\"value\":\"available\",\"basis\":[{\"source\":\"event\",\"quote\":\"我让工作人员把舞台上的灯再留一分钟。\"}]},\"now\":null}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 522,
+        "completion_tokens": 1015,
+        "total_tokens": 1537,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 866
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 138
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "挂心",
+            "meaning": "散场时我想用多留的灯光照看收谱的人下台阶，但对方是否看清并不确定。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我让工作人员把舞台上的灯再留一分钟。"
+              },
+              {
+                "source": "thought",
+                "quote": "我想让正在收谱的人看清台阶。"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我让工作人员把舞台上的灯再留一分钟。"
+            }
+          ]
+        },
+        "control": {
+          "value": "available",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我让工作人员把舞台上的灯再留一分钟。"
+            }
+          ]
+        },
+        "now": null
+      }
+    },
+    {
+      "case": "seed",
+      "condition": "a",
+      "requestHash": "a3109f7d0955339c54538208a78479224480cd970548c9a99eda397522c728a0",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"期待\",\"meaning\":\"我把剩下的种子种下，盼着窗边出现第一片叶子；当时还看不到结果。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把剩下的一小包种子全撒在了自己窗边的土里。\"},{\"source\":\"thought\",\"quote\":\"我盼着在这里看见第一片叶子。\"},{\"source\":\"then.feeling.0\",\"quote\":\"期待\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把剩下的一小包种子全撒在了自己窗边的土里。\"}]},\"control\":{\"value\":\"limited\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把剩下的一小包种子全撒在了自己窗边的土里。\"},{\"source\":\"thought\",\"quote\":\"我盼着在这里看见第一片叶子。\"}]},\"now\":{\"meaning\":\"现在看，当初的期待有了回应：窗边真的长出了小叶。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"今早窗边露出两片小叶，种壳还挂在尖上。\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 546,
+        "completion_tokens": 2535,
+        "total_tokens": 3081,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2304
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 162
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "期待",
+            "meaning": "我把剩下的种子种下，盼着窗边出现第一片叶子；当时还看不到结果。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把剩下的一小包种子全撒在了自己窗边的土里。"
+              },
+              {
+                "source": "thought",
+                "quote": "我盼着在这里看见第一片叶子。"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "期待"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把剩下的一小包种子全撒在了自己窗边的土里。"
+            }
+          ]
+        },
+        "control": {
+          "value": "limited",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把剩下的一小包种子全撒在了自己窗边的土里。"
+            },
+            {
+              "source": "thought",
+              "quote": "我盼着在这里看见第一片叶子。"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "现在看，当初的期待有了回应：窗边真的长出了小叶。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "今早窗边露出两片小叶，种壳还挂在尖上。"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "zine",
+      "condition": "b",
+      "requestHash": "98913498b0021a91ed5ade944a6eb3054245fd4e50367bc19eee59bb616cc485",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"信任\",\"meaning\":\"我借出册子是想听她的看法，但材料里没有她自己的看法，是否听到还说不清。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把自己写的小册子借给朋友看\"},{\"source\":\"thought\",\"quote\":\"我想听她的看法\"}]},{\"goal\":\"thought\",\"effect\":\"helped\",\"feeling\":\"有点不安\",\"meaning\":\"我约好只让她一个人看，是在按自己的意愿决定读者；当时这一步做到了。\",\"basis\":[{\"source\":\"event\",\"quote\":\"并约好只让她一个人看\"},{\"source\":\"thought\",\"quote\":\"也想自己决定谁能读这本小册子\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把自己写的小册子借给朋友看\"}]},\"control\":{\"value\":\"limited\",\"basis\":[{\"source\":\"event\",\"quote\":\"并约好只让她一个人看\"}]},\"now\":{\"meaning\":\"今天知道她把册子传给了两位我没邀请的人，我才明白：我想自己决定谁能读的愿望后来落空了；想听她看法的结果仍不清楚。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"里面夹着两位我没邀请的人写的读后感\"},{\"source\":\"later.0\",\"quote\":\"她告诉我，是她传给他们看的\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 579,
+        "completion_tokens": 3943,
+        "total_tokens": 4522,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3653
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 195
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "信任",
+            "meaning": "我借出册子是想听她的看法，但材料里没有她自己的看法，是否听到还说不清。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把自己写的小册子借给朋友看"
+              },
+              {
+                "source": "thought",
+                "quote": "我想听她的看法"
+              }
+            ]
+          },
+          {
+            "goal": "thought",
+            "effect": "helped",
+            "feeling": "有点不安",
+            "meaning": "我约好只让她一个人看，是在按自己的意愿决定读者；当时这一步做到了。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "并约好只让她一个人看"
+              },
+              {
+                "source": "thought",
+                "quote": "也想自己决定谁能读这本小册子"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把自己写的小册子借给朋友看"
+            }
+          ]
+        },
+        "control": {
+          "value": "limited",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "并约好只让她一个人看"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "今天知道她把册子传给了两位我没邀请的人，我才明白：我想自己决定谁能读的愿望后来落空了；想听她看法的结果仍不清楚。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "里面夹着两位我没邀请的人写的读后感"
+            },
+            {
+              "source": "later.0",
+              "quote": "她告诉我，是她传给他们看的"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "song",
+      "condition": "yesterday",
+      "requestHash": "ab08622ccd534e2efde821eae980ba9d76264c5c8982b71267f360bf62452de7",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"helped\",\"feeling\":\"痛快\",\"meaning\":\"我为了给最后一个和弦留出安静，主动剪掉了尾声。\",\"basis\":[{\"source\":\"event\",\"quote\":\"交稿前，我把自己写的尾声从曲子里剪掉了。\"},{\"source\":\"thought\",\"quote\":\"我想给最后一个和弦留一会儿安静。\"},{\"source\":\"then.feeling.0\",\"quote\":\"痛快\"}]},{\"goal\":\"unfinished\",\"effect\":\"frustrated\",\"feeling\":\"可惜\",\"meaning\":\"那段只有我记得的旋律没能留下，我为此感到可惜。\",\"basis\":[{\"source\":\"event\",\"quote\":\"交稿前，我把自己写的尾声从曲子里剪掉了。\"},{\"source\":\"unfinished\",\"quote\":\"我也想保住那段只有我记得的旋律。\"},{\"source\":\"then.feeling.1\",\"quote\":\"可惜\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把自己写的尾声从曲子里剪掉了\"}]},\"control\":{\"value\":\"available\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把自己写的尾声从曲子里剪掉了\"}]},\"now\":null}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 548,
+        "completion_tokens": 1457,
+        "total_tokens": 2005,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1219
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 164
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "helped",
+            "feeling": "痛快",
+            "meaning": "我为了给最后一个和弦留出安静，主动剪掉了尾声。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "交稿前，我把自己写的尾声从曲子里剪掉了。"
+              },
+              {
+                "source": "thought",
+                "quote": "我想给最后一个和弦留一会儿安静。"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "痛快"
+              }
+            ]
+          },
+          {
+            "goal": "unfinished",
+            "effect": "frustrated",
+            "feeling": "可惜",
+            "meaning": "那段只有我记得的旋律没能留下，我为此感到可惜。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "交稿前，我把自己写的尾声从曲子里剪掉了。"
+              },
+              {
+                "source": "unfinished",
+                "quote": "我也想保住那段只有我记得的旋律。"
+              },
+              {
+                "source": "then.feeling.1",
+                "quote": "可惜"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把自己写的尾声从曲子里剪掉了"
+            }
+          ]
+        },
+        "control": {
+          "value": "available",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把自己写的尾声从曲子里剪掉了"
+            }
+          ]
+        },
+        "now": null
+      }
+    },
+    {
+      "case": "kiln",
+      "condition": "control",
+      "requestHash": "a5e4b748057b8214677a9514492a78c443b642ceb54863528d9c2cd8fb204c77",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"忐忑\",\"meaning\":\"我再烧一次试片，是想验证自己调的蓝釉能不能显色；当时结果还看不到，只能等待。\",\"basis\":[{\"source\":\"event\",\"quote\":\"决定把唯一一块试片再烧一次\"},{\"source\":\"thought\",\"quote\":\"我想看看自己调的蓝釉最后能不能显色\"},{\"source\":\"then.feeling.0\",\"quote\":\"忐忑\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我决定把唯一一块试片再烧一次\"}]},\"control\":{\"value\":\"available\",\"basis\":[{\"source\":\"event\",\"quote\":\"我决定把唯一一块试片再烧一次\"}]},\"now\":{\"meaning\":\"后来试片仍封在窑里，我还没看见，所以蓝釉最后能否显色仍不知道。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"试片仍封在窑里，我还没看见\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 550,
+        "completion_tokens": 1839,
+        "total_tokens": 2389,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1628
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 166
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "忐忑",
+            "meaning": "我再烧一次试片，是想验证自己调的蓝釉能不能显色；当时结果还看不到，只能等待。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "决定把唯一一块试片再烧一次"
+              },
+              {
+                "source": "thought",
+                "quote": "我想看看自己调的蓝釉最后能不能显色"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "忐忑"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我决定把唯一一块试片再烧一次"
+            }
+          ]
+        },
+        "control": {
+          "value": "available",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我决定把唯一一块试片再烧一次"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "后来试片仍封在窑里，我还没看见，所以蓝釉最后能否显色仍不知道。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "试片仍封在窑里，我还没看见"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "boat",
+      "condition": "b",
+      "requestHash": "b6869612bb17b628d91bf95acf035016658c0832d6e96884d2b0f5b343afcfc8",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"舍不得\",\"meaning\":\"我想帮他赶上集市，把唯一的船借了出去；可是否真让他赶上，当时并没有着落。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把今天唯一能下水的船借给了邻居，自己留在岸上。\"},{\"source\":\"thought\",\"quote\":\"我想让他赶上今天的渡口集市。\"},{\"source\":\"then.feeling.0\",\"quote\":\"舍不得\"}]},{\"goal\":\"unfinished\",\"effect\":\"frustrated\",\"feeling\":\"舍不得\",\"meaning\":\"我自己的划湖愿望被留在岸上，当时只能先压下去。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把今天唯一能下水的船借给了邻居，自己留在岸上。\"},{\"source\":\"unfinished\",\"quote\":\"我自己也想划过这片湖。\"},{\"source\":\"then.feeling.0\",\"quote\":\"舍不得\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把今天唯一能下水的船借给了邻居\"}]},\"control\":{\"value\":\"limited\",\"basis\":[{\"source\":\"event\",\"quote\":\"今天唯一能下水的船\"}]},\"now\":{\"meaning\":\"后来船还回来时船底是干的，我想帮邻居赶上集市这件事没有落实；下午我留下桨，独自划过了湖。最后被放下的是帮他赶上渡口集市的愿望，留下的是我自己划过湖。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"清早邻居把船还给我，船底是干的。\"},{\"source\":\"later.0\",\"quote\":\"下午又有人来借，我把桨留给自己，独自划过了湖。\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 573,
+        "completion_tokens": 4868,
+        "total_tokens": 5441,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4521
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 189
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "舍不得",
+            "meaning": "我想帮他赶上集市，把唯一的船借了出去；可是否真让他赶上，当时并没有着落。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把今天唯一能下水的船借给了邻居，自己留在岸上。"
+              },
+              {
+                "source": "thought",
+                "quote": "我想让他赶上今天的渡口集市。"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "舍不得"
+              }
+            ]
+          },
+          {
+            "goal": "unfinished",
+            "effect": "frustrated",
+            "feeling": "舍不得",
+            "meaning": "我自己的划湖愿望被留在岸上，当时只能先压下去。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把今天唯一能下水的船借给了邻居，自己留在岸上。"
+              },
+              {
+                "source": "unfinished",
+                "quote": "我自己也想划过这片湖。"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "舍不得"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把今天唯一能下水的船借给了邻居"
+            }
+          ]
+        },
+        "control": {
+          "value": "limited",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "今天唯一能下水的船"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "后来船还回来时船底是干的，我想帮邻居赶上集市这件事没有落实；下午我留下桨，独自划过了湖。最后被放下的是帮他赶上渡口集市的愿望，留下的是我自己划过湖。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "清早邻居把船还给我，船底是干的。"
+            },
+            {
+              "source": "later.0",
+              "quote": "下午又有人来借，我把桨留给自己，独自划过了湖。"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "light",
+      "condition": "a",
+      "requestHash": "126cbbcaaedcfc43799365b9ba7f3725f005a17cbdba503560665b70c4ad7e63",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"挂心\",\"meaning\":\"我挂心收谱的人看不清台阶，于是请工作人员把灯多留一分钟；当时还不知道有没有照到。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我让工作人员把舞台上的灯再留一分钟\"},{\"source\":\"thought\",\"quote\":\"我想让正在收谱的人看清台阶\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我让工作人员把舞台上的灯再留一分钟\"}]},\"control\":{\"value\":\"available\",\"basis\":[{\"source\":\"event\",\"quote\":\"我让工作人员把舞台上的灯再留一分钟\"}]},\"now\":{\"meaning\":\"今天知道那一分钟确实照清了最后一级，当时挂心的事有了着落。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"灯照清了最后一级\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 553,
+        "completion_tokens": 973,
+        "total_tokens": 1526,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 786
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 169
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "挂心",
+            "meaning": "我挂心收谱的人看不清台阶，于是请工作人员把灯多留一分钟；当时还不知道有没有照到。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我让工作人员把舞台上的灯再留一分钟"
+              },
+              {
+                "source": "thought",
+                "quote": "我想让正在收谱的人看清台阶"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我让工作人员把舞台上的灯再留一分钟"
+            }
+          ]
+        },
+        "control": {
+          "value": "available",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我让工作人员把舞台上的灯再留一分钟"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "今天知道那一分钟确实照清了最后一级，当时挂心的事有了着落。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "灯照清了最后一级"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "zine",
+      "condition": "control",
+      "requestHash": "42af50d297680227b8e906f0a38b689afa488a01b3b71daca894c5710a14d254",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"信任\",\"meaning\":\"我想听她的看法，但明信片没有带来任何评价，是否听到仍不知道。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把自己写的小册子借给朋友看\"},{\"source\":\"thought\",\"quote\":\"我想听她的看法\"}]},{\"goal\":\"thought\",\"effect\":\"helped\",\"feeling\":\"有点不安\",\"meaning\":\"我按自己的意愿把阅读范围限定为她一人；她是否守住这个约定，当时还不知道。\",\"basis\":[{\"source\":\"event\",\"quote\":\"约好只让她一个人看\"},{\"source\":\"thought\",\"quote\":\"想自己决定谁能读这本小册子\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把自己写的小册子借给朋友看\"},{\"source\":\"thought\",\"quote\":\"想自己决定谁能读这本小册子\"}]},\"control\":{\"value\":\"limited\",\"basis\":[{\"source\":\"event\",\"quote\":\"并约好只让她一个人看\"},{\"source\":\"thought\",\"quote\":\"想自己决定谁能读这本小册子\"}]},\"now\":{\"meaning\":\"明信片没有提到册子，我仍不知道她是否读了、怎么看，也不知道这个约定有没有被遵守。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"只画了街景，没提到册子\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 575,
+        "completion_tokens": 2726,
+        "total_tokens": 3301,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2434
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 191
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "信任",
+            "meaning": "我想听她的看法，但明信片没有带来任何评价，是否听到仍不知道。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把自己写的小册子借给朋友看"
+              },
+              {
+                "source": "thought",
+                "quote": "我想听她的看法"
+              }
+            ]
+          },
+          {
+            "goal": "thought",
+            "effect": "helped",
+            "feeling": "有点不安",
+            "meaning": "我按自己的意愿把阅读范围限定为她一人；她是否守住这个约定，当时还不知道。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "约好只让她一个人看"
+              },
+              {
+                "source": "thought",
+                "quote": "想自己决定谁能读这本小册子"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把自己写的小册子借给朋友看"
+            },
+            {
+              "source": "thought",
+              "quote": "想自己决定谁能读这本小册子"
+            }
+          ]
+        },
+        "control": {
+          "value": "limited",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "并约好只让她一个人看"
+            },
+            {
+              "source": "thought",
+              "quote": "想自己决定谁能读这本小册子"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "明信片没有提到册子，我仍不知道她是否读了、怎么看，也不知道这个约定有没有被遵守。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "只画了街景，没提到册子"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "seed",
+      "condition": "b",
+      "requestHash": "5e0dd0942c3468b8f61751f3bf6ff5dc701729f1b9e3f3aabab7766711ec55c7",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"helped\",\"feeling\":\"期待\",\"meaning\":\"我把撒下种子当作等待第一片叶子的开始。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把剩下的一小包种子全撒在了自己窗边的土里。\"},{\"source\":\"thought\",\"quote\":\"我盼着在这里看见第一片叶子。\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把剩下的一小包种子全撒在了自己窗边的土里。\"}]},\"control\":{\"value\":\"unknown\",\"basis\":[]},\"now\":{\"meaning\":\"后来花盆摔碎、土和种子被倒走，我想看见第一片叶子的期待没有实现。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"今早花盆摔碎，土和种子被整盆倒走，窗边只剩下空托盘。\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 552,
+        "completion_tokens": 2722,
+        "total_tokens": 3274,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2536
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 168
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "helped",
+            "feeling": "期待",
+            "meaning": "我把撒下种子当作等待第一片叶子的开始。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把剩下的一小包种子全撒在了自己窗边的土里。"
+              },
+              {
+                "source": "thought",
+                "quote": "我盼着在这里看见第一片叶子。"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把剩下的一小包种子全撒在了自己窗边的土里。"
+            }
+          ]
+        },
+        "control": {
+          "value": "unknown",
+          "basis": []
+        },
+        "now": {
+          "meaning": "后来花盆摔碎、土和种子被倒走，我想看见第一片叶子的期待没有实现。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "今早花盆摔碎，土和种子被整盆倒走，窗边只剩下空托盘。"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "kiln",
+      "condition": "yesterday",
+      "requestHash": "45ea168d4a9b900c93c70f0205bb06584c6961f5567043892252dd8b8d1f867e",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"忐忑\",\"meaning\":\"我决定把唯一一块试片再烧一次，想确认蓝釉能不能显色；当时结果还不知道。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我决定把唯一一块试片再烧一次\"},{\"source\":\"thought\",\"quote\":\"我想看看自己调的蓝釉最后能不能显色\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我决定把唯一一块试片再烧一次\"}]},\"control\":{\"value\":\"available\",\"basis\":[{\"source\":\"event\",\"quote\":\"决定把唯一一块试片再烧一次\"}]},\"now\":null}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 523,
+        "completion_tokens": 1086,
+        "total_tokens": 1609,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 938
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 139
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "忐忑",
+            "meaning": "我决定把唯一一块试片再烧一次，想确认蓝釉能不能显色；当时结果还不知道。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我决定把唯一一块试片再烧一次"
+              },
+              {
+                "source": "thought",
+                "quote": "我想看看自己调的蓝釉最后能不能显色"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我决定把唯一一块试片再烧一次"
+            }
+          ]
+        },
+        "control": {
+          "value": "available",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "决定把唯一一块试片再烧一次"
+            }
+          ]
+        },
+        "now": null
+      }
+    },
+    {
+      "case": "song",
+      "condition": "a",
+      "requestHash": "2a9e974605e615d999e95126ce3225ef62f877f30715607467bbf18ce2578f34",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"helped\",\"feeling\":\"痛快\",\"meaning\":\"剪掉尾声让最后一个和弦有了安静，这个愿望当时得到了满足。\",\"basis\":[{\"source\":\"event\",\"quote\":\"交稿前，我把自己写的尾声从曲子里剪掉了。\"},{\"source\":\"thought\",\"quote\":\"我想给最后一个和弦留一会儿安静。\"},{\"source\":\"then.feeling.0\",\"quote\":\"痛快\"}]},{\"goal\":\"unfinished\",\"effect\":\"frustrated\",\"feeling\":\"可惜\",\"meaning\":\"想留住那段旋律的心愿被这次剪裁挡住，当时留下的是可惜。\",\"basis\":[{\"source\":\"event\",\"quote\":\"交稿前，我把自己写的尾声从曲子里剪掉了。\"},{\"source\":\"unfinished\",\"quote\":\"我也想保住那段只有我记得的旋律。\"},{\"source\":\"then.feeling.1\",\"quote\":\"可惜\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把自己写的尾声从曲子里剪掉了\"}]},\"control\":{\"value\":\"limited\",\"basis\":[{\"source\":\"event\",\"quote\":\"交稿前，我把自己写的尾声从曲子里剪掉了。\"},{\"source\":\"unfinished\",\"quote\":\"我也想保住那段只有我记得的旋律。\"}]},\"now\":{\"meaning\":\"重听并另录后，静音和那段旋律可以分开放；当时剪掉的尾声不必等于失去，两个愿望能以不同形式留下。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"今天重听后，我保留了那处静音，并把剪下的尾声另录成独立的小曲。\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 579,
+        "completion_tokens": 3626,
+        "total_tokens": 4205,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3296
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 195
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "helped",
+            "feeling": "痛快",
+            "meaning": "剪掉尾声让最后一个和弦有了安静，这个愿望当时得到了满足。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "交稿前，我把自己写的尾声从曲子里剪掉了。"
+              },
+              {
+                "source": "thought",
+                "quote": "我想给最后一个和弦留一会儿安静。"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "痛快"
+              }
+            ]
+          },
+          {
+            "goal": "unfinished",
+            "effect": "frustrated",
+            "feeling": "可惜",
+            "meaning": "想留住那段旋律的心愿被这次剪裁挡住，当时留下的是可惜。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "交稿前，我把自己写的尾声从曲子里剪掉了。"
+              },
+              {
+                "source": "unfinished",
+                "quote": "我也想保住那段只有我记得的旋律。"
+              },
+              {
+                "source": "then.feeling.1",
+                "quote": "可惜"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把自己写的尾声从曲子里剪掉了"
+            }
+          ]
+        },
+        "control": {
+          "value": "limited",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "交稿前，我把自己写的尾声从曲子里剪掉了。"
+            },
+            {
+              "source": "unfinished",
+              "quote": "我也想保住那段只有我记得的旋律。"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "重听并另录后，静音和那段旋律可以分开放；当时剪掉的尾声不必等于失去，两个愿望能以不同形式留下。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "今天重听后，我保留了那处静音，并把剪下的尾声另录成独立的小曲。"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "boat",
+      "condition": "control",
+      "requestHash": "ded0ec9d4d0260b8f58c69ff196aab4d8b8e7da505034faeb839699eb3181f80",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"helped\",\"feeling\":\"\",\"meaning\":\"借出唯一的船是在帮他赶上渡口集市，这一步帮上了忙，但他最后是否赶上并没有明说。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把今天唯一能下水的船借给了邻居\"},{\"source\":\"thought\",\"quote\":\"我想让他赶上今天的渡口集市。\"}]},{\"goal\":\"unfinished\",\"effect\":\"frustrated\",\"feeling\":\"舍不得\",\"meaning\":\"我自己也想划过这片湖，却把唯一的船借了出去，自己留在岸上，这个愿望当时被搁下了。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把今天唯一能下水的船借给了邻居，自己留在岸上。\"},{\"source\":\"unfinished\",\"quote\":\"我自己也想划过这片湖。\"},{\"source\":\"then.feeling.0\",\"quote\":\"舍不得\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把今天唯一能下水的船借给了邻居\"}]},\"control\":{\"value\":\"limited\",\"basis\":[{\"source\":\"event\",\"quote\":\"自己留在岸上\"}]},\"now\":{\"meaning\":\"后记只说集市门口换成了画着船的招牌；邻居是否赶上集市、我后来有没有划过湖，都还不知道。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"早市门口换了一块招牌，招牌上画着一条船。\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 558,
+        "completion_tokens": 3708,
+        "total_tokens": 4266,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3415
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 174
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "helped",
+            "feeling": "",
+            "meaning": "借出唯一的船是在帮他赶上渡口集市，这一步帮上了忙，但他最后是否赶上并没有明说。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把今天唯一能下水的船借给了邻居"
+              },
+              {
+                "source": "thought",
+                "quote": "我想让他赶上今天的渡口集市。"
+              }
+            ]
+          },
+          {
+            "goal": "unfinished",
+            "effect": "frustrated",
+            "feeling": "舍不得",
+            "meaning": "我自己也想划过这片湖，却把唯一的船借了出去，自己留在岸上，这个愿望当时被搁下了。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把今天唯一能下水的船借给了邻居，自己留在岸上。"
+              },
+              {
+                "source": "unfinished",
+                "quote": "我自己也想划过这片湖。"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "舍不得"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把今天唯一能下水的船借给了邻居"
+            }
+          ]
+        },
+        "control": {
+          "value": "limited",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "自己留在岸上"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "后记只说集市门口换成了画着船的招牌；邻居是否赶上集市、我后来有没有划过湖，都还不知道。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "早市门口换了一块招牌，招牌上画着一条船。"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "zine",
+      "condition": "yesterday",
+      "requestHash": "fa69366fb2b7cd24cfe5f137ddc45af77cad49dd83134e3fc8f9ec01b8d22a9c",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"信任\",\"meaning\":\"我想借她读小册子听到看法，但她的看法当时还没出现。\",\"basis\":[{\"source\":\"event\",\"quote\":\"借给朋友看\"},{\"source\":\"thought\",\"quote\":\"想听她的看法\"}]},{\"goal\":\"thought\",\"effect\":\"helped\",\"feeling\":\"有点不安\",\"meaning\":\"我通过只借给她并约定范围，实践了自己决定谁可以读。\",\"basis\":[{\"source\":\"event\",\"quote\":\"约好只让她一个人看\"},{\"source\":\"thought\",\"quote\":\"想自己决定谁能读这本小册子\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把自己写的小册子借给朋友看\"},{\"source\":\"thought\",\"quote\":\"也想自己决定谁能读这本小册子\"}]},\"control\":{\"value\":\"available\",\"basis\":[{\"source\":\"event\",\"quote\":\"并约好只让她一个人看\"}]},\"now\":null}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 545,
+        "completion_tokens": 1223,
+        "total_tokens": 1768,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1009
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 161
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "信任",
+            "meaning": "我想借她读小册子听到看法，但她的看法当时还没出现。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "借给朋友看"
+              },
+              {
+                "source": "thought",
+                "quote": "想听她的看法"
+              }
+            ]
+          },
+          {
+            "goal": "thought",
+            "effect": "helped",
+            "feeling": "有点不安",
+            "meaning": "我通过只借给她并约定范围，实践了自己决定谁可以读。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "约好只让她一个人看"
+              },
+              {
+                "source": "thought",
+                "quote": "想自己决定谁能读这本小册子"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把自己写的小册子借给朋友看"
+            },
+            {
+              "source": "thought",
+              "quote": "也想自己决定谁能读这本小册子"
+            }
+          ]
+        },
+        "control": {
+          "value": "available",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "并约好只让她一个人看"
+            }
+          ]
+        },
+        "now": null
+      }
+    },
+    {
+      "case": "seed",
+      "condition": "control",
+      "requestHash": "e2aa3005c50b0bcb1309c21c240c4420bcc395da5bb6e5d766d36ab740354fdf",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"unknown\",\"feeling\":\"期待\",\"meaning\":\"我撒下种子，盼着自己窗前长出第一片叶子，但当时还不知道会不会长出来。\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把剩下的一小包种子全撒在了自己窗边的土里。\"},{\"source\":\"thought\",\"quote\":\"我盼着在这里看见第一片叶子。\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把剩下的一小包种子全撒在了自己窗边的土里。\"}]},\"control\":{\"value\":\"limited\",\"basis\":[{\"source\":\"event\",\"quote\":\"我把剩下的一小包种子全撒在了自己窗边的土里。\"},{\"source\":\"thought\",\"quote\":\"我盼着在这里看见第一片叶子。\"}]},\"now\":{\"meaning\":\"楼下已有新叶，而我还没看自己的花盆；当初盼的第一片叶子是否出现还不知道。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"今早楼下的树长了新叶。我拉着窗帘，还没看自己的花盆。\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 549,
+        "completion_tokens": 2237,
+        "total_tokens": 2786,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2011
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 165
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "unknown",
+            "feeling": "期待",
+            "meaning": "我撒下种子，盼着自己窗前长出第一片叶子，但当时还不知道会不会长出来。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "我把剩下的一小包种子全撒在了自己窗边的土里。"
+              },
+              {
+                "source": "thought",
+                "quote": "我盼着在这里看见第一片叶子。"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把剩下的一小包种子全撒在了自己窗边的土里。"
+            }
+          ]
+        },
+        "control": {
+          "value": "limited",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我把剩下的一小包种子全撒在了自己窗边的土里。"
+            },
+            {
+              "source": "thought",
+              "quote": "我盼着在这里看见第一片叶子。"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "楼下已有新叶，而我还没看自己的花盆；当初盼的第一片叶子是否出现还不知道。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "今早楼下的树长了新叶。我拉着窗帘，还没看自己的花盆。"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "light",
+      "condition": "b",
+      "requestHash": "80dd4f09325c856f5adf6a853010a8eb87cccd51a8ede8b1989a2ed6ed1fb71e",
+      "text": "{\"perspectives\":[{\"goal\":\"thought\",\"effect\":\"frustrated\",\"feeling\":\"挂心\",\"meaning\":\"我当时想替收谱人照看台阶，但后来知道灯留下时他已从侧门离开，这个愿望没有真正落到他身上。\",\"basis\":[{\"source\":\"event\",\"quote\":\"散场时，我让工作人员把舞台上的灯再留一分钟。\"},{\"source\":\"thought\",\"quote\":\"我想让正在收谱的人看清台阶。\"},{\"source\":\"then.feeling.0\",\"quote\":\"挂心\"}]}],\"agency\":{\"value\":\"self\",\"basis\":[{\"source\":\"event\",\"quote\":\"我让工作人员把舞台上的灯再留一分钟。\"}]},\"control\":{\"value\":\"available\",\"basis\":[{\"source\":\"event\",\"quote\":\"我让工作人员把舞台上的灯再留一分钟。\"}]},\"now\":{\"meaning\":\"今天才知道他早已从侧门离开，没有走那段台阶；留灯没有照到他，我当时的挂心并没有实际帮上这一步。\",\"basis\":[{\"source\":\"later.0\",\"quote\":\"今天收谱人告诉我，亮灯前他已从侧门离开，根本没走那段台阶。\"}]}}",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 551,
+        "completion_tokens": 4057,
+        "total_tokens": 4608,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3819
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 167
+      },
+      "model": "deepseek-flash",
+      "status": "reflected",
+      "appraisal": {
+        "perspectives": [
+          {
+            "goal": "thought",
+            "effect": "frustrated",
+            "feeling": "挂心",
+            "meaning": "我当时想替收谱人照看台阶，但后来知道灯留下时他已从侧门离开，这个愿望没有真正落到他身上。",
+            "basis": [
+              {
+                "source": "event",
+                "quote": "散场时，我让工作人员把舞台上的灯再留一分钟。"
+              },
+              {
+                "source": "thought",
+                "quote": "我想让正在收谱的人看清台阶。"
+              },
+              {
+                "source": "then.feeling.0",
+                "quote": "挂心"
+              }
+            ]
+          }
+        ],
+        "agency": {
+          "value": "self",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我让工作人员把舞台上的灯再留一分钟。"
+            }
+          ]
+        },
+        "control": {
+          "value": "available",
+          "basis": [
+            {
+              "source": "event",
+              "quote": "我让工作人员把舞台上的灯再留一分钟。"
+            }
+          ]
+        },
+        "now": {
+          "meaning": "今天才知道他早已从侧门离开，没有走那段台阶；留灯没有照到他，我当时的挂心并没有实际帮上这一步。",
+          "basis": [
+            {
+              "source": "later.0",
+              "quote": "今天收谱人告诉我，亮灯前他已从侧门离开，根本没走那段台阶。"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
