@@ -25,6 +25,17 @@
   单链头但指针断掉的情况仍按时间排序并标 I5 待复核。
 - 真实数据上因此少补 11 条（96 → 85），两条歧义链（2 头 / 6 头）留给人工。
 
+## [0.18.2] - 2026-11-19
+
+### Added
+
+- 新增 `whale-memory-core/timeline-query`：三种问法都从两个谓词长出来——
+  **知轴** `versionKnownAt(chain, t)` 回答「那时候她认为哪一版」（`factVersionAt <= t < invalidatedAt`），
+  **值轴** `valueValidAt(chain, t)` 回答「那时候这件事是否还成立」（`validFrom <= t < validUntil`）。
+  两者可以不一致：事实已经变了、她还没更新认识，这正是要能说清的事。
+- `currentVersion` / `orderChain` / `changesBetween`：当前版本、链排序、两个时刻之间有哪些版本变化。
+- 测试 `tests/timeline-query.test.mjs`（7 项），包含知轴与值轴分叉的用例。
+
 ## [Unreleased]
 
 ### Changed
