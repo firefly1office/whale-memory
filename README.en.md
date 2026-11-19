@@ -99,6 +99,8 @@ node adapters/cli/memory-cli.mjs read --limit 1
 
 ## Data and verification
 
+The current interaction experiment prioritizes conversational rhythm: [20 fictional A/B cases and a randomized blind-review page](examples/conversation-rhythm/README.md) (Chinese). It compares ordinary character prompting with concise, selective replies without list-like summaries. Human ratings are pending; memory storage and live characters are unchanged.
+
 For direct emotion API calls, `settle` and `admits` default to `legacy-high`; the evaluator explicitly uses `boundary-v2`. New events and clarifications share admission rules, while medium-confidence clarifications cannot undo or soften existing harm. Reports distinguish blocked incorrect proposals from blocked correct ones against the frozen development rubric.
 
 An experimental [text-emotion module](packages/emotion/README.md) (Chinese) separates contextual interpretation, personal feelings and relationship settlement, with append-only corrections. It is not deployed to a live character and has no validated misjudgment rate. Development cases are not a held-out benchmark. Evaluation reports separate model proposals from applied changes; the unverified `responseHint` output has been removed from the current API.

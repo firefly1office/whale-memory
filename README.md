@@ -110,6 +110,8 @@ node adapters/cli/memory-cli.mjs doctor
 
 ## 数据与验证
 
+当前交互实验优先验证语言节奏：[20 组虚构闲聊 A/B 与随机盲评](examples/conversation-rhythm/README.md)。比较普通角色提示与“短、允许拒绝、不逐点回应、不总结”的约束；尚无人类评阅结果，不改变记忆存储或线上角色。
+
 文字情感扩展正在独立实验：[语境理解、感受与关系分离、误会修正](packages/emotion/README.md)。它通过宿主提供的模型回调判断文字，包含虚构开发题和离线机制测试；尚未接入线上角色，也没有已验证的情感理解准确率。
 
 经历保存在 `<WHALE_DATA_DIR>/plugin-data/biomimetic-memory/`。同一目录中的记录由调用进程读取。接入群聊时，宿主需要校验调用者和会话可见范围，尤其是开放日记读取前。CLI 适合受信的本机进程。

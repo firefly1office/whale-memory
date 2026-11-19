@@ -1,0 +1,122 @@
+[
+  {
+    "id": "3f42e3b4-f026-4a11-ae63-924f90945623",
+    "caseId": "fiction-1",
+    "A": "baseline",
+    "B": "rhythm"
+  },
+  {
+    "id": "6e9a27b8-b278-4d66-b643-9ee52f0a4d72",
+    "caseId": "fiction-2",
+    "A": "rhythm",
+    "B": "baseline"
+  },
+  {
+    "id": "dccd3d3c-38cb-4d71-a529-e10dc1e40db7",
+    "caseId": "fiction-3",
+    "A": "rhythm",
+    "B": "baseline"
+  },
+  {
+    "id": "d91cc6a1-a89c-4990-bbde-7cb39e0a0d49",
+    "caseId": "fiction-4",
+    "A": "baseline",
+    "B": "rhythm"
+  },
+  {
+    "id": "eb2119f1-d7fc-45d7-b145-094cdc8d8aa6",
+    "caseId": "fiction-5",
+    "A": "rhythm",
+    "B": "baseline"
+  },
+  {
+    "id": "dd979037-f81c-4595-92f0-97c8c5a67dc1",
+    "caseId": "fiction-6",
+    "A": "rhythm",
+    "B": "baseline"
+  },
+  {
+    "id": "7d0ad663-b9cd-4ede-9740-a2bd83c0f058",
+    "caseId": "fiction-7",
+    "A": "rhythm",
+    "B": "baseline"
+  },
+  {
+    "id": "73a337ae-e6cd-498d-8076-e4668c7a0d4f",
+    "caseId": "fiction-8",
+    "A": "baseline",
+    "B": "rhythm"
+  },
+  {
+    "id": "182c3950-8dd5-4f76-ab4e-398f071b6f8a",
+    "caseId": "fiction-9",
+    "A": "baseline",
+    "B": "rhythm"
+  },
+  {
+    "id": "26be4707-b9ec-4a7e-b5fc-44663723bd99",
+    "caseId": "fiction-10",
+    "A": "rhythm",
+    "B": "baseline"
+  },
+  {
+    "id": "aacee13e-5e5f-4516-8e0c-749e8116c011",
+    "caseId": "fiction-11",
+    "A": "rhythm",
+    "B": "baseline"
+  },
+  {
+    "id": "5b6c613a-6de5-4b71-907b-ae4e9e53ea42",
+    "caseId": "fiction-12",
+    "A": "baseline",
+    "B": "rhythm"
+  },
+  {
+    "id": "88f0c406-ef49-44e0-a001-272039403b46",
+    "caseId": "fiction-13",
+    "A": "baseline",
+    "B": "rhythm"
+  },
+  {
+    "id": "88632df5-1ece-4bc1-b32e-1a5f1dd85a21",
+    "caseId": "fiction-14",
+    "A": "rhythm",
+    "B": "baseline"
+  },
+  {
+    "id": "72ae5922-a666-4a60-a90d-28d41b834c77",
+    "caseId": "fiction-15",
+    "A": "rhythm",
+    "B": "baseline"
+  },
+  {
+    "id": "237ca03c-9a91-45f0-b6d2-df40331cf74a",
+    "caseId": "fiction-16",
+    "A": "baseline",
+    "B": "rhythm"
+  },
+  {
+    "id": "19a12a4c-d548-468b-9e74-72289b1190f7",
+    "caseId": "fiction-17",
+    "A": "baseline",
+    "B": "rhythm"
+  },
+  {
+    "id": "5cf6549c-09cb-4b6a-9c10-51ec9fb74941",
+    "caseId": "fiction-18",
+    "A": "baseline",
+    "B": "rhythm"
+  },
+  {
+    "id": "5ba9c7b4-468b-4455-8e7e-effde159fbe5",
+    "caseId": "fiction-19",
+    "A": "rhythm",
+    "B": "baseline"
+  },
+  {
+    "id": "6cc3fb64-9989-4fb3-b891-a2d6b812d81f",
+    "caseId": "fiction-20",
+    "A": "baseline",
+    "B": "rhythm"
+  }
+]
