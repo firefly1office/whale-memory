@@ -170,6 +170,13 @@ export function planChainVersions(records) {
   const heads = defined.filter((row) => !hasBackward(row))
   let order = []
 
+  // 链头不唯一 = 好几个「第一版」并存，指针没给出先后。按时间硬排会编出一个假顺序，
+  // 所以这里直接返回歧义，不给补丁，交给人看。
+  if (heads.length > 1) {
+    issues.push({ code: 'I6', id: '', message: `出现 ${heads.length} 个链头，无法确定先后` })
+    return { order: [], patches: [], issues, orderBy: 'ambiguous' }
+  }
+
   // 只有「唯一链头 + 一路向前、不重复、走完全部记录」才算指针排得出来。
   const walkable = heads.length === 1 && defined.every((row) => !hasBackward(row) || byId.has(String(row.revisionOf)))
   if (walkable) {

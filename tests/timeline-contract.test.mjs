@@ -143,3 +143,14 @@ test('迁移规划出来的链能通过校验', () => {
   const stamped = rows.map((r) => ({ ...r, ...plan.patches.find((p) => p.id === r.id) }))
   assert.deepEqual(validateLineage(stamped), [])
 })
+
+test('迁移规划：多个链头算歧义，不给补丁', () => {
+  const rows = [
+    { id: 'a', lineageId: 'L', factVersionAt: T0 },
+    { id: 'b', lineageId: 'L', factVersionAt: T0 + H }
+  ]
+  const plan = planChainVersions(rows)
+  assert.equal(plan.orderBy, 'ambiguous')
+  assert.equal(plan.patches.length, 0)
+  assert.ok(plan.issues.some((i) => i.code === 'I6'))
+})

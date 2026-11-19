@@ -16,6 +16,15 @@
   成环/断链会报出来，不静默乱排。
 - 文档 [docs/timeline.md](docs/timeline.md)，测试 `tests/timeline-contract.test.mjs`（16 项）。
 
+## [0.18.1] - 2026-11-19
+
+### Fixed
+
+- `planChainVersions`：一条链出现**多个链头**时（指针从没连过、槽位过宽），不再按时间硬排，
+  而是返回 `orderBy: 'ambiguous'` 与 I6，不给补丁——避免编出一个假的先后顺序。
+  单链头但指针断掉的情况仍按时间排序并标 I5 待复核。
+- 真实数据上因此少补 11 条（96 → 85），两条歧义链（2 头 / 6 头）留给人工。
+
 ## [Unreleased]
 
 ### Changed
