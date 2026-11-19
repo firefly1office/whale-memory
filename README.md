@@ -69,6 +69,20 @@ node adapters/cli/memory-cli.mjs doctor
 
 它会真的在临时目录里写入、读回、结案、导出再导入，再检查事件文件和醒来白名单。`ok: true` 才算能用。
 
+## 事实时间线（可选）
+
+同一个槽位被说过几次，就有了几个版本。`whale-memory-core/timeline` 把三件事拆开：
+值（`validFrom`/`validUntil`，世界时间）、知（`factVersionAt`/`invalidatedAt`，她什么时候知道）、
+序（`version`，链内序号——不信任时钟时用它定序）。
+
+```js
+import { applySuccession, validateLineage } from 'whale-memory-core/timeline'
+applySuccession(before, after, { reason: 'correction' })  // 补 version / invalidatedAt / supersedeReason
+validateLineage(chainRows)                                 // I1–I4，[] 表示通过
+```
+
+它只补序轴和知轴，不写值轴：有效期必须来自证据或人工裁决。字段与不变量见 [docs/timeline.md](docs/timeline.md)。
+
 ## 选择接入方式
 
 | 你想做什么 | 从哪里开始 |

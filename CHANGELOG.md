@@ -2,6 +2,20 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.18.0] - 2026-11-19
+
+### Added
+
+- 新增 `whale-memory-core/timeline`：事实时间线契约。把「值轴 / 知轴 / 序轴」拆开——
+  `validFrom`/`validUntil` 管世界时间，`factVersionAt`/`invalidatedAt` 管她什么时候知道、
+  什么时候不再这么认为，`version` 管同一槽位里的先后（不信任时钟时用追加顺序定序）。
+- `nextFactVersion` / `stampSuccession` / `applySuccession`：取代时补 `version`、
+  `invalidatedAt`、`supersedeReason`；**不写值轴**（有效期必须来自证据或裁决）。
+- `validateLineage`：I1 序号连续唯一、I2 知轴终点接上后继起点、I3 指针对称、I4 原因取值合法。
+- `planChainVersions`：迁移用——指针能排出完整链就按指针，排不出来退回按时间排序并标记待复核，
+  成环/断链会报出来，不静默乱排。
+- 文档 [docs/timeline.md](docs/timeline.md)，测试 `tests/timeline-contract.test.mjs`（16 项）。
+
 ## [Unreleased]
 
 ### Changed
