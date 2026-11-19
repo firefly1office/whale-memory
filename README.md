@@ -79,6 +79,7 @@ node adapters/cli/memory-cli.mjs doctor
 | 在 JavaScript 中直接读写 | [自传层内核](packages/core/README.md)（`npm install whale-memory-core`）和[宿主移植指南](docs/porting.md)。注意包名带 `-core`：npm 上不带 `-core` 的 `whale-memory` 是别人的包，和本项目无关 |
 | 从零开始接一个角色 | [30 分钟教程](docs/tutorial.md)：写下、想起、改主意、第二天醒来、封存、她的书、接进宿主 |
 | 看数据结构 | [数据格式 schema](docs/schema.md) 与[虚构样本](examples/samples/) |
+| 用虚构经历试验情感回想 | [一件事对我意味着什么](examples/emotion-bridge/) 允许同件事涉及不同愿望，分别查看当时的感受和后来的理解 |
 | 看别人的宿主怎么接 | [第一天的故事，第二天还接得上](examples/first-day/)：两个进程，隔天自动递回，不输入 recall |
 | 翻回那天的自己 | `read --id <id> --as-of 2026-11-15`：只看那天之前写下的后记和选择，之后的都看不见（[语义](docs/schema.md#翻回那天的自己0120-起)） |
 | 问一件事的细节 | `detail --query "那条围巾是什么颜色"`：只给原文和证据状态（supported/related/ambiguous/unmatched），不补没写过的细节（[说明](docs/evidence.md)） |
@@ -108,6 +109,8 @@ node adapters/cli/memory-cli.mjs doctor
 > 完整引擎（vault 存储、evidence-policy 取证、consolidator 合并、注入预算）约 26k 行，与具体宿主的部署强耦合，**不随本仓库分发**；设计思路见 [架构说明](docs/architecture.md)。
 
 ## 数据与验证
+
+文字情感扩展正在独立实验：[语境理解、感受与关系分离、误会修正](packages/emotion/README.md)。它通过宿主提供的模型回调判断文字，包含虚构开发题和离线机制测试；尚未接入线上角色，也没有已验证的情感理解准确率。
 
 经历保存在 `<WHALE_DATA_DIR>/plugin-data/biomimetic-memory/`。同一目录中的记录由调用进程读取。接入群聊时，宿主需要校验调用者和会话可见范围，尤其是开放日记读取前。CLI 适合受信的本机进程。
 

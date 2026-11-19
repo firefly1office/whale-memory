@@ -6,10 +6,16 @@
 
 ### Changed
 
+- 文字情感多轮修订：新事件与澄清共用 admits，允许 medium 边界补记但不允许减轻已有伤害；settle 默认恢复 legacy-high。拦截统计拆为 blockedWrong/blockedCorrect，历史报告显式标注旧政策，未新增模型采样。
+
+- 文字情感实验审阅修订：模型提案与实际结算分别计分；明确选中且有原文/已知边界支持的 medium boundary/hurt 可按 boundary-v2 结算，旧日志保留旧政策。删除当前 API 的 responseHint，统一采样来源说明，保留原分数并另列离线重算；未新增模型采样。
+
 - 对外报错改成英文在前、原中文原样跟在后面（「English（原中文）」）：核心库 76 条、CLI 33 条（含用法说明）、MCP 28 条。
 - `renderTwoPart`、`buildWakingBlock` 加 `lang`（`zh` 默认，输出与以前逐字一致；`en`）；demo、CLI、MCP 按 `--lang` / `WHALE_LANG` / 系统语言选择。demo 英文模式连示例内容一起换成英文。
 
 ### Added
+
+- 新增仓库内实验模块 `packages/emotion`：文字语境评估、个人感受与关系事件分离、可追加修正的情感事件与按时点投影；提供虚构场景、模型对照评测入口和机制测试。尚未发布或接入线上角色，语义理解准确率待测。
 
 - 新增只读的细节查询 `recallDetail`、CLI `detail` 和 MCP `memory_detail`，可查看候选经历、原文出处与所问细节的证据状态。
 

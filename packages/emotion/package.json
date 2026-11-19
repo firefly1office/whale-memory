@@ -1,0 +1,10 @@
+{
+  "name": "whale-emotion-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "engines": { "node": ">=20" },
+  "description": "Experimental context appraisal and revisable emotion events; source-only, not published",
+  "license": "MIT"
+}

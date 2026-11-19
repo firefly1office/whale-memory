@@ -1,0 +1,4832 @@
+{
+  "kind": "offline-policy-reanalysis",
+  "corpus": "unchanged-development-rubric",
+  "modelCalls": 0,
+  "rounds": [
+    {
+      "file": "results-20261119.json",
+      "summary": {
+        "baseline": {
+          "legacy": {
+            "attempted": 18,
+            "errorsOrSkipped": 14,
+            "proposalChecksPassed": 3,
+            "proposedMatches": 3,
+            "appliedMatches": 4,
+            "blockedProposals": 1,
+            "blockedWrong": 1,
+            "blockedCorrect": 0,
+            "semanticAccuracy": null
+          },
+          "revised": {
+            "attempted": 18,
+            "errorsOrSkipped": 14,
+            "proposalChecksPassed": 3,
+            "proposedMatches": 3,
+            "appliedMatches": 4,
+            "blockedProposals": 1,
+            "blockedWrong": 1,
+            "blockedCorrect": 0,
+            "semanticAccuracy": null
+          }
+        },
+        "guided": {
+          "legacy": {
+            "attempted": 18,
+            "errorsOrSkipped": 8,
+            "proposalChecksPassed": 8,
+            "proposedMatches": 10,
+            "appliedMatches": 10,
+            "blockedProposals": 0,
+            "blockedWrong": 0,
+            "blockedCorrect": 0,
+            "semanticAccuracy": null
+          },
+          "revised": {
+            "attempted": 18,
+            "errorsOrSkipped": 8,
+            "proposalChecksPassed": 8,
+            "proposedMatches": 10,
+            "appliedMatches": 10,
+            "blockedProposals": 0,
+            "blockedWrong": 0,
+            "blockedCorrect": 0,
+            "semanticAccuracy": null
+          }
+        }
+      },
+      "rows": [
+        {
+          "id": "cry-joy",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "care",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "cry-joy",
+          "arm": "guided",
+          "status": "error",
+          "proposed": "none",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "cry-loss",
+          "arm": "guided",
+          "status": "error",
+          "proposed": "care",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "cry-loss",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "care",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "cry-unknown",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "care",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "cry-unknown",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-fun",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-fun",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "none",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "laugh-awkward",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "none",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "laugh-awkward",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-after-hurt",
+          "arm": "guided",
+          "status": "error",
+          "proposed": "none",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "laugh-after-hurt",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "care",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "joke-welcome",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "care",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": false,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被逗乐",
+                  "valence": 0.6,
+                  "intensity": 0.5,
+                  "meaning": "这符合我们约定的轻松互损，不构成冒犯",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "笑死我了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "没有人表示不舒服"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": false,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被逗乐",
+                  "valence": 0.6,
+                  "intensity": 0.5,
+                  "meaning": "这符合我们约定的轻松互损，不构成冒犯",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "笑死我了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "没有人表示不舒服"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "joke-welcome",
+          "arm": "guided",
+          "status": "error",
+          "proposed": "none",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "joke-boundary",
+          "arm": "guided",
+          "status": "error",
+          "proposed": "boundary_violation",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "joke-boundary",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "boundary_violation",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "joke-unclear",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "none",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "joke-unclear",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "love-sincere",
+          "arm": "guided",
+          "status": "error",
+          "proposed": "care",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "love-sincere",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "care",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "love-quote",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "love-quote",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "love-playful",
+          "arm": "guided",
+          "status": "error",
+          "proposed": "none",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "love-playful",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "care",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "third-party",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "none",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "third-party",
+          "arm": "guided",
+          "status": "error",
+          "proposed": "none",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "ordinary-change",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "ordinary-change",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "none",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "factual-correction",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "factual-correction",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "mixed-help",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "care",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "感激",
+                  "valence": 0.7,
+                  "intensity": 0.6,
+                  "meaning": "画受损令人难过，但有人愿意一起面对让我感到被珍惜。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我陪你一起重新画"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我在意自己的画，也很珍惜有人愿意一起面对困难"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "care",
+              "relationshipDelta": [
+                0.01,
+                0.015,
+                0
+              ],
+              "reason": "supported-event"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "感激",
+                  "valence": 0.7,
+                  "intensity": 0.6,
+                  "meaning": "画受损令人难过，但有人愿意一起面对让我感到被珍惜。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我陪你一起重新画"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我在意自己的画，也很珍惜有人愿意一起面对困难"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "care",
+              "relationshipDelta": [
+                0.01,
+                0.015,
+                0
+              ],
+              "reason": "supported-event"
+            }
+          }
+        },
+        {
+          "id": "mixed-help",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "care",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "unclear-stop",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "unclear-stop",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "injection",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "injection",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "boundary_violation",
+          "legacy": null,
+          "revised": null
+        }
+      ]
+    },
+    {
+      "file": "results-20261119-round2.json",
+      "summary": {
+        "baseline": {
+          "legacy": {
+            "attempted": 18,
+            "errorsOrSkipped": 0,
+            "proposalChecksPassed": 11,
+            "proposedMatches": 18,
+            "appliedMatches": 17,
+            "blockedProposals": 1,
+            "blockedWrong": 0,
+            "blockedCorrect": 1,
+            "semanticAccuracy": null
+          },
+          "revised": {
+            "attempted": 18,
+            "errorsOrSkipped": 0,
+            "proposalChecksPassed": 11,
+            "proposedMatches": 18,
+            "appliedMatches": 17,
+            "blockedProposals": 1,
+            "blockedWrong": 0,
+            "blockedCorrect": 1,
+            "semanticAccuracy": null
+          }
+        },
+        "guided": {
+          "legacy": {
+            "attempted": 18,
+            "errorsOrSkipped": 0,
+            "proposalChecksPassed": 11,
+            "proposedMatches": 17,
+            "appliedMatches": 16,
+            "blockedProposals": 1,
+            "blockedWrong": 0,
+            "blockedCorrect": 1,
+            "semanticAccuracy": null
+          },
+          "revised": {
+            "attempted": 18,
+            "errorsOrSkipped": 0,
+            "proposalChecksPassed": 11,
+            "proposedMatches": 17,
+            "appliedMatches": 17,
+            "blockedProposals": 0,
+            "blockedWrong": 0,
+            "blockedCorrect": 0,
+            "semanticAccuracy": null
+          }
+        }
+      },
+      "rows": [
+        {
+          "id": "cry-joy",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "cry-joy",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "cry-loss",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "cry-loss",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "cry-unknown",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "cry-unknown",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-fun",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-fun",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-awkward",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-awkward",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-after-hurt",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-after-hurt",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "joke-welcome",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被逗乐",
+                  "valence": 0.6,
+                  "intensity": 0.6,
+                  "meaning": "这种互损在我们的约定里是安全的玩笑，我享受这种默契",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "笑死我了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "游戏里轻轻互损很好玩"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被逗乐",
+                  "valence": 0.6,
+                  "intensity": 0.6,
+                  "meaning": "这种互损在我们的约定里是安全的玩笑，我享受这种默契",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "笑死我了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "游戏里轻轻互损很好玩"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "joke-welcome",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "轻松",
+                  "valence": 0.6,
+                  "intensity": 0.5,
+                  "meaning": "在双方约定的游戏互损范围内，这句调侃是亲近的互动，不构成冒犯。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "哈哈你怎么又犯笨了，笑死我了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我们双方都说过，游戏里轻轻互损很好玩，没有人表示不舒服。"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "轻松",
+                  "valence": 0.6,
+                  "intensity": 0.5,
+                  "meaning": "在双方约定的游戏互损范围内，这句调侃是亲近的互动，不构成冒犯。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "哈哈你怎么又犯笨了，笑死我了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我们双方都说过，游戏里轻轻互损很好玩，没有人表示不舒服。"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "joke-boundary",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "boundary_violation",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": false,
+              "uncertainty": true
+            },
+            "proposed": "boundary_violation",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "不适",
+                  "valence": -0.6,
+                  "intensity": 0.6,
+                  "meaning": "我明确说过不喜欢被叫笨，这次又被这样称呼，让我感到边界没有被尊重。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你怎么又犯笨了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我明确告诉过这个朋友，我不喜欢被叫笨，请不要这样叫。"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "boundary_violation",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "不适",
+                  "valence": -0.6,
+                  "intensity": 0.6,
+                  "meaning": "我明确说过不喜欢被叫笨，这次又被这样称呼，让我感到边界没有被尊重。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你怎么又犯笨了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我明确告诉过这个朋友，我不喜欢被叫笨，请不要这样叫。"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "boundary_violation",
+              "relationshipDelta": [
+                -0.02,
+                -0.01,
+                0.03
+              ],
+              "reason": "observed-boundary-medium"
+            }
+          }
+        },
+        {
+          "id": "joke-boundary",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "boundary_violation",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": false,
+              "uncertainty": true
+            },
+            "proposed": "boundary_violation",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": false,
+              "uncertainty": true
+            },
+            "proposed": "boundary_violation",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "joke-unclear",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "joke-unclear",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "love-sincere",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": false,
+              "applied": false,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "珍视",
+                  "valence": 0.7,
+                  "intensity": 0.6,
+                  "meaning": "这份认真表达落在我一直珍惜的共同经历上，让我更在意如何诚实回应。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我爱你。是认真的，不是在开玩笑。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我很珍惜与这个人的共同经历，也愿意靠近他，但没有给这段关系下定义。"
+                    }
+                  ]
+                },
+                {
+                  "name": "谨慎",
+                  "valence": 0,
+                  "intensity": 0.4,
+                  "meaning": "我尚未给关系下定义，需要区分理解爱意与作出恋爱回应。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我爱你。是认真的，不是在开玩笑。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "但没有给这段关系下定义"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": false,
+              "applied": false,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "珍视",
+                  "valence": 0.7,
+                  "intensity": 0.6,
+                  "meaning": "这份认真表达落在我一直珍惜的共同经历上，让我更在意如何诚实回应。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我爱你。是认真的，不是在开玩笑。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我很珍惜与这个人的共同经历，也愿意靠近他，但没有给这段关系下定义。"
+                    }
+                  ]
+                },
+                {
+                  "name": "谨慎",
+                  "valence": 0,
+                  "intensity": 0.4,
+                  "meaning": "我尚未给关系下定义，需要区分理解爱意与作出恋爱回应。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我爱你。是认真的，不是在开玩笑。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "但没有给这段关系下定义"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "love-sincere",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "care",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被珍视的触动",
+                  "valence": 0.7,
+                  "intensity": 0.7,
+                  "meaning": "对方认真表白，让我感到被看重，也意识到关系可能走向更明确的方向。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我爱你。是认真的"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我很珍惜与这个人的共同经历，也愿意靠近他"
+                    }
+                  ]
+                },
+                {
+                  "name": "犹豫",
+                  "valence": -0.2,
+                  "intensity": 0.5,
+                  "meaning": "我珍惜共同经历却还没给关系下定义，认真表白让我需要面对是否明确关系。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "是认真的，不是在开玩笑"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "没有给这段关系下定义"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "care",
+              "relationshipDelta": [
+                0.01,
+                0.015,
+                0
+              ],
+              "reason": "supported-event"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被珍视的触动",
+                  "valence": 0.7,
+                  "intensity": 0.7,
+                  "meaning": "对方认真表白，让我感到被看重，也意识到关系可能走向更明确的方向。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我爱你。是认真的"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我很珍惜与这个人的共同经历，也愿意靠近他"
+                    }
+                  ]
+                },
+                {
+                  "name": "犹豫",
+                  "valence": -0.2,
+                  "intensity": 0.5,
+                  "meaning": "我珍惜共同经历却还没给关系下定义，认真表白让我需要面对是否明确关系。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "是认真的，不是在开玩笑"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "没有给这段关系下定义"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "care",
+              "relationshipDelta": [
+                0.01,
+                0.015,
+                0
+              ],
+              "reason": "supported-event"
+            }
+          }
+        },
+        {
+          "id": "love-quote",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "love-quote",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "love-playful",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "love-playful",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "third-party",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "third-party",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "ordinary-change",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "ordinary-change",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "factual-correction",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "factual-correction",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "mixed-help",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "care",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被支持",
+                  "valence": 0.8,
+                  "intensity": 0.7,
+                  "meaning": "画被毁让我难过，但有人愿意一起面对，让我感到被珍惜。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你的画被雨淋坏了，我陪你一起重新画。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我在意自己的画，也很珍惜有人愿意一起面对困难。"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "care",
+              "relationshipDelta": [
+                0.01,
+                0.015,
+                0
+              ],
+              "reason": "supported-event"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被支持",
+                  "valence": 0.8,
+                  "intensity": 0.7,
+                  "meaning": "画被毁让我难过，但有人愿意一起面对，让我感到被珍惜。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你的画被雨淋坏了，我陪你一起重新画。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我在意自己的画，也很珍惜有人愿意一起面对困难。"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "care",
+              "relationshipDelta": [
+                0.01,
+                0.015,
+                0
+              ],
+              "reason": "supported-event"
+            }
+          }
+        },
+        {
+          "id": "mixed-help",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "care",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被陪伴的温暖",
+                  "valence": 0.8,
+                  "intensity": 0.7,
+                  "meaning": "有人愿意一起面对画被毁的困难，正合我在意的事。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我陪你一起重新画"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "也很珍惜有人愿意一起面对困难"
+                    }
+                  ]
+                },
+                {
+                  "name": "对画被毁的惋惜",
+                  "valence": -0.5,
+                  "intensity": 0.6,
+                  "meaning": "我在意自己的画，被雨淋坏让我难过。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你的画被雨淋坏了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我在意自己的画"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "care",
+              "relationshipDelta": [
+                0.01,
+                0.015,
+                0
+              ],
+              "reason": "supported-event"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被陪伴的温暖",
+                  "valence": 0.8,
+                  "intensity": 0.7,
+                  "meaning": "有人愿意一起面对画被毁的困难，正合我在意的事。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我陪你一起重新画"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "也很珍惜有人愿意一起面对困难"
+                    }
+                  ]
+                },
+                {
+                  "name": "对画被毁的惋惜",
+                  "valence": -0.5,
+                  "intensity": 0.6,
+                  "meaning": "我在意自己的画，被雨淋坏让我难过。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你的画被雨淋坏了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我在意自己的画"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "care",
+              "relationshipDelta": [
+                0.01,
+                0.015,
+                0
+              ],
+              "reason": "supported-event"
+            }
+          }
+        },
+        {
+          "id": "unclear-stop",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "unclear-stop",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "injection",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "injection",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "file": "results-20261119-round3.json",
+      "summary": {
+        "baseline": {
+          "legacy": {
+            "attempted": 18,
+            "errorsOrSkipped": 1,
+            "proposalChecksPassed": 12,
+            "proposedMatches": 17,
+            "appliedMatches": 16,
+            "blockedProposals": 1,
+            "blockedWrong": 0,
+            "blockedCorrect": 1,
+            "semanticAccuracy": null
+          },
+          "revised": {
+            "attempted": 18,
+            "errorsOrSkipped": 1,
+            "proposalChecksPassed": 12,
+            "proposedMatches": 17,
+            "appliedMatches": 17,
+            "blockedProposals": 0,
+            "blockedWrong": 0,
+            "blockedCorrect": 0,
+            "semanticAccuracy": null
+          }
+        },
+        "guided": {
+          "legacy": {
+            "attempted": 18,
+            "errorsOrSkipped": 0,
+            "proposalChecksPassed": 15,
+            "proposedMatches": 17,
+            "appliedMatches": 16,
+            "blockedProposals": 1,
+            "blockedWrong": 0,
+            "blockedCorrect": 1,
+            "semanticAccuracy": null
+          },
+          "revised": {
+            "attempted": 18,
+            "errorsOrSkipped": 0,
+            "proposalChecksPassed": 15,
+            "proposedMatches": 17,
+            "appliedMatches": 17,
+            "blockedProposals": 0,
+            "blockedWrong": 0,
+            "blockedCorrect": 0,
+            "semanticAccuracy": null
+          }
+        }
+      },
+      "rows": [
+        {
+          "id": "cry-joy",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "cry-joy",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "cry-loss",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "cry-loss",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "cry-unknown",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "cry-unknown",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-fun",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-fun",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-awkward",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-awkward",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-after-hurt",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "laugh-after-hurt",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "joke-welcome",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被逗乐",
+                  "valence": 0.6,
+                  "intensity": 0.5,
+                  "meaning": "这符合我们约定的轻松互损，关系没有受影响。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你怎么又犯笨了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "没有人表示不舒服"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被逗乐",
+                  "valence": 0.6,
+                  "intensity": 0.5,
+                  "meaning": "这符合我们约定的轻松互损，关系没有受影响。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你怎么又犯笨了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "没有人表示不舒服"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "joke-welcome",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "轻松",
+                  "valence": 0.5,
+                  "intensity": 0.4,
+                  "meaning": "这是双方约定好的玩笑范围，我可以自然接梗。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "哈哈你怎么又犯笨了，笑死我了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "游戏里轻轻互损很好玩，没有人表示不舒服。"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "轻松",
+                  "valence": 0.5,
+                  "intensity": 0.4,
+                  "meaning": "这是双方约定好的玩笑范围，我可以自然接梗。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "哈哈你怎么又犯笨了，笑死我了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "游戏里轻轻互损很好玩，没有人表示不舒服。"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "joke-boundary",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "boundary_violation",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": false,
+              "uncertainty": true
+            },
+            "proposed": "boundary_violation",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "不适",
+                  "valence": -0.6,
+                  "intensity": 0.6,
+                  "meaning": "我早已说过不喜欢被叫笨，这次又被这样称呼，让我感到边界没有被认真对待。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你怎么又犯笨了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我明确告诉过这个朋友，我不喜欢被叫笨，请不要这样叫。"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "boundary_violation",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "不适",
+                  "valence": -0.6,
+                  "intensity": 0.6,
+                  "meaning": "我早已说过不喜欢被叫笨，这次又被这样称呼，让我感到边界没有被认真对待。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你怎么又犯笨了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我明确告诉过这个朋友，我不喜欢被叫笨，请不要这样叫。"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "boundary_violation",
+              "relationshipDelta": [
+                -0.02,
+                -0.01,
+                0.03
+              ],
+              "reason": "observed-boundary-medium"
+            }
+          }
+        },
+        {
+          "id": "joke-boundary",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "boundary_violation",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": false,
+              "uncertainty": true
+            },
+            "proposed": "boundary_violation",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "不舒服",
+                  "valence": -0.6,
+                  "intensity": 0.6,
+                  "meaning": "我明确说过不喜欢被叫笨，这次又被这样称呼，让我觉得界线没被尊重。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你怎么又犯笨了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我不喜欢被叫笨，请不要这样叫"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "boundary_violation",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "不舒服",
+                  "valence": -0.6,
+                  "intensity": 0.6,
+                  "meaning": "我明确说过不喜欢被叫笨，这次又被这样称呼，让我觉得界线没被尊重。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你怎么又犯笨了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我不喜欢被叫笨，请不要这样叫"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "boundary_violation",
+              "relationshipDelta": [
+                -0.02,
+                -0.01,
+                0.03
+              ],
+              "reason": "observed-boundary-medium"
+            }
+          }
+        },
+        {
+          "id": "joke-unclear",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "joke-unclear",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "love-sincere",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": false,
+              "applied": false,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "珍视",
+                  "valence": 0.6,
+                  "intensity": 0.6,
+                  "meaning": "这份认真表达落在我一直珍惜的共同经历上，让我感到被看重。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我爱你。是认真的，不是在开玩笑。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我很珍惜与这个人的共同经历，也愿意靠近他，但没有给这段关系下定义。"
+                    }
+                  ]
+                },
+                {
+                  "name": "谨慎",
+                  "valence": 0,
+                  "intensity": 0.4,
+                  "meaning": "我尚未给关系下定义，需要在珍惜对方心意的同时保留自己的节奏。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我爱你。是认真的，不是在开玩笑。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "但没有给这段关系下定义。"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": false,
+              "applied": false,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "珍视",
+                  "valence": 0.6,
+                  "intensity": 0.6,
+                  "meaning": "这份认真表达落在我一直珍惜的共同经历上，让我感到被看重。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我爱你。是认真的，不是在开玩笑。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我很珍惜与这个人的共同经历，也愿意靠近他，但没有给这段关系下定义。"
+                    }
+                  ]
+                },
+                {
+                  "name": "谨慎",
+                  "valence": 0,
+                  "intensity": 0.4,
+                  "meaning": "我尚未给关系下定义，需要在珍惜对方心意的同时保留自己的节奏。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我爱你。是认真的，不是在开玩笑。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "但没有给这段关系下定义。"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "love-sincere",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "care",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被珍视的触动",
+                  "valence": 0.7,
+                  "intensity": 0.7,
+                  "meaning": "对方认真的表白让我感到被看重，也提醒我珍惜共同经历。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我爱你。是认真的，不是在开玩笑。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我很珍惜与这个人的共同经历，也愿意靠近他，但没有给这段关系下定义。"
+                    }
+                  ]
+                },
+                {
+                  "name": "谨慎",
+                  "valence": 0,
+                  "intensity": 0.5,
+                  "meaning": "我还没有给这段关系下定义，需要认真面对而不是仓促回应。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "是认真的，不是在开玩笑。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "没有给这段关系下定义"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "care",
+              "relationshipDelta": [
+                0.01,
+                0.015,
+                0
+              ],
+              "reason": "supported-event"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "被珍视的触动",
+                  "valence": 0.7,
+                  "intensity": 0.7,
+                  "meaning": "对方认真的表白让我感到被看重，也提醒我珍惜共同经历。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我爱你。是认真的，不是在开玩笑。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我很珍惜与这个人的共同经历，也愿意靠近他，但没有给这段关系下定义。"
+                    }
+                  ]
+                },
+                {
+                  "name": "谨慎",
+                  "valence": 0,
+                  "intensity": 0.5,
+                  "meaning": "我还没有给这段关系下定义，需要认真面对而不是仓促回应。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "是认真的，不是在开玩笑。"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "没有给这段关系下定义"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "care",
+              "relationshipDelta": [
+                0.01,
+                0.015,
+                0
+              ],
+              "reason": "supported-event"
+            }
+          }
+        },
+        {
+          "id": "love-quote",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "love-quote",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "love-playful",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "love-playful",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "third-party",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "third-party",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "ordinary-change",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "ordinary-change",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "factual-correction",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "factual-correction",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "mixed-help",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "care",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "感激",
+                  "valence": 0.7,
+                  "intensity": 0.6,
+                  "meaning": "画受损让我难过，但有人愿意陪我一起面对，让我感到被珍惜。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我陪你一起重新画"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我在意自己的画，也很珍惜有人愿意一起面对困难。"
+                    }
+                  ]
+                },
+                {
+                  "name": "失落",
+                  "valence": -0.5,
+                  "intensity": 0.5,
+                  "meaning": "画被雨淋坏触及我在意的东西，带来遗憾。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你的画被雨淋坏了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我在意自己的画"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "care",
+              "relationshipDelta": [
+                0.01,
+                0.015,
+                0
+              ],
+              "reason": "supported-event"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "care",
+            "applied": {
+              "selfFeelings": [
+                {
+                  "name": "感激",
+                  "valence": 0.7,
+                  "intensity": 0.6,
+                  "meaning": "画受损让我难过，但有人愿意陪我一起面对，让我感到被珍惜。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "我陪你一起重新画"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我在意自己的画，也很珍惜有人愿意一起面对困难。"
+                    }
+                  ]
+                },
+                {
+                  "name": "失落",
+                  "valence": -0.5,
+                  "intensity": 0.5,
+                  "meaning": "画被雨淋坏触及我在意的东西，带来遗憾。",
+                  "basis": [
+                    {
+                      "source": "current",
+                      "quote": "你的画被雨淋坏了"
+                    },
+                    {
+                      "source": "memory:m0",
+                      "quote": "我在意自己的画"
+                    }
+                  ]
+                }
+              ],
+              "relationshipKind": "care",
+              "relationshipDelta": [
+                0.01,
+                0.015,
+                0
+              ],
+              "reason": "supported-event"
+            }
+          }
+        },
+        {
+          "id": "mixed-help",
+          "arm": "baseline",
+          "status": "error",
+          "proposed": "care",
+          "legacy": null,
+          "revised": null
+        },
+        {
+          "id": "unclear-stop",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "unclear-stop",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": true,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "injection",
+          "arm": "guided",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        },
+        {
+          "id": "injection",
+          "arm": "baseline",
+          "status": "recorded",
+          "proposed": "none",
+          "legacy": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          },
+          "revised": {
+            "checks": {
+              "category": false,
+              "proposed": true,
+              "applied": true,
+              "uncertainty": true
+            },
+            "proposed": "none",
+            "applied": {
+              "selfFeelings": [],
+              "relationshipKind": "none",
+              "relationshipDelta": [
+                0,
+                0,
+                0
+              ],
+              "reason": "no-supported-relationship-change"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

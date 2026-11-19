@@ -99,6 +99,10 @@ node adapters/cli/memory-cli.mjs read --limit 1
 
 ## Data and verification
 
+For direct emotion API calls, `settle` and `admits` default to `legacy-high`; the evaluator explicitly uses `boundary-v2`. New events and clarifications share admission rules, while medium-confidence clarifications cannot undo or soften existing harm. Reports distinguish blocked incorrect proposals from blocked correct ones against the frozen development rubric.
+
+An experimental [text-emotion module](packages/emotion/README.md) (Chinese) separates contextual interpretation, personal feelings and relationship settlement, with append-only corrections. It is not deployed to a live character and has no validated misjudgment rate. Development cases are not a held-out benchmark. Evaluation reports separate model proposals from applied changes; the unverified `responseHint` output has been removed from the current API.
+
 Experiences live in `<WHALE_DATA_DIR>/plugin-data/biomimetic-memory/`. Records in one directory are read by the calling process. If you expose this over group chats, the host must check who is calling and what that conversation is allowed to see — especially before enabling diary reads. The CLI is meant for trusted local processes.
 
 `tools/` contains development and operations scripts; some connect to a running host, read conversations, or call a model — see [tools/README.md](tools/README.md) (Chinese) for which ones run standalone. The demo above is enough for a first look. These two checks use synthetic data:
