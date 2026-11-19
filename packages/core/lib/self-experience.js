@@ -316,8 +316,8 @@ export function addExperience(dir, { text, scene = '', feeling = [], thought = '
   const safeThought = tooLong('thought', thought, LIMITS.thought)
   const safeUnfinished = tooLong('unfinished', unfinished, LIMITS.unfinished)
   const safeKind = tooLong('kind', kind || '其它', LIMITS.kind)
-  const feelings = (Array.isArray(feeling) ? feeling : [feeling]).map((f) => String(f || '').trim()).filter(Boolean)
-  if (feelings.length > LIMITS.feelings) throw new Error(`feeling allows at most ${LIMITS.feelings} items; got ${feelings.length}.（feeling 最多 ${LIMITS.feelings} 个，现在是 ${feelings.length} 个。）`)
+  // 和 revise 同一套：逗号分隔的字符串或数组都收、去重；写入时不限单个词的长度（旧宿主可能写过短句）
+  const feelings = feelingList(feeling, { name: 'feeling' })
   const refIds = resolveRefs(dir, refs)
 
   fs.mkdirSync(dir, { recursive: true })

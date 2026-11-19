@@ -38,6 +38,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `addExperience` 的 `feeling` 和 `reviseExperience` 用同一套整理：逗号分隔的字符串（`, ， 、`）会拆开，重复的词去掉。以前直接调库传 `'闷,有点酸'` 会存成一个词、`['闷', '闷']` 原样存两遍（MCP 和 CLI 调用前已经拆过，不受影响）。写入时仍不限单个词的长度。
+
 ### Changed
 
 - 文字情感多轮修订：新事件与澄清共用 admits，允许 medium 边界补记但不允许减轻已有伤害；settle 默认恢复 legacy-high。拦截统计拆为 blockedWrong/blockedCorrect，历史报告显式标注旧政策，未新增模型采样。

@@ -88,7 +88,8 @@ export function loadAll(dir: string, opts?: { asOf?: AsOf }): Experience[]
 export function addExperience(dir: string, opts: {
   text: string
   scene?: string
-  feeling?: string[]
+  /** 数组，或逗号分隔的字符串（, ， 、）；去空白、去重 */
+  feeling?: string[] | string
   thought?: string
   unfinished?: string
   quote?: Quote | null

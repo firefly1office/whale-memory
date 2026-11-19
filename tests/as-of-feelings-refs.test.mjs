@@ -102,6 +102,14 @@ test('后来的感觉：写进后记事件，当时的感觉不动；能被召�
   assert.match(exp.renderTwoPart(exp.currentView(dir, row.id)), /后来再想起的感觉：释然、有点想笑/)
 })
 
+test('当时的感觉：和后记同一套——逗号分隔的字符串也拆开、去重', (t) => {
+  const dir = tmp(t)
+  assert.deepEqual(exp.addExperience(dir, { text: '一', feeling: '闷，有点酸、闷' }).then.feeling, ['闷', '有点酸'])
+  assert.deepEqual(exp.addExperience(dir, { text: '二', feeling: ['闷', ' 闷 ', ''] }).then.feeling, ['闷'])
+  assert.throws(() => exp.addExperience(dir, { text: '三', feeling: Array.from({ length: 9 }, (_, i) => '词' + i) }), /最多 8 个/)
+  assert.equal(exp.loadAll(dir).length, 2, '超了就整条不写')
+})
+
 test('后来的感觉：太多、太长都拒绝，什么都不写', (t) => {
   const dir = tmp(t)
   const row = exp.addExperience(dir, { text: '灯塔' })
