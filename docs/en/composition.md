@@ -2,7 +2,7 @@
 
 > Translated from the Chinese original ([中文](../composition.md)). If they disagree, the Chinese version is authoritative.
 
-[中文](../composition.md) · English
+[中文](composition.md) · English
 
 whale-memory is not a recall system; it is the **personality layer**. It does not answer "which passage is most relevant" — it answers "is this experience what she thought at the time, or what she changed her mind to later".
 
@@ -64,21 +64,3 @@ It demonstrates: the vector store finds candidate ids → `loadAll()` fetches th
 ## One line on choosing
 
 For accurate answers, use RAG; for traceable facts, use something bitemporal like Zep; for a character with a sense of growth who can bring up old scores, use whale-memory to manage `then/later` and leave retrieval to any layer above.
-
----
-
-## English
-
-whale-memory is not a retrieval system; it is the **personality layer**. It does not answer "which passage is most relevant" — it answers "is this what she thought then, or what she changed her mind to later".
-
-Compose it with any retrieval layer:
-
-```
-user message → host retrieval (vector/BM25/graph) → candidate ids
-            → loadAll()/currentView() → renderTwoPart() → "then / now"
-            → host decides whether to inject
-```
-
-Only three calls matter: `loadAll`, `currentView`, `renderTwoPart`. Retrieval only needs to produce ids. Run `examples/with-vector/host.mjs` for a dependency-free toy example.
-
-Boundaries: retrieval quality is the host's problem; what happens after retrieval is ours — never overwrite `then`, never drop `later`, never surface another chat's records.

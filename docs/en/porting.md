@@ -94,7 +94,7 @@ exp.reviseExperience(dir, { id: e.id, thought: 'Now I think he was protecting hi
 
 `renderTwoPart` prints Chinese labels by default (the original character speaks Chinese); pass `{ lang: 'en' }` for English labels. Recall of English text matches whole words, so queries should share words with what was written.
 
-A complete runnable example is `packages/core/demo.mjs` (no host needed; `node demo.mjs`). For a step-by-step walkthrough see the [30-minute tutorial](../tutorial.md) (Chinese).
+A complete runnable example is `packages/core/demo.mjs` (no host needed; `node demo.mjs`). For a step-by-step walkthrough see the [30-minute tutorial](tutorial.md) (Chinese).
 
 ## 4. Privacy rules (do not skip this)
 
@@ -105,7 +105,7 @@ These are not optional optimisations; they decide whether this is safe to give t
 3. **The diary is only for one-to-one chats** (this project only allows the owner's private chat); never inject it into group chats.
 4. The waking block is likewise injected only in one-to-one chats, so yesterday's private words never reach a group.
 5. Cross-conversation recall should write an audit log (which record, from where to where), so problems can be traced.
-6. **An empty recall means there is no record.** Tell the model to say it does not remember. A non-empty recall only means she wrote about something related; the details in the question still have to be checked against the record. See [eval.md](../eval.md).
+6. **An empty recall means there is no record.** Tell the model to say it does not remember. A non-empty recall only means she wrote about something related; the details in the question still have to be checked against the record. See [eval.md](eval.md).
 
 ## 5. Plugging into DSH (an outline)
 

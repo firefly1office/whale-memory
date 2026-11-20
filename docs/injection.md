@@ -1,5 +1,7 @@
 # 什么时候把记忆递回去
 
+> [English](en/injection.md) · 中文（本页）
+
 `recall` 只负责"找到"，不负责"该不该说"。这一段是宿主的事，也是最容易把记忆变成"记忆日志"的地方。
 
 下面是一套最笨、但能用的规则。可运行的版本在 [`examples/injection/`](../examples/injection/)，测试在 `tests/injection-example.test.mjs`。

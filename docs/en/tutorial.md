@@ -11,13 +11,13 @@ You only need Node 20+. No API key, and no network. Below we walk through it wit
 ```sh
 git clone https://github.com/firefly1office/whale-memory.git
 cd whale-memory
-npm test            # no dependencies; just check that everything passes
+npm test            # no dependencies; check that everything passes
 ```
 
 Create a data directory for the character. Everything below uses `./xiaozhou`:
 
 ```sh
-export WHALE_DATA_DIR=./xiaozhou        # Windows PowerShell: $env:WHALE_DATA_DIR = ".\xiaozhou"
+export WHALE_DATA_DIR=./xiaozhou        # Windows PowerShell：$env:WHALE_DATA_DIR = ".\xiaozhou"
 node adapters/cli/memory-cli.mjs doctor # capability check; continue only when "ok": true
 ```
 
@@ -26,7 +26,6 @@ node adapters/cli/memory-cli.mjs doctor # capability check; continue only when "
 ## 1. Write the first experience (3 minutes)
 
 An experience is something that happened **in the character's own time**: what she read, what she thought about, what she did. First person, written to herself.
-The example text is in English; any language works, and matching is literal either way.
 
 ```sh
 node adapters/cli/memory-cli.mjs write \
@@ -42,7 +41,7 @@ The return value contains an `id`; note it down. Then write two or three other t
 
 ```sh
 node adapters/cli/memory-cli.mjs recall --query "lighthouse"
-node adapters/cli/memory-cli.mjs recall --query "the cat in the lighthouse"  # empty: related, but never happened
+node adapters/cli/memory-cli.mjs recall --query "the cat in the lighthouse"   # empty: related, never happened
 node adapters/cli/memory-cli.mjs recall --query "the stock I bought last week" # empty: never recorded
 ```
 
@@ -78,14 +77,15 @@ After that, waking will not nag her about it again.
 ## 5. The forgetting she chooses, her book (4 minutes)
 
 ```sh
-node adapters/cli/memory-cli.mjs seal --id <some id> --note "I don't want to be reminded of this"
+node adapters/cli/memory-cli.mjs seal --id <some id> --note "I do not want this brought up again"
 node adapters/cli/memory-cli.mjs recall --query "<a word from that entry>"  # she no longer recalls it
-node adapters/cli/memory-cli.mjs read --id <that id>                        # still there when named, marked as sealed
-node adapters/cli/memory-cli.mjs chapter open --name "The days of reading the lighthouse"
+node adapters/cli/memory-cli.mjs read --id <that id>                       # still there when named, marked sealed
+node adapters/cli/memory-cli.mjs chapter open --name "Reading the lighthouse"
 node adapters/cli/memory-cli.mjs book --out her-book.md
 ```
 
 Sealing is not deletion; `unseal` brings it back at any time. The book is arranged by chapter, and sealed entries are not included.
+Chapter names are limited to 30 characters; a longer name is rejected with an explicit error.
 
 ## 6. Wiring it into your host (8 minutes)
 
@@ -113,7 +113,7 @@ Hold to three rules when integrating:
 2. **Expose fewer write-type tools in group chats**: she can be induced by others to write.
 3. **An empty recall means saying she does not remember**: write that into the prompt.
 
-Injection timing is covered in [injection.md](../injection.md) and the security boundary in [threat-model.md](../threat-model.md). Both are currently Chinese only.
+Injection timing is covered in [injection.md](injection.md), and the security boundary in [threat-model.md](threat-model.md).
 
 ## 7. Confirming that it really works (2 minutes)
 

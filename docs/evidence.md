@@ -1,5 +1,7 @@
 # 证据策略（开源子集）
 
+> [English](en/evidence.md) · 中文（本页）
+
 [中文](evidence.md) · [English](#english)
 
 `packages/core/lib/evidence-policy.js` 是完整引擎里 evidence-policy 的**可检验子集**：只做判定，不做存储。它回答三个问题——**as-of**（那时知道什么）、**被取代**（旧值是谁、谁取代了它）、**后继缺席**（之后有没有新记录）。

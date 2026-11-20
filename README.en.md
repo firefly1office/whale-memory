@@ -63,7 +63,7 @@ table as general accuracy.
 
 Records live under `<WHALE_DATA_DIR>/plugin-data/biomimetic-memory/`. On disk `then` is in
 `self-experience.jsonl` and later thoughts are in `later-events.jsonl`; they are merged at read time.
-Back up both (plus `recall-events.jsonl`). Full list: [docs/backup.md](docs/backup.md).
+Back up both (plus `recall-events.jsonl`). Full list: [docs/backup.md](docs/en/backup.md).
 
 ## See an experience change its mind
 
@@ -115,17 +115,17 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | Name a period of her life | `chapter open --name "..." --from 2026-11-01`; renames keep the old names, and looking back shows what she called it then |
 | Print her autobiography | `book --out her-book.md`: grouped by chapter; original entries verbatim, later notes after; sealed entries left out |
 | Things she could not say | `unsaid leave --kind draft --text "..."`: drafts she did not send, questions she did not ask, things she held back; visible only via `unsaid list` in a one-on-one chat, never injected |
-| One-step backup and restore drill | `node tools/backup.mjs --data <root> --out <dir>`, `node tools/restore-check.mjs --from <backup> --data <root>` ([runbook](docs/runbook.md), Chinese) |
-| Backup and move machines | [Backup & migration](docs/backup.md) (Chinese): seven files plus her drawer, and how to verify after restore |
+| One-step backup and restore drill | `node tools/backup.mjs --data <root> --out <dir>`, `node tools/restore-check.mjs --from <backup> --data <root>` ([runbook](docs/en/runbook.md), Chinese) |
+| Backup and move machines | [Backup & migration](docs/en/backup.md): seven files plus her drawer, and how to verify after restore |
 | How far it goes, what it won't do | [Limits & non-guarantees](docs/en/limits.md): measured scale, plaintext storage, deletion semantics |
 | Read before integrating | [Known pitfalls](docs/en/pitfalls.md): lexical recall, single writer, sealing is not deletion, host must enforce the owner gate |
 | Read the technical report | [whale-memory technical report](docs/paper/README.md) (Chinese PDF, 28 pages; not peer-reviewed) |
 | Is it accurate, does it make things up, does it leak | [whale-eval](docs/en/eval.md): `npm run eval`; dev and held-out sets reported separately; leaks and rewrites must be zero |
-| Who can reach her memory, and how we guard it | [Threat model](docs/threat-model.md) (Chinese) |
-| When to hand a memory back | [Injection timing](docs/injection.md) (Chinese): seven rules, a minimal implementation, anti-patterns |
-| Where these ideas come from | [What we borrowed, what we changed, what we refuse to do](docs/related-work.md) (Chinese) |
+| Who can reach her memory, and how we guard it | [Threat model](docs/en/threat-model.md) |
+| When to hand a memory back | [Injection timing](docs/en/injection.md): seven rules, a minimal implementation, anti-patterns |
+| Where these ideas come from | [What we borrowed, what we changed, what we refuse to do](docs/en/related-work.md) |
 | Understand the design | [Architecture](docs/en/architecture.md): layers, evidence policy, recall and write constraints |
-| Check evidence rules | [Evidence policy (runnable subset)](docs/evidence.md) (Chinese): as-of, supersession, absence |
+| Check evidence rules | [Evidence policy (runnable subset)](docs/en/evidence.md): as-of, supersession, absence |
 
 > The full engine (vault storage, evidence policy, consolidator, injection budget — about 26k lines) is tightly coupled to one host deployment and is **not distributed with this repository**. The design is written up in [architecture.md](docs/en/architecture.md).
 

@@ -79,11 +79,11 @@ It does not aim at "recall accuracy", because recall correctness is not the goal
 - The data in this project is in the thousands of records; bigrams are enough
 - Vector search would bring in a model dependency and unexplainable similarity, which conflicts with "evidence first"
 - What is really missing is not semantic similarity but **source-text anchors and later records**. Get that right first
-- But **the host can bring its own vector store**: the retrieval layer only supplies ids; `then/later` are responsible for "is she still herself". How to wire it up is in [composition.md](../composition.md); a runnable example is in [`examples/with-vector/`](../../examples/with-vector/)
+- But **the host can bring its own vector store**: the retrieval layer only supplies ids; `then/later` are responsible for "is she still herself". How to wire it up is in [composition.md](composition.md); a runnable example is in [`examples/with-vector/`](../../examples/with-vector/)
 
 ## If you want to connect your own host
 
-1. Read the minimum host contract in [`porting.md`](../porting.md)
+1. Read the minimum host contract in [`porting.md`](porting.md)
 2. Build on `packages/core`; implement injection and scheduling as needed
 3. Handle the privacy boundary yourself: the diary only in one-to-one chats; other people's private matters do not cross sessions
 4. Guarantee the single-writer constraint yourself
@@ -92,5 +92,5 @@ It does not aim at "recall accuracy", because recall correctness is not the goal
 ## Related documents
 
 - [schema.md](schema.md): data format, write limits, recall semantics
-- [porting.md](../porting.md): host contract, module table, privacy rules
+- [porting.md](porting.md): host contract, module table, privacy rules
 - [examples/samples/](../../examples/samples/): three fictional experiences

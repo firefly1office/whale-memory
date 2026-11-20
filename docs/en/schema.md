@@ -239,7 +239,7 @@ chapter-events.jsonl      life chapters (since 0.14)
 unsaid-events.jsonl       the unsaid drawer (since 0.15)
 ```
 
-For one-command backup and restore drills, see [runbook.md](../runbook.md).
+For one-command backup and restore drills, see [runbook.md](runbook.md).
 
 Refs (`then.refs`) are written in the experience line, not in a separate file.
 
