@@ -74,3 +74,19 @@ Cross-window sharing solves "change the conversation and it is like amnesia"; th
 This repository provides only the decision logic and the redaction; the rest of the trade-off has to be written down by each host: which windows are open, which are permanently isolated, and what may only be retold vaguely even when it is open.
 
 If you are unsure, treat it as private.
+
+### What redaction covers, and what it misses
+
+| Content | Handling |
+|---|---|
+| Six or more digits, phone numbers | （数字略）(*digits omitted*) |
+| URLs, email addresses | （链接略）/（邮箱略） |
+| Passwords, verification codes, tokens | （密钥略） |
+| Street addresses (3 号楼 502 室, 中山路 88 号) | （门牌略） |
+| Short numbers without a keyword ("1234") | **not redacted** |
+| Amounts, years, page numbers (3000 块, 2026 年, page 88) | **not redacted** |
+
+Short numbers are a deliberate trade-off: better to let a stray "1234" through than to eat every amount, date and page number. Addresses only get redacted because they are anchored by a unit word (号 / 弄 / 栋 / 室), so the blast radius is small.
+
+One rule that is not redaction but matters just as much: **when recall comes back empty, the host must not let the model complete the user's false premise**. If someone states something that never happened ("that beach we went to last time"), an empty result is not agreement. The MCP adapter carries this in the `initialize` instructions.
+

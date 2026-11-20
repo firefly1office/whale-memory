@@ -60,6 +60,14 @@ test('脱敏：数字、链接、邮箱、密钥、长串', () => {
   assert.ok(!redactSensitive('token abcdefghijklmnopqrstuvwx').includes('abcdefghijklmnopqrstuvwx'))
 })
 
+test('门牌与地址：跟着号/弄/栋/室才脱，裸数字不动', () => {
+  assert.ok(!redactSensitive('我住在中山路 88 号').includes('88'))
+  assert.ok(!redactSensitive('送到 3 号楼 502 室').includes('502'))
+  assert.equal(redactSensitive('这个月花了 3000 块'), '这个月花了 3000 块')
+  assert.equal(redactSensitive('2026 年 11 月 20 日'), '2026 年 11 月 20 日')
+  assert.equal(redactSensitive('《海上灯塔》第 88 页'), '《海上灯塔》第 88 页')
+})
+
 test('脱敏不误伤普通句子', () => {
   const text = '昨天吃了黄焖鸡，很下饭'
   assert.equal(redactSensitive(text), text)
