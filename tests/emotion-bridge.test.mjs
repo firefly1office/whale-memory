@@ -17,7 +17,11 @@ function setup(t) {
 test('next-day fictional forks expose only the selected day and preserve the files', () => {
   const script = fileURLToPath(new URL('../examples/emotion-bridge/next-day/run.mjs', import.meta.url))
   const output = execFileSync(process.execPath, [script], { encoding: 'utf8' })
-  assert.match(output, /Preflight passed for 24 requests/)
+  const cases = JSON.parse(fs.readFileSync(new URL('../examples/emotion-bridge/next-day/cases.json', import.meta.url)))
+  assert.equal(new Set(cases.map(c => c.id)).size, cases.length)
+  assert.ok(cases.filter(c => Object.values(c.expect).some(e => e.kind === 'forced_choice')).length >= 6)
+  for (const c of cases) assert.deepEqual(Object.keys(c.expect).sort(), ['a', 'b', 'control'])
+  assert.equal(output.trim(), 'Preflight passed for ' + cases.length * 4 + ' requests')
 })
 
 const unknown = () => ({ value: 'unknown', basis: [] })
