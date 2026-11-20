@@ -92,6 +92,18 @@
     "./timeline-query": {
       "types": "./lib/fact-timeline-query.d.ts",
       "default": "./lib/fact-timeline-query.js"
+    },
+    "./time-sense": {
+      "types": "./lib/time-sense.d.ts",
+      "default": "./lib/time-sense.js"
+    },
+    "./relative-window": {
+      "types": "./lib/relative-window.d.ts",
+      "default": "./lib/relative-window.js"
+    },
+    "./person-card": {
+      "types": "./lib/person-card.d.ts",
+      "default": "./lib/person-card.js"
     }
   },
   "files": [

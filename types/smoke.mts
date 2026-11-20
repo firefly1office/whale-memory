@@ -1,7 +1,7 @@
 // 类型冒烟：CI 里用 tsc --strict 跑这个文件，保证 .d.ts 与导出对得上
 import { selfExperience, evidencePolicy, evidenceFromExperience, selfPrompt, waking, unfinishedEvents, sealEvents, recap, linkEvents, chapterEvents, book, unsaid, archive } from '../packages/core/index.js'
 
-import { recallDetail } from '../packages/core/index.js'
+import { recallDetail, timeSense, relativeWindow, personCard } from '../packages/core/index.js'
 const detail = recallDetail('/tmp/whale', '围巾是什么颜色')
 const excerpt: string | undefined = detail.candidates[0]?.evidence[0]?.text
 console.log(detail.status, excerpt)
@@ -58,3 +58,8 @@ const spokenRes = drawerLeft.ok ? unsaid.markUnsaidSpoken('/tmp/whale', { chatKe
 const pack = archive.exportArchive('/tmp/whale', '/tmp/out')
 const mf = archive.verifyArchive(pack.dir)
 console.log(firstDrawer, spokenRes.ok, unsaid.badLines('/tmp/whale'), mf.files.length, archive.inside('/a/b', '/a'))
+
+const when: string = timeSense.humanTime(Date.now())
+const from: number | undefined = relativeWindow.parseRelativeWindow('上周三')?.from
+const card: string = personCard.renderPersonCard({ 名字: '灯塔店员' })
+console.log(when, from, card)
