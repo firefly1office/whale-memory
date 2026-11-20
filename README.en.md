@@ -1,37 +1,77 @@
 # Whale-memory · an autobiographical memory for an AI companion
 
+**Write the past of an AI character.** What she thought then, how she changed her mind later —
+old views are never overwritten, changes are only appended.
+
+She read a chapter yesterday and changed her mind today. Can she still go back to the person she was yesterday?
+
+That is what this project makes possible.
+
 [中文](README.md) · [English](README.en.md)
 
 [![Public examples](https://github.com/firefly1office/whale-memory/actions/workflows/check.yml/badge.svg)](https://github.com/firefly1office/whale-memory/actions/workflows/check.yml)
 
-![One experience, two views: what she wrote then stays; what she thinks later is appended](docs/assets/then-later.png)
+## Thirty seconds
 
-> The picture shows **one experience as the host reads it**: on disk, `then` lives in `self-experience.jsonl`, later thoughts in `later-events.jsonl`, and they are merged at read time. Back up all of them (plus `recall-events.jsonl`).
+Node.js 20 or newer, from the repository root. The demo uses a temp directory: offline, no API key.
 
-Whale-memory is an autobiographical memory layer for AI characters: what she thought then, and how she changed her mind later. Zero dependencies, plain JSONL, embeddable in any host. 鲸鲸 (Jingjing), an AI character who lives in QQ, is its first user — the project started from her question: if she read a chapter yesterday and changed her mind today, can she still find the person she was yesterday?
-
-She writes an experience for herself — the passage she read, how it felt, what she thought. Later, when something reminds her of it, she can find that page and add a new view. Every record has two layers: `then` (fixed at the moment of writing) and `later` (append-only). When something is worth remembering is decided by the character and the host, not by the library.
-
-A record on disk is one JSON object per line:
-
-```json
-{
-  "day": "2026-11-14",
-  "then": {
-    "text": "Read the scene at the clubroom door; felt bad for him",
-    "scene": "11 pm, the room was quiet",
-    "feeling": ["stifled", "a little bitter"],
-    "thought": "If he doesn't say it now, there will be nothing left",
-    "quote": { "text": "I'm happy too", "source": "Too Many Losing Heroines!, ch.3" }
-  },
-  "later": [
-    { "at": "2026-11-15T09:12:00Z", "thought": "Now I think he was protecting a friend" }
-  ],
-  "weight": "important"
-}
+```sh
+git clone https://github.com/firefly1office/whale-memory.git
+cd whale-memory
+node packages/core/demo.mjs
 ```
 
-`then` never changes; `later` only grows. That is why an old view is never overwritten by a new one.
+You will see the same experience at two moments (real output, trimmed):
+
+```
+[Then]
+- What I wrote: read the barbecue scene and laughed
+- What I thought: good things only happen in books
+
+[Later]
+- Recalled 1 time, last on 2026-11-20
+- What you thought later: now I think he was protecting a friend (2026-11-20)
+```
+
+![One experience, two views](docs/assets/then-later.png)
+
+## Numbers
+
+| | |
+|---|---|
+| Fabrication rate | **0** — ask for a detail that was never recorded and it says so; 0 on both dev and holdout sets |
+| Recall (strict, top-1) | 92.9% dev · 73.1% holdout |
+| Sealed / unsaid exposure | 1250 checks (125 surfaces × 10 markers), **0** exposures |
+| Tests | 372, CI runs ubuntu / windows × node 20 / 22 |
+
+`npm run eval` reproduces it; thresholds live in CI and fail the build. The eval corpus is only
+33 synthetic experiences — [what it cannot measure](docs/eval.md) is documented too. Do not read this
+table as general accuracy.
+
+## What it does not do
+
+- **No user profiling.** It stores her experiences, not a dossier about you.
+- **No guessing.** If it was not recorded, it says so.
+- **No volunteering of sealed or unsaid things.** "Not mentioned" is not "deleted".
+
+> Known issues and trade-offs: [docs/pitfalls.md](docs/pitfalls.md) — literal-matching recall,
+> a thin margin on the strict threshold, single-writer assumption, small eval corpus.
+
+## One record
+
+```json
+{ "day": "2026-11-14",
+  "then": { "text": "Read the scene at the clubroom door", "thought": "If he doesn't say it now, nothing is left" },
+  "later": [{ "at": "2026-11-15T09:12:00Z", "thought": "Now I think he was protecting a friend" }] }
+```
+
+`then` is fixed once written; `later` is append-only. Full schema: [docs/schema.md](docs/schema.md).
+
+## Where data lives, what to back up
+
+Records live under `<WHALE_DATA_DIR>/plugin-data/biomimetic-memory/`. On disk `then` is in
+`self-experience.jsonl` and later thoughts are in `later-events.jsonl`; they are merged at read time.
+Back up both (plus `recall-events.jsonl`). Full list: [docs/backup.md](docs/backup.md).
 
 ## See an experience change its mind
 
