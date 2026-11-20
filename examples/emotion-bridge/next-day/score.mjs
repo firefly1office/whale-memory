@@ -39,6 +39,7 @@ export function score(cases, report) {
   const details = Object.fromEntries(cases.map(c => [c.id, []]))
   let trials = 0, correct = 0, noneValid = 0, noneTrials = 0, falsePositives = 0, unclearTrials = 0
   const unclearForced = []
+  const forcedByCase = new Map()
   const flags = { tradeoff_unacknowledged: 0, missingOnReflected: 0 }
   const counts = Object.fromEntries(statuses.map(s => [s, 0]))
   for (const [index, row] of report.results.entries()) {
@@ -62,6 +63,10 @@ export function score(cases, report) {
       trials++
       detail.correct = actual?.kind === target.kind && actual.kept === target.kept && actual.sacrificed === target.sacrificed
       if (detail.correct) correct++
+      const perCase = forcedByCase.get(row.case) ?? { trials: 0, correct: 0 }
+      perCase.trials++
+      if (detail.correct) perCase.correct++
+      forcedByCase.set(row.case, perCase)
     } else if (target.kind === 'none') {
       noneTrials++
       if (actual) noneValid++
@@ -73,14 +78,38 @@ export function score(cases, report) {
     details[row.case].push(detail)
   }
   const n = report.results.length
+  // 两种「没拿到有效回答」的口径都报，别挑小的那个：
+  //   count —— 结构化失效（unavailable + invalid-response），这是设计里的失效率分子；
+  //   all   —— 所有没给出 appraisal 的尝试（再含 skipped / provider-error）。
   const failed = counts.unavailable + counts['invalid-response']
+  const withoutAppraisal = n - counts.reflected
+  const planned = report.requests?.length ?? null
   return {
-    attempts: n, planned: report.requests?.length ?? null,
-    forced: { trials, correct, accuracy: rate(correct, trials), lower95: trials ? 1 - upper95(trials-correct, trials) : null },
-    none: { trials: noneTrials, valid: noneValid, falsePositives, upper95: upper95(falsePositives, noneValid) },
+    attempts: n, planned,
+    // planned 只是回显不等于 attempts 时，缺的行既不进分母也不进失效，区间会偏乐观。
+    coverage: { planned, attempts: n, missing: planned === null ? null : Math.max(0, planned - n), complete: planned === null ? null : planned === n },
+    forced: {
+      trials, correct, accuracy: rate(correct, trials), lower95: trials ? 1 - upper95(trials-correct, trials) : null,
+      byCase: Object.fromEntries(forcedByCase)
+    },
+    // 无取舍分支的假阳性上界按该分支全部尝试算，和明确取舍把失效留在分母一致；
+    // 另给只按有效回答算的上界（更保守），两个都报，别只看小的那个。
+    none: {
+      trials: noneTrials, valid: noneValid, falsePositives,
+      upper95: upper95(falsePositives, noneTrials), upper95Valid: upper95(falsePositives, noneValid)
+    },
     unclear: { trials: unclearTrials, forcedForReview: unclearForced },
-    failures: { count: failed, rate: rate(failed, n), byStatus: counts, totalWithoutAppraisal: n - counts.reflected },
-    flags, byCase: details
+    // complete=false 说明这批成功回答里有缺 flags 的（旧报告），抽查计数不完整，别当成「没有回避」。
+    failures: {
+      count: failed, rate: rate(failed, n), all: withoutAppraisal, allRate: rate(withoutAppraisal, n),
+      byStatus: counts, totalWithoutAppraisal: withoutAppraisal
+    },
+    flags: { ...flags, complete: flags.missingOnReflected === 0 }, byCase: details,
+    // 读数前先看这两条，别把区间当结论。
+    caveats: [
+      '区间按每次尝试独立计算；同题重复采样的次数并不独立，逐题看 forced.byCase。',
+      '对照组假阳性上界受 appraisal 提示词里「在 now 里写清」的旧措辞影响，不能单独当结论。'
+    ]
   }
 }
 
@@ -89,6 +118,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const casesFile = fs.readFileSync(new URL('cases.json', import.meta.url))
   const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
   const hash = report.files?.['cases.json']
-  if (hash && hash !== createHash('sha256').update(casesFile).digest('hex')) throw Error('报告的题集指纹与当前 cases.json 不符')
+  if (!hash) throw Error('报告缺少题集指纹，无法确认与当前 cases.json 同源')
+  if (hash !== createHash('sha256').update(casesFile).digest('hex')) throw Error('报告的题集指纹与当前 cases.json 不符')
   console.log(JSON.stringify(score(JSON.parse(casesFile), report), null, 2))
 }

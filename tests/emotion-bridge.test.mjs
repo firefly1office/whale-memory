@@ -169,8 +169,26 @@ test('song b keeps the melody today even though cutting it frustrated that goal 
     { nowEffects: [nowEffects[0], nowEffects[0]] },
     { nowEffects: [{ ...nowEffects[0], basis: [] }, nowEffects[1]] },
     { nowEffects: [{ ...nowEffects[0], basis: [basis('later.0', '从未写过')] }, nowEffects[1]] },
-    { nowEffects: [{ ...nowEffects[0], basis: [basis('event', song.text)] }, nowEffects[1]] }
+    { nowEffects: [{ ...nowEffects[0], basis: [basis('event', song.text)] }, nowEffects[1]] },
+    // 多写的键也要整次判无效，不静默丢掉（fail closed）
+    { nowEffects: [{ ...nowEffects[0], extra: 'x' }, nowEffects[1]] },
+    { tradeoff: { ...tradeoff, extra: 'x' } },
+    // 缺键也不行：kept/sacrificed 不写（undefined）时同样 fail
+    { tradeoff: { kind: 'forced_choice' } },
+    { tradeoff: { kind: 'none' } }
   ]) await assert.rejects(reflect(changes), /evidence/)
+})
+
+test('today effects cite the note itself, a recorded feeling cannot carry them', async t => {
+  const options = setup(t)
+  const { id } = mem.addExperience(options.dir, { text: '我把票给了她。', thought: '想让她进去。', feeling: ['舍不得'] })
+  assert.ok(mem.reviseExperience(options.dir, { id, thought: '后来她带我一起进去了。', feeling: ['松快'] }).ok)
+  const kept = { goal: 'thought', effect: 'kept', basis: [basis('later.0', '带我一起进去')] }
+  const tradeoff = { kind: 'unclear', kept: null, sacrificed: null }
+  const reflect = nowEffects => reflectOnExperience({ ...options, id, generate: () => ({ ...answer(), nowEffects, tradeoff }) })
+  assert.equal((await reflect([kept])).status, 'reflected')
+  // The feeling word is a real, quotable substring of later.0.feeling.0 — it still may not support a tradeoff.
+  await assert.rejects(reflect([{ ...kept, basis: [basis('later.0.feeling.0', '松快')] }]), /evidence/)
 })
 
 test('today can be unknown, but its goal must exist in the selected experience', async t => {

@@ -31,6 +31,6 @@
 
 ## 结构化取舍打分
 
-运行 `node examples/emotion-bridge/next-day/score.mjs 结果.json` 可离线读取已记录的结果。报告有题集指纹时须与当前题集一致。每条结果算一次尝试，逐题列出预期、回答和状态。昨天的基线仅计入状态统计。明确取舍的三字段须全对，回避、跳过及失败均留在正确率分母；单侧 95% 精确区间为 [lower95, 1]。无取舍分支按有效回答计算假阳性上界 [0, upper95]，另列该类尝试总数。预期不确定时单列强行取舍的回答。分母为零时返回 null。区间按固定样本独立二项模型计算，同题重复时仅作参考。失效率分子为 unavailable 和 invalid-response，提供方错误、主动跳过和计划请求总数另列。
+运行 `node examples/emotion-bridge/next-day/score.mjs 结果.json` 可离线读取已记录的结果。报告必须带题集指纹并与当前题集一致，缺指纹直接拒绝。每条结果算一次尝试，逐题列出预期、回答和状态。`coverage` 把计划请求数和落盘行数对上：`complete: false` 说明有尝试没落盘，这些行既不进分母也不进失效，区间会偏乐观。`caveats` 是读数前要先看的两条：区间按每次尝试独立计算（同题重复采样不独立，另看 `forced.byCase`），对照分支的假阳性上界受提示词里「在 now 里写清」的旧措辞影响。昨天的基线仅计入状态统计。明确取舍的三字段须全对，回避、跳过及失败均留在正确率分母；单侧 95% 精确区间为 [lower95, 1]。无取舍分支的假阳性上界按该分支**全部尝试**算 [0, upper95]，失效与跳过也占分母（和明确取舍把失效留在分母一致）；另给只按有效回答算的 `upper95Valid`（更保守），该类尝试总数另列。预期不确定时单列强行取舍的回答。分母为零时返回 null。区间按固定样本独立二项模型计算，同题重复时仅作参考。失效报两种口径：`failures.count`／`rate` 只算 unavailable 和 invalid-response（设计里的失效率分子），`failures.all`／`allRate` 再含主动跳过与提供方错误；`byStatus` 与 `totalWithoutAppraisal` 另列，两者别混着引用。
 
-采样结果保留每次成功回想的宿主标记。打分报告的 `flags.tradeoff_unacknowledged` 是标记次数，`missingOnReflected` 是成功回答中缺少标记字段的次数；二者都不改变取舍判分。
+采样结果保留每次成功回想的宿主标记。打分报告的 `flags.tradeoff_unacknowledged` 是标记次数，`missingOnReflected` 是成功回答中缺少标记字段的次数，`complete` 表示这批成功回答是否都带了标记（旧报告会缺，`complete: false` 时抽查计数不完整，不能当成「没有回避」）。三者都不改变取舍判分。

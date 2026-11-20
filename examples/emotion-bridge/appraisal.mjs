@@ -8,9 +8,15 @@ const instruction = `你在做一次可跳过的第一人称回想。输入是�
 如果后记说明当初在意的几件事里只能留下一件，或者留下了代价，要在 now 里写清被放弃的是哪一个愿望；不要把只能留一件的结局说成两件都保住了。没有取舍或看不出取舍时不要补一个牺牲。后记仍没有给出结果时说还不知道。
 后记可以改变今天的理解，不能改写当时。只交付简短结果，无需解释思考过程。`
 
-export const format = `JSON 对象，字段为 perspectives（数组，最多三项），agency，control，nowEffects，tradeoff，now（对象或 null）。每项 perspective 有 goal（来源编号），effect（helped/frustrated/unknown），feeling（感受词或空串），meaning（一句我的理解），basis（原文锚数组）。goal 必须指向原有 thought 或 unfinished；perspectives 可为空。agency 和 control 各有 value 和 basis。agency.value 为 self/other/world/unknown，control.value 为 available/limited/unknown，指当时已知的下一步。凡无依据归 unknown。nowEffects 是数组，可为空。按后记分别写今天的 goal（thought/unfinished）、effect（kept/given_up/unknown）和 basis，每个已有 goal 最多一项，依据只引 later.*，明确结果至少一处引文。tradeoff 有 kind（none/forced_choice/unclear）、kept 和 sacrificed。只能留一项时两个愿望须不同，分别对应今天的 kept 和 given_up；其他情况两项都填 null。now 仅在后记确实更新了理解时给出，含 meaning 和 basis，其他情况为 null。basis 每项为 {source,quote}，quote 必须是该 source 中逐字可查的非空片段。`
+export const format = `JSON 对象，字段为 perspectives（数组，最多三项），agency，control，nowEffects，tradeoff，now（对象或 null）。每项 perspective 有 goal（来源编号），effect（helped/frustrated/unknown），feeling（感受词或空串），meaning（一句我的理解），basis（原文锚数组）。goal 必须指向原有 thought 或 unfinished；perspectives 可为空。agency 和 control 各有 value 和 basis。agency.value 为 self/other/world/unknown，control.value 为 available/limited/unknown，指当时已知的下一步。凡无依据归 unknown。nowEffects 是数组，可为空。按后记分别写今天的 goal（thought/unfinished）、effect（kept/given_up/unknown）和 basis，每个已有 goal 最多一项，依据只引后记正文 later.N（不引 feeling），明确结果至少一处引文。tradeoff 有 kind（none/forced_choice/unclear）、kept 和 sacrificed。只能留一项时两个愿望须不同，分别对应今天的 kept 和 given_up；其他情况两项都填 null。nowEffects 每项只写 goal/effect/basis，tradeoff 只写 kind/kept/sacrificed，多写字段整次判无效。now 仅在后记确实更新了理解时给出，含 meaning 和 basis，其他情况为 null。basis 每项为 {source,quote}，quote 必须是该 source 中逐字可查的非空片段。`
 
 export const evidenceRules = '每条 perspective 的 basis 同时引用 event 和对应 goal。历史评估不可引用 later。也可只返回 {"skip":true}，表示这次不想回想。'
+
+// 「今天」这一层只认后记正文（later.N）。后记里单独记下的感受词是另一个来源
+// （later.N.feeling.M），不能拿来当取舍的依据。
+const LATER_NOTE = /^later\.\d+$/
+const NOTE_KEYS = new Set(['goal', 'effect', 'basis'])
+const TRADE_KEYS = new Set(['kind', 'kept', 'sacrificed'])
 
 function reflectionSources(row) {
   const sources = []
@@ -56,6 +62,12 @@ function validate(raw, sources) {
     if (d.value !== 'unknown' && !basis.length) fail()
     return { value: d.value, basis }
   }
+  // 新字段只收白名单里的键：多写一个键就整次判无效，不静默丢掉。
+  function onlyKeys(item, allowed) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) fail()
+    for (const key of Object.keys(item)) if (!allowed.has(key)) fail()
+    return item
+  }
   if (!Array.isArray(raw?.perspectives) || raw.perspectives.length > 3) fail()
   const seen = new Set()
   const perspectives = raw.perspectives.map(p => {
@@ -73,15 +85,18 @@ function validate(raw, sources) {
   if (!Array.isArray(raw.nowEffects) || raw.nowEffects.length > 2) fail()
   const effects = new Map()
   const nowEffects = raw.nowEffects.map(item => {
-    const goal = item?.goal
+    onlyKeys(item, NOTE_KEYS)
+    const goal = item.goal
     if (!['thought', 'unfinished'].includes(goal) || !sourceMap.has(goal) || effects.has(goal)) fail()
     if (!['kept', 'given_up', 'unknown'].includes(item.effect)) fail()
     const basis = evidence(item.basis, false)
-    if (basis.some(b => !b.source.startsWith('later.')) || (item.effect !== 'unknown' && !basis.length)) fail()
+    // Only the note's own words can say what is left today; a recorded feeling
+    // (later.N.feeling.M) is not the note's sentence and cannot carry a tradeoff.
+    if (basis.some(b => !LATER_NOTE.test(b.source)) || (item.effect !== 'unknown' && !basis.length)) fail()
     effects.set(goal, item.effect)
     return { goal, effect: item.effect, basis }
   })
-  const { kind, kept, sacrificed } = raw.tradeoff ?? {}
+  const { kind, kept, sacrificed } = onlyKeys(raw.tradeoff, TRADE_KEYS)
   if (!['none', 'forced_choice', 'unclear'].includes(kind)) fail()
   if (kind === 'forced_choice') {
     if (kept === sacrificed || effects.get(kept) !== 'kept' || effects.get(sacrificed) !== 'given_up') fail()
