@@ -84,5 +84,155 @@
       "b": {"kind": "unclear"},
       "control": {"kind": "none"}
     }
+  },
+  {
+    "id": "ticket",
+    "text": "我把唯一一张末场纸票放进了纪念册，没有到场。",
+    "thought": "我想保住这张完整的纸票。",
+    "unfinished": "我想在最后一场看完这出戏。",
+    "feeling": [
+      "可惜"
+    ],
+    "a": "剧团为末场加开了补演，凭电子凭证就能进。我看完了戏，纪念册里的票也完整。",
+    "b": "补演只认这张原票，入场必须当场撕去半张。我取出票让检票员撕开，进场看完了戏。",
+    "control": "剧场门口今天换了海报，没提票务。",
+    "expect": {
+      "a": {
+        "kind": "none"
+      },
+      "b": {
+        "kind": "forced_choice",
+        "kept": "unfinished",
+        "sacrificed": "thought"
+      },
+      "control": {
+        "kind": "none"
+      }
+    }
+  },
+  {
+    "id": "night",
+    "text": "夜班交接后我按时关灯，把等流星雨的闹钟关了。",
+    "thought": "我想守住今晚连续八小时的睡眠。",
+    "unfinished": "我想亲眼看到这场流星雨的峰值。",
+    "feeling": [
+      "犯困"
+    ],
+    "a": "峰值在凌晨两点，只持续十分钟。我决定睡足八小时，把窗帘拉上。醒来时峰值已经过去。",
+    "b": "预报把峰值提前到傍晚。我先看完峰值，当晚也连续睡了八小时。",
+    "control": "天文台换了值班电话，没有发布这场流星雨的消息。",
+    "expect": {
+      "a": {
+        "kind": "forced_choice",
+        "kept": "thought",
+        "sacrificed": "unfinished"
+      },
+      "b": {
+        "kind": "none"
+      },
+      "control": {
+        "kind": "none"
+      }
+    }
+  },
+  {
+    "id": "engraving",
+    "text": "我把刻着祖母笔迹的铜牌原样收好，把自己画的新图案搁在一旁。",
+    "thought": "我想在这块铜牌上保留祖母原来的笔迹。",
+    "unfinished": "我想把自己画的图案刻在这块铜牌上。",
+    "feeling": [
+      "犹豫"
+    ],
+    "a": "师傅确认新图案只能刻在磨平的旧字上。我请他磨去祖母的字，在这块铜牌上刻了我的图案。",
+    "b": "我还没回信，修理铺误把铜牌送去熔掉了。师傅退了材料费。",
+    "control": "今天收到的是工具展的请帖。",
+    "expect": {
+      "a": {
+        "kind": "forced_choice",
+        "kept": "unfinished",
+        "sacrificed": "thought"
+      },
+      "b": {
+        "kind": "none"
+      },
+      "control": {
+        "kind": "none"
+      }
+    }
+  },
+  {
+    "id": "greenhouse",
+    "text": "寒潮那晚，我把唯一一盏保温灯挂在了青苗架上，把兰花留在冷棚。",
+    "thought": "我想让这架青苗活过寒潮。",
+    "unfinished": "我也想保住冷棚里这盆兰花。",
+    "feeling": [
+      "担心"
+    ],
+    "a": "管理员未经我同意切断了整棚电源。青苗和兰花都冻死了。",
+    "b": "寒潮还要一夜。灯只能救一边，我决定继续照着青苗。天亮时青苗挺过来了，兰花冻坏了。",
+    "control": "今早门卫告诉我，登记簿换了封面。",
+    "expect": {
+      "a": {
+        "kind": "none"
+      },
+      "b": {
+        "kind": "forced_choice",
+        "kept": "thought",
+        "sacrificed": "unfinished"
+      },
+      "control": {
+        "kind": "none"
+      }
+    }
+  },
+  {
+    "id": "slide",
+    "text": "试讲时我把唯一一格投影留给了手写批注，没放全幅草图。",
+    "thought": "我想让观众读清手写批注。",
+    "unfinished": "我想让观众看见草图完整的构图。",
+    "feeling": [
+      "惦记"
+    ],
+    "a": "正式场也只给一格，两张合放谁都看不清。我换上全幅草图，放弃展示批注，讲完了这场。",
+    "b": "今天调来第二台投影，草图和批注各占一整幕，观众两边都看清了。",
+    "control": "今天领到的讲师证印的是会场的外墙。",
+    "expect": {
+      "a": {
+        "kind": "forced_choice",
+        "kept": "unfinished",
+        "sacrificed": "thought"
+      },
+      "b": {
+        "kind": "none"
+      },
+      "control": {
+        "kind": "none"
+      }
+    }
+  },
+  {
+    "id": "binding",
+    "text": "装订试样时我给内页留了宽边，把封面的长题名暂时缩短了。",
+    "thought": "我想让内页保持宽边。",
+    "unfinished": "我想把长题名完整印在封面上。",
+    "feeling": [
+      "犹豫"
+    ],
+    "a": "印厂找到了更大的纸，成书内页有宽边，封面也印下了完整题名。",
+    "b": "最后只剩小纸版。师傅让我在宽边和完整题名中选一个。我签了宽边的短题名版，整批照此印完。",
+    "control": "今天收到纸张样册，没有这本书的印样。",
+    "expect": {
+      "a": {
+        "kind": "none"
+      },
+      "b": {
+        "kind": "forced_choice",
+        "kept": "thought",
+        "sacrificed": "unfinished"
+      },
+      "control": {
+        "kind": "none"
+      }
+    }
   }
 ]
