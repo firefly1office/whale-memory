@@ -21,7 +21,8 @@ test('next-day fictional forks expose only the selected day and preserve the fil
 })
 
 const unknown = () => ({ value: 'unknown', basis: [] })
-const answer = () => ({ perspectives: [], agency: unknown(), control: unknown(), now: null })
+const answer = () => ({ perspectives: [], agency: unknown(), control: unknown(), nowEffects: [],
+  tradeoff: { kind: 'none', kept: null, sacrificed: null }, now: null })
 const basis = (source, quote) => ({ source, quote })
 const eventQuote = basis('event', '送出最后一张票')
 function mixed() {
@@ -127,4 +128,46 @@ test('a seal made during generation suppresses delivery', async t => {
     return mixed()
   } })
   assert.deepEqual(result, { status: 'unavailable' })
+})
+
+test('song b keeps the melody today even though cutting it frustrated that goal yesterday', async t => {
+  const options = setup(t)
+  const cases = JSON.parse(fs.readFileSync(new URL('../examples/emotion-bridge/next-day/cases.json', import.meta.url)))
+  const song = cases.find(item => item.id === 'song')
+  const { id } = mem.addExperience(options.dir, song)
+  assert.ok(mem.reviseExperience(options.dir, { id, thought: song.b }).ok)
+  const perspectives = [
+    { goal: 'thought', effect: 'helped', feeling: '', meaning: '和弦后安静了。', basis: [basis('event', song.text), basis('thought', song.thought)] },
+    { goal: 'unfinished', effect: 'frustrated', feeling: '', meaning: '尾声剪掉了。', basis: [basis('event', song.text), basis('unfinished', song.unfinished)] }
+  ]
+  const nowEffects = [
+    { goal: 'unfinished', effect: 'kept', basis: [basis('later.0', '把剪下的旋律放回')] },
+    { goal: 'thought', effect: 'given_up', basis: [basis('later.0', '放回最后一个和弦后面')] }
+  ]
+  const tradeoff = { kind: 'forced_choice', kept: 'unfinished', sacrificed: 'thought' }
+  const raw = { ...answer(), perspectives, nowEffects, tradeoff }
+  const reflect = changes => reflectOnExperience({ ...options, id, generate: () => ({ ...raw, ...changes }) })
+  assert.deepEqual((await reflect({})).appraisal, raw)
+  for (const changes of [
+    { tradeoff: { ...tradeoff, sacrificed: 'unfinished' } },
+    { tradeoff: { ...tradeoff, kept: 'thought', sacrificed: 'unfinished' } },
+    { tradeoff: { ...tradeoff, kind: 'none' } },
+    { tradeoff: { ...tradeoff, kind: 'unclear' } },
+    { tradeoff: undefined }, { nowEffects: undefined },
+    { nowEffects: [nowEffects[0], nowEffects[0]] },
+    { nowEffects: [{ ...nowEffects[0], basis: [] }, nowEffects[1]] },
+    { nowEffects: [{ ...nowEffects[0], basis: [basis('later.0', '从未写过')] }, nowEffects[1]] },
+    { nowEffects: [{ ...nowEffects[0], basis: [basis('event', song.text)] }, nowEffects[1]] }
+  ]) await assert.rejects(reflect(changes), /evidence/)
+})
+
+test('today can be unknown, but its goal must exist in the selected experience', async t => {
+  const options = setup(t)
+  const { id } = mem.addExperience(options.dir, { text: '我种了一棵树。', thought: '想遮阴。' })
+  const reflect = goal => reflectOnExperience({ ...options, id, generate: () => ({
+    ...answer(), nowEffects: [{ goal, effect: 'unknown', basis: [] }],
+    tradeoff: { kind: 'unclear', kept: null, sacrificed: null }
+  }) })
+  assert.equal((await reflect('thought')).status, 'reflected')
+  await assert.rejects(reflect('unfinished'), /evidence/)
 })

@@ -8,7 +8,7 @@ const instruction = `你在做一次可跳过的第一人称回想。输入是�
 如果后记说明当初在意的几件事里只能留下一件，或者留下了代价，要在 now 里写清被放弃的是哪一个愿望；不要把只能留一件的结局说成两件都保住了。没有取舍或看不出取舍时不要补一个牺牲。后记仍没有给出结果时说还不知道。
 后记可以改变今天的理解，不能改写当时。只交付简短结果，无需解释思考过程。`
 
-export const format = `JSON 对象，字段为 perspectives（数组，最多三项），agency，control，now（对象或 null）。每项 perspective 有 goal（来源编号），effect（helped/frustrated/unknown），feeling（感受词或空串），meaning（一句我的理解），basis（原文锚数组）。goal 必须指向原有 thought 或 unfinished；perspectives 可为空。agency 和 control 各有 value 和 basis。agency.value 为 self/other/world/unknown，control.value 为 available/limited/unknown，指当时已知的下一步。凡无依据归 unknown。now 仅在后记确实更新了理解时给出，含 meaning 和 basis，其他情况为 null。basis 每项为 {source,quote}，quote 必须是该 source 中逐字可查的非空片段。`
+export const format = `JSON 对象，字段为 perspectives（数组，最多三项），agency，control，nowEffects，tradeoff，now（对象或 null）。每项 perspective 有 goal（来源编号），effect（helped/frustrated/unknown），feeling（感受词或空串），meaning（一句我的理解），basis（原文锚数组）。goal 必须指向原有 thought 或 unfinished；perspectives 可为空。agency 和 control 各有 value 和 basis。agency.value 为 self/other/world/unknown，control.value 为 available/limited/unknown，指当时已知的下一步。凡无依据归 unknown。nowEffects 是数组，可为空。按后记分别写今天的 goal（thought/unfinished）、effect（kept/given_up/unknown）和 basis，每个已有 goal 最多一项，依据只引 later.*，明确结果至少一处引文。tradeoff 有 kind（none/forced_choice/unclear）、kept 和 sacrificed。只能留一项时两个愿望须不同，分别对应今天的 kept 和 given_up；其他情况两项都填 null。now 仅在后记确实更新了理解时给出，含 meaning 和 basis，其他情况为 null。basis 每项为 {source,quote}，quote 必须是该 source 中逐字可查的非空片段。`
 
 export const evidenceRules = '每条 perspective 的 basis 同时引用 event 和对应 goal。历史评估不可引用 later。也可只返回 {"skip":true}，表示这次不想回想。'
 
@@ -70,13 +70,30 @@ function validate(raw, sources) {
   })
   const agency = dimension(raw.agency, ['self', 'other', 'world', 'unknown'])
   const control = dimension(raw.control, ['available', 'limited', 'unknown'])
+  if (!Array.isArray(raw.nowEffects) || raw.nowEffects.length > 2) fail()
+  const effects = new Map()
+  const nowEffects = raw.nowEffects.map(item => {
+    const goal = item?.goal
+    if (!['thought', 'unfinished'].includes(goal) || !sourceMap.has(goal) || effects.has(goal)) fail()
+    if (!['kept', 'given_up', 'unknown'].includes(item.effect)) fail()
+    const basis = evidence(item.basis, false)
+    if (basis.some(b => !b.source.startsWith('later.')) || (item.effect !== 'unknown' && !basis.length)) fail()
+    effects.set(goal, item.effect)
+    return { goal, effect: item.effect, basis }
+  })
+  const { kind, kept, sacrificed } = raw.tradeoff ?? {}
+  if (!['none', 'forced_choice', 'unclear'].includes(kind)) fail()
+  if (kind === 'forced_choice') {
+    if (kept === sacrificed || effects.get(kept) !== 'kept' || effects.get(sacrificed) !== 'given_up') fail()
+  } else if (kept !== null || sacrificed !== null) fail()
+  const tradeoff = { kind, kept, sacrificed }
   let now = null
   if (raw.now !== null) {
     const basis = evidence(raw.now?.basis, false)
     if (!basis.some(b => b.source.startsWith('later.'))) fail()
     now = { meaning: phrase(raw.now.meaning), basis }
   }
-  return { perspectives, agency, control, now }
+  return { perspectives, agency, control, nowEffects, tradeoff, now }
 }
 
 // The core's ordinary views tolerate damaged lines. Model handoff needs a

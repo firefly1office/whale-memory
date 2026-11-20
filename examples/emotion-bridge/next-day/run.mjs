@@ -19,7 +19,8 @@ const settings = { model: process.env.DEEPSEEK_MODEL || 'deepseek-flash', temper
 const conditions = ['yesterday', 'a', 'b', 'control']
 const day1 = '2025-10-11', day2 = '2025-10-12'
 const thenFile = 'self-experience.jsonl', laterFile = 'later-events.jsonl'
-const mock = { perspectives: [], agency: { value: 'unknown', basis: [] }, control: { value: 'unknown', basis: [] }, now: null }
+const mock = { perspectives: [], agency: { value: 'unknown', basis: [] }, control: { value: 'unknown', basis: [] }, nowEffects: [],
+  tradeoff: { kind: 'none', kept: null, sacrificed: null }, now: null }
 const report = {
   startedAt: new Date().toISOString(), settings,
   files: Object.fromEntries(['cases.json', 'README.md', 'run.mjs', '../appraisal.mjs', '../deepseek.mjs'].map(n => [n, hash(read(n))])),
