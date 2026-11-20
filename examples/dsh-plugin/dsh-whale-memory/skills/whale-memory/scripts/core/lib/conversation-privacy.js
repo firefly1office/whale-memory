@@ -72,13 +72,17 @@ const SENSITIVE_RULES = [
   [/https?:\/\/\S+/gi, '（链接略）'],
   [/\b[\w.+-]+@[\w-]+\.[\w.]+\b/g, '（邮箱略）'],
   [/(?:密码|口令|验证码|密钥|token|api[_-]?key)\s*[:：=]?\s*\S+/gi, '（密钥略）'],
+  // 门牌号：数字后面跟「号/弄/栋/室/单元」才算，裸数字不碰（否则金额、年份全废）
+  [/\d{1,4}\s*(?:号楼|号院|号|弄|栋|幢|单元|室)/g, '（门牌略）'],
+  [/([路街巷道])\s*\d{1,4}/g, '$1（门牌略）'],
   [/\b[A-Za-z0-9_-]{24,}\b/g, '（长串略）']
 ];
 
 export function redactSensitive(value) {
   let text = String(value || '');
   for (const [re, replacement] of SENSITIVE_RULES) text = text.replace(re, replacement);
-  return text;
+  // 「3 号楼 502 室」会连出两个占位，合成一个，别让句子读起来像乱码
+  return text.replace(/(（门牌略）)[\s、]*(?:（门牌略）)+/g, '$1');
 }
 
 /** 跨窗口引用别人私聊内容时，给模型的使用规则（放在召回条目之后，被裁剪时先裁它）。 */

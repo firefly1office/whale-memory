@@ -212,7 +212,8 @@ const INSTRUCTIONS = [
   'This is the autobiographical memory of an AI character, kept by herself. Three rules:（这是一个 AI 角色自己的自传体记忆。三条规矩：）',
   '1. What was written then is never changed; if a view changes, append with memory_revise.（1. 当时写下的永远不改；想法变了用 memory_revise 追加。）',
   '2. An empty result means this search found nothing; do not make anything up. For a specific detail use memory_detail; distinguish related events from support for an answer.（2. 查空只说明这次没找到，不要编。核对细节时用 memory_detail，按原文能支持的范围回答。）',
-  '3. Do not bring up what she has sealed; only she opens the unsaid drawer.（3. 她封存了的事不要主动提起；没说出口的抽屉只有她自己打开。）'
+  '3. Do not bring up what she has sealed; only she opens the unsaid drawer.（3. 她封存了的事不要主动提起；没说出口的抽屉只有她自己打开。）',
+  '4. If the user states something as fact, an empty recall is not a prompt to agree: say there is no record and let her correct it, rather than completing their premise or inventing a detail.（4. 对方把某件事当成事实说出来时，召回为空不是你同意的理由：说没有记录，让对方向上纠正，而不是顺着他的前提补细节。）'
 ].join('\n')
 
 export function createServer(cfg) {
