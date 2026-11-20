@@ -47,7 +47,7 @@ export function humanTime(ts, { now = Date.now() } = {}) {
   if (diff < 0) return clock(new Date(t));          // 未来的时间：只给时刻，不编「之后」
   const minutes = diff / 60000;
   if (minutes < 1) return '刚刚';
-  if (minutes < 60) return `${Math.round(minutes)} 分钟前`;
+  if (minutes < 60) return `${Math.floor(minutes)} 分钟前`;
 
   const days = dayDiff(t, n);
   const d = new Date(t);
@@ -55,11 +55,16 @@ export function humanTime(ts, { now = Date.now() } = {}) {
   if (days === 1) return `昨天 ${clock(d)}`;
   if (days === 2) return `前天 ${clock(d)}`;
   if (days != null && days >= 3 && days <= 6) return `${days} 天前`;
-  if (days != null && days >= 7 && days <= 13) return `上${WEEK[d.getDay()]}`;
+  const current = new Date(n);
+  if (days >= 7 && days <= 13) {
+    const daysSinceMonday = (current.getDay() + 6) % 7;
+    return days <= daysSinceMonday + 7 ? '上' + WEEK[d.getDay()] : `${days} 天前`;
+  }
   if (days != null && days >= 14 && days <= 29) return `${Math.round(days / 7)} 周前`;
   if (days != null && days >= 30 && days <= 364) {
-    const months = Math.max(1, Math.round(days / 30));
-    return months <= 1 ? '上个月' : `${months} 个月前`;
+    const months = (current.getFullYear() - d.getFullYear()) * 12 + current.getMonth() - d.getMonth();
+    if (months === 0) return `${Math.round(days / 7)} 周前`;
+    return months === 1 ? '上个月' : `${months} 个月前`;
   }
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
@@ -72,9 +77,9 @@ export function timeAgo(ts, { now = Date.now() } = {}) {
   const diff = Math.max(0, n - t);
   const minutes = diff / 60000;
   if (minutes < 1) return '刚刚';
-  if (minutes < 60) return `${Math.round(minutes)} 分钟前`;
+  if (minutes < 60) return `${Math.floor(minutes)} 分钟前`;
   const hours = minutes / 60;
-  if (hours < 24 && dayDiff(t, n) === 0) return `${Math.round(hours)} 小时前`;
+  if (hours < 24 && dayDiff(t, n) === 0) return `${Math.floor(hours)} 小时前`;
   const days = dayDiff(t, n);
   if (days === 1) return '昨天';
   if (days === 2) return '前天';

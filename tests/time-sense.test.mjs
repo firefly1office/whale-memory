@@ -28,7 +28,7 @@ test('3–6 天前用天数', () => {
   assert.equal(humanTime(at(14), { now: NOW }), '6 天前')
 })
 
-test('7–13 天说「上周X」', () => {
+test('相隔七天且落在上一日历周时说「上周X」', () => {
   assert.equal(humanTime(at(13), { now: NOW }), '上周五')   // 2026-11-13 是周五
 })
 
@@ -66,4 +66,27 @@ test('dayDiff：本地日历日差', () => {
   assert.equal(dayDiff(at(20, 0, 1), NOW), 0)
   assert.equal(dayDiff(at(19, 23, 59), NOW), 1)
   assert.equal(dayDiff(at(18, 0, 0), NOW), 2)
+})
+
+test('周一回看八天前的周日已跨过上周；跨年也以周一为界', () => {
+  const monday = new Date(2026, 0, 5, 12).getTime()
+  assert.equal(humanTime(new Date(2025, 11, 28, 12).getTime(), { now: monday }), '8 天前')
+  assert.equal(humanTime(new Date(2025, 11, 29, 12).getTime(), { now: monday }), '上周一')
+  assert.equal(humanTime(at(9), { now: NOW }), '上周一')
+  assert.equal(humanTime(at(8), { now: NOW }), '12 天前')
+})
+
+test('满三十天后用日历月差，覆盖同月、跨年和短月', () => {
+  const noon = (year, month, day) => new Date(year, month - 1, day, 12).getTime()
+  assert.equal(humanTime(noon(2026, 1, 1), { now: noon(2026, 1, 31) }), '4 周前')
+  assert.equal(humanTime(noon(2025, 12, 21), { now: noon(2026, 1, 31) }), '上个月')
+  assert.equal(humanTime(noon(2026, 1, 16), { now: noon(2026, 3, 1) }), '2 个月前')
+})
+
+test('不足整分或整点不向上进位', () => {
+  const late = new Date(2026, 10, 20, 23, 59).getTime()
+  const ts = late - 59.6 * 60000
+  assert.equal(humanTime(ts, { now: late }), '59 分钟前')
+  assert.equal(timeAgo(ts, { now: late }), '59 分钟前')
+  assert.equal(timeAgo(at(20, 0), { now: late }), '23 小时前')
 })
