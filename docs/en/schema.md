@@ -2,7 +2,6 @@
 
 > Translated from the Chinese original ([中文](../schema.md)). If they disagree, the Chinese version is authoritative.
 
-[中文](../schema.md) · English
 
 All data is **one JSON object per line** (JSONL), stored in:
 
@@ -15,6 +14,9 @@ All data is **one JSON object per line** (JSONL), stored in:
   prompt-overlay/         her own prompt (versions are append-only)
   self-settings.json      her own settings
 ```
+
+
+> The examples below use Chinese user data to stay identical to the reference implementation; the field names and shapes are language-independent.
 
 ## One experience
 

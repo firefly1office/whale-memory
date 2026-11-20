@@ -1,5 +1,7 @@
 # 和检索层怎么组合
 
+> [English](en/composition.md) · 中文（本页）
+
 [中文](composition.md) · [English](#english)
 
 whale-memory 不是召回系统，是**人格层**。它不回答「哪段最相关」，它回答「这条经历是她当时的想法，还是后来改过」。

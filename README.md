@@ -6,7 +6,7 @@
 
 这个项目就是为了让这个"能"字成立。
 
-[中文](README.md) · [English](README.en.md)
+[中文](README.md) · [English](README.en.md) · [English docs](docs/en/README.md)
 
 [![Public examples](https://github.com/firefly1office/whale-memory/actions/workflows/check.yml/badge.svg)](https://github.com/firefly1office/whale-memory/actions/workflows/check.yml)
 

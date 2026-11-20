@@ -7,7 +7,7 @@ She read a chapter yesterday and changed her mind today. Can she still go back t
 
 That is what this project makes possible.
 
-[中文](README.md) · [English](README.en.md)
+[中文](README.md) · [English](README.en.md) · [All English docs](docs/en/README.md)
 
 [![Public examples](https://github.com/firefly1office/whale-memory/actions/workflows/check.yml/badge.svg)](https://github.com/firefly1office/whale-memory/actions/workflows/check.yml)
 
@@ -37,7 +37,7 @@ One reading note; she changed her mind later. `--as-of` takes you back to what s
 | Tests | 372, CI runs ubuntu / windows × node 20 / 22 |
 
 `npm run eval` reproduces it; thresholds live in CI and fail the build. The eval corpus is only
-33 synthetic experiences — [what it cannot measure](docs/eval.md) is documented too. Do not read this
+33 synthetic experiences — [what it cannot measure](docs/en/eval.md) is documented too. Do not read this
 table as general accuracy.
 
 ## What it does not do
@@ -46,7 +46,7 @@ table as general accuracy.
 - **No guessing.** If it was not recorded, it says so.
 - **No volunteering of sealed or unsaid things.** "Not mentioned" is not "deleted".
 
-> Known issues and trade-offs: [docs/pitfalls.md](docs/pitfalls.md) — literal-matching recall,
+> Known issues and trade-offs: [docs/pitfalls.md](docs/en/pitfalls.md) — literal-matching recall,
 > a thin margin on the strict threshold, single-writer assumption, small eval corpus.
 
 ## One record
@@ -57,7 +57,7 @@ table as general accuracy.
   "later": [{ "at": "2026-11-15T09:12:00Z", "thought": "Now I think he was protecting a friend" }] }
 ```
 
-`then` is fixed once written; `later` is append-only. Full schema: [docs/schema.md](docs/schema.md).
+`then` is fixed once written; `later` is append-only. Full schema: [docs/schema.md](docs/en/schema.md).
 
 ## Where data lives, what to back up
 
@@ -103,12 +103,12 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | Add tools to your own agent | [CLI adapter](adapters/README.md) — emits JSON; the host decides when to call it |
 | Plug into an MCP client (Claude Desktop, Claude Code, Cursor…) | [MCP adapter](adapters/mcp/README.md): `npx -y -p whale-memory-core whale-memory-mcp --data <dir>` — stdio, local only, zero dependencies |
 | Use it directly from JavaScript | [Self-layer core](packages/core/README.md) (`npm install whale-memory-core`) and [porting guide](docs/en/porting.md). Mind the `-core`: the unscoped `whale-memory` package on npm belongs to someone else and is unrelated |
-| Wire up a character from scratch | [30-minute tutorial](docs/tutorial.md) (Chinese): write, recall, change your mind, wake up the next day, seal, her book, plug into a host |
+| Wire up a character from scratch | [30-minute tutorial](docs/en/tutorial.md): write, recall, change your mind, wake up the next day, seal, her book, plug into a host |
 | Inspect the data format | [Schema](docs/en/schema.md) and [fictional samples](examples/samples/) |
 | See another host surface yesterday | [First day, still connected the next](examples/first-day/): two processes, no recall command |
 | Look back at who she was that day | `read --id <id> --as-of 2026-11-15`: only notes and choices written up to that day are visible |
 | Record how it feels now, and what a reflection is based on | `revise --feeling relieved` (the original feeling never changes); `write --refs id1,id2` (every cited experience must exist) |
-| Vector/RAG for finding, this for telling | [Composing with a retrieval layer](docs/composition.md) (Chinese): retrieval returns ids; `then/later` holds the narrative |
+| Vector/RAG for finding, this for telling | [Composing with a retrieval layer](docs/en/composition.md): retrieval returns ids; `then/later` holds the narrative |
 | She no longer wants to be reminded of something | `seal --id`: never recalled or shown on waking, but still on disk; `unseal` brings it back |
 | Material for writing a reflection | `recap --days 7`: what she wrote, revised, felt differently about, settled, or left open; facts only, with ids to cite |
 | She realizes two things are related | `link --from A --to B --reason "..."`: she links them herself and says why; nothing is linked automatically |
@@ -118,16 +118,16 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | One-step backup and restore drill | `node tools/backup.mjs --data <root> --out <dir>`, `node tools/restore-check.mjs --from <backup> --data <root>` ([runbook](docs/runbook.md), Chinese) |
 | Backup and move machines | [Backup & migration](docs/backup.md) (Chinese): seven files plus her drawer, and how to verify after restore |
 | How far it goes, what it won't do | [Limits & non-guarantees](docs/en/limits.md): measured scale, plaintext storage, deletion semantics |
-| Read before integrating | [Known pitfalls](docs/pitfalls.md) (Chinese): lexical recall, single writer, sealing is not deletion, host must enforce the owner gate |
+| Read before integrating | [Known pitfalls](docs/en/pitfalls.md): lexical recall, single writer, sealing is not deletion, host must enforce the owner gate |
 | Read the technical report | [whale-memory technical report](docs/paper/README.md) (Chinese PDF, 28 pages; not peer-reviewed) |
-| Is it accurate, does it make things up, does it leak | [whale-eval](docs/eval.md) (Chinese): `npm run eval`; dev and held-out sets reported separately; leaks and rewrites must be zero |
+| Is it accurate, does it make things up, does it leak | [whale-eval](docs/en/eval.md): `npm run eval`; dev and held-out sets reported separately; leaks and rewrites must be zero |
 | Who can reach her memory, and how we guard it | [Threat model](docs/threat-model.md) (Chinese) |
 | When to hand a memory back | [Injection timing](docs/injection.md) (Chinese): seven rules, a minimal implementation, anti-patterns |
 | Where these ideas come from | [What we borrowed, what we changed, what we refuse to do](docs/related-work.md) (Chinese) |
 | Understand the design | [Architecture](docs/en/architecture.md): layers, evidence policy, recall and write constraints |
 | Check evidence rules | [Evidence policy (runnable subset)](docs/evidence.md) (Chinese): as-of, supersession, absence |
 
-> The full engine (vault storage, evidence policy, consolidator, injection budget — about 26k lines) is tightly coupled to one host deployment and is **not distributed with this repository**. The design is written up in [architecture.md](docs/architecture.md).
+> The full engine (vault storage, evidence policy, consolidator, injection budget — about 26k lines) is tightly coupled to one host deployment and is **not distributed with this repository**. The design is written up in [architecture.md](docs/en/architecture.md).
 
 ## Data and verification
 

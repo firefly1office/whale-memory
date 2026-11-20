@@ -1,6 +1,6 @@
 # 数据格式（schema v2）
 
-[中文](schema.md) · [English](#english)
+> [English](en/schema.md) · 中文（本页）
 
 所有数据都是**一行一条 JSON**（JSONL），放在：
 
