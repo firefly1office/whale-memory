@@ -16,6 +16,25 @@
   成环/断链会报出来，不静默乱排。
 - 文档 [docs/timeline.md](docs/timeline.md)，测试 `tests/timeline-contract.test.mjs`（16 项）。
 
+## [0.19.0] - 2026-11-20
+
+### Added
+
+- 新增 `whale-memory-core` 三个通用小模块（宿主无关，纯函数）：
+  - `time-sense`：`humanTime` / `timeAgo` / `dayDiff` —— 把时间戳说成「刚刚 / 12 分钟前 / 昨天 20:30 /
+    3 天前 / 上周三 / 2 个月前」，而不是日期字符串。秒级与毫秒级时间戳都认，跨天按本地日历算。
+  - `relative-window`：`parseRelativeWindow` / `inWindow` —— 把「前几天 / 上周三 / 上个月 / 两周前 /
+    昨天晚上」翻成 `[from, to)` 窗口，供检索侧按时间过滤；翻不出来返回 `null`，不瞎猜。
+  - `person-card`：`renderPersonCard` / `pickPersonCard` —— 把「这个人是谁」压成一行提示词
+    （认识多久、熟络度、最近一次说话），并规定**匹配不到就不写**，不拿别人的资料补位。
+- 测试 `tests/time-sense.test.mjs`（12 项）、`tests/relative-window.test.mjs`（12 项）、
+  `tests/person-card.test.mjs`（25 项）。
+
+### 说明
+
+这些模块是给「她记得住人、也说得清是哪天」打底的。人物卡只描述看得到的证据，
+不写推断出来的性格；时间窗口只负责翻译，不负责决定要不要过滤——过滤策略留给宿主。
+
 ## [0.18.1] - 2026-11-19
 
 ### Fixed
