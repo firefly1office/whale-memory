@@ -126,7 +126,7 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | Is it accurate, does it make things up, does it leak | [whale-eval](docs/en/eval.md): `npm run eval`; dev and held-out sets reported separately; leaks and rewrites must be zero |
 | Who can reach her memory, and how we guard it | [Threat model](docs/en/threat-model.md) |
 | When to hand a memory back | [Injection timing](docs/en/injection.md): seven rules, a minimal implementation, anti-patterns |
-| Where these ideas come from | [What we borrowed, what we changed, what we refuse to do](docs/en/related-work.md) |
+| Where these ideas come from | [Three categories kept apart: actually adopted, compared but not copied, arrived at ourselves](docs/en/related-work.md) |
 | Understand the design | [Architecture](docs/en/architecture.md): layers, evidence policy, recall and write constraints |
 | Check evidence rules | [Evidence policy (runnable subset)](docs/en/evidence.md): as-of, supersession, absence |
 

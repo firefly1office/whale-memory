@@ -144,7 +144,7 @@ validateLineage(chainRows)                                 // I1–I4，[] 表�
 | 它到底准不准、会不会编、会不会漏 | [whale-eval](docs/eval.md)：`npm run eval`，开发集与留出集分开报，外露与改写永远是 0 |
 | 谁能碰到她的记忆、怎么防 | [威胁模型](docs/threat-model.md)：群聊外露、改写过去、诱导写入、网页指令、出事了怎么办 |
 | 什么时候递回记忆 | [注入时机](docs/injection.md)：七条规则、可抄的实现和反例 |
-| 这些思路从哪来 | [借了谁、改了什么、刻意不做什么](docs/related-work.md)：Generative Agents、Zep、MemoryBank、A-MEM、情感引擎 |
+| 这些思路从哪来 | [三类分开写：真正采用的外部东西、事后对照但没抄的、自己独立形成的](docs/related-work.md) |
 | 了解整体设计 | [架构说明](docs/architecture.md)：分层、证据策略、召回与写入约束 |
 | 看证据判定 | [证据策略（可跑子集）](docs/evidence.md)：as-of、被取代、后继缺席 |
 | 看她在不在长 | [指标口径](docs/metrics.md) 与 `node tools/metrics.mjs --data=<dir>` |

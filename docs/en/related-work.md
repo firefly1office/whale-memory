@@ -1,46 +1,80 @@
-# Where the ideas come from, and what we changed
+# Where this came from
 
 > Translated from the Chinese original ([中文](../related-work.md)). If they disagree, the Chinese version is authoritative.
 
-whale-memory borrows a fair number of other people's ideas. This page spells out, one by one: **which idea was borrowed, where it comes from, how we made it our own, and which ones we deliberately leave out**. Only ideas are borrowed here; no project's code or text was copied.
+Three categories, kept apart: **external things actually adopted**, **work compared against but deliberately not copied**, and **what we arrived at ourselves**.
 
-The core constraints come first; every change circles around them:
+The design was worked out by the author, starting from one concrete problem: she kept forgetting. It did not start from a paper. The code and the paper were written by AI agents, and those agents did read other people's work along the way; the traceable references are listed below with what they were used for. Anything we cannot trace, we do not claim does not exist.
 
-1. `then` is fixed once written; `later` only appends — an old view is not overwritten by a new one.
-2. If it cannot be found, say it cannot be found; do not make it up.
-3. What is worth remembering, when to change one's mind, and whether to let go — the character decides; the system does not decide for her.
+## 1. External things actually adopted (few)
 
-## Borrowed and reworked
-
-| Our feature | The idea borrowed | What we changed |
+| Source | What was taken | Where it is used |
 | --- | --- | --- |
-| **Going back to who she was that day** (`asOf`, 0.12) | Zep / Graphiti's dual timeline: each fact records both "when it was true" and "when the system learned it", so the knowledge state at any moment can be reconstructed. [Zep paper](https://arxiv.org/abs/2501.13956) | The dual timeline answers "what was true then"; we answer "**what she thought then**". Cut off at a moment, and the later notes written afterwards, the choices made, and the number of times it was recalled all become invisible; the original text never changed in the first place, so no "invalidated" marker is needed. In direction it is also close to "perspective-limited memory" in role-play ([ReverieMem, Tang et al. 2026](https://arxiv.org/abs/2606.25632): a character may only use facts she experienced herself, within her own perspective) — we put the perspective on time: the her of that day knows only what was written before that day. |
-| **How she feels about it later** (`revise --feeling`, 0.12) | The fading affect bias in autobiographical memory research: the feeling changes when you recall the past, and mostly it is not that you misremember how you felt then — **the present reaction** is different. [Frontiers 2025 review](https://pmc.ncbi.nlm.nih.gov/articles/PMC12336169/) | The feeling from then stays in `then.feeling` and never moves; later feelings are appended as part of a later note. Mainstream affect engines (PAD mood vectors, automatic decay over time, e.g. [affectus](https://github.com/n-yokomachi/affectus)) pull emotions back to baseline automatically — **we do not decay automatically**: whether it has faded is for her to say. |
-| **Where a recollection came from** (`write --refs`, 0.12) | Generative Agents' reflection: distilling multiple observations into higher-level thoughts, keeping pointers to the evidence. [Park et al. 2023](https://arxiv.org/abs/2304.03442) | The paper itself admits that "reflections" conjured out of thin air get retrieved over and over and drift further each time. We make the source a **hard constraint**: on write, every cited experience is checked to really exist, and if one cannot be found the whole entry is rejected; on read-back, both the source and "which later recollections mentioned it" are visible. She writes the distillation; the core library does not call a model. |
-| **The forgetting she chooses** (`seal` / `unseal`, 0.13) | MemoryBank's forgetting mechanism: memories that are not often recalled fade over time ([MemoryBank](https://arxiv.org/abs/2305.10250)); also informed by the research direction of "controlling unwanted memories" in psychology ([Psychonomic Bulletin & Review 2025 review](https://link.springer.com/article/10.3758/s13423-025-02745-y)). | Forgetting is not determined by a curve; she determines it, and it does not delete: once sealed, it is not recalled, does not go into the waking block, and its content is not revealed when another recollection cites it; the original text is still there and can be unsealed at any time. Real deletion is still only a whole-store `purge`; the two are kept separate. |
-| **Recap material** (`recap`, 0.13) | Generative Agents triggers reflection when accumulated importance crosses a threshold, with the model doing the distilling. | The core library does not decide "when it is time to reflect", nor does it distill for her: it only lays out the facts of these days (written, changed your mind, feeling changed, thought through or let go, still unfinished) by calendar day, each with its id; whether to write a recollection, and from which entries, is up to her with `--refs`. |
-| **Links made afterwards** (`link`, 0.14) | A-MEM writes memories as interlinked notes (Zettelkasten), with the model automatically creating and updating links by semantics. [A-MEM](https://arxiv.org/abs/2502.12110) | A link can only be made by her own hand, and must come with a one-line reason; no automatic linking by similarity. The same pair is linked only once; if the other end is sealed, not even the reason is shown. |
-| **Life chapters** (`chapter`, 0.14) | Conway's autobiographical memory model (Self-Memory System): memories are organized in layers, with "life periods" at the top and specific events hanging below. [Conway & Pleydell-Pearce 2000](https://doi.org/10.1037/0033-295X.107.2.261) | Periods are not cut up by the system by time; she names them herself. A name can be changed, the old name is kept, and going back to that day shows what she called it then. Chapters can overlap and nest. |
-| **Her book** (`book`, 0.14) | An autobiography is meant to be read by people in the first place. | On export each entry is printed only once, placed in the most specific stretch of days; "then" as it was, "later" appended in time order; what she sealed is not included by default, and it only says that a few things are missing. |
-| **Unfinished things can be put down** (`unfinished`, 0.11) | The "task status / to-do expiry" common in memory systems. | No automatic expiry by time, and no keyword guessing that something is "already resolved". Only when she explicitly says "I've thought it through / let me set it aside / I'll come back to it" does the state change; the original question can always be read. |
-| **Evidence determination** (`evidence-policy`, 0.7) | "Facts being superseded" in knowledge-graph memory. | Only the determination, not automatic inference of supersession; when two things contradict at the same moment, it says plainly "can't tell". Since 0.12, her feeling about each thing goes through this chain too, so you can ask "what did she feel about this on November 15". |
-| **Health check** (`doctor`, 0.11.1) | The health-check command common in memory tools (e.g. `doctor` in [memory-agent](https://github.com/victorqnguyen/memory-agent)). According to the handover receipt for 0.11.1, this version's three ideas — doctor, the indexing principle, and the injection guard — referenced [agent-soul](https://github.com/cyanwell/dsh-agent-soul) (MIT). | It does not just check "whether the files exist"; it really writes, changes its mind, resolves, cites, goes back to that day, exports and re-imports in a temporary directory. |
-| **The indexing principle** (`docs/limits.md`, 0.11.1) | agent-soul's approach: the append-only source records are the truth, and the readable layer is produced by a compiler and must not be hand-edited. | We have no compile layer; the principle lands as "the original text is the only truth, any index must be generated on the side at write time, can be rebuilt by deleting it, and must never become a source". |
-| **The injection guard can only veto** (`examples/injection/`, 0.11.1) | The handover receipt records agent-soul as the reference, without saying which specific part was borrowed. | The host's guard can only say "don't pass it on"; it cannot bypass the pre-existing rules — the private-chat allowlist, deduplication, hit — to hand a memory out. |
+| Event sourcing (Martin Fowler and the wider pattern) | State changes stored as events, replayed on read | The `later` / `recall` / `seal` / `unsaid` event files; rebuilding the timeline for `asOf` |
+| OCC appraisal + PAD mood | Desirability, unexpectedness, agency, control → emotion; pleasure / arousal / dominance | The emotion layer on the host side (`psyche`) |
+| Bitemporal models / timelines (Zep and similar) | "When a thing was true" separated from "when the system learned it" | Compared against, not adopted; we answer "what she thought then", not "what was true then" |
+| MCP / JSON-RPC | Protocol and stdio transport | The MCP adapter |
+| The "abstain" side of evaluation benchmarks | If the information does not exist, returning empty must be possible | LoCoMo / LongMemEval metric framing; the `cover` gate in `recall` |
+| Wilson / Clopper–Pearson | Confidence intervals for proportions | Interval estimates in the paper |
+
+These are **general patterns, theory and protocols**, not other people's implementations.
+
+## 2. Compared against afterwards, deliberately not copied
+
+Built first, read later; and after reading, the implementation was not bent to match.
+
+| Close work | What it does | What we deliberately do not do |
+| --- | --- | --- |
+| Generative Agents: memory stream and reflection | Observations enter a stream; past a threshold a model condenses them into reflections | No automatic condensation; we take only "provenance must be real" — every `--refs` target must exist |
+| MemoryBank: forgetting curve | Rarely recalled memories fade along an Ebbinghaus curve | No automatic fading; whether to seal is hers, and sealing is not deletion |
+| A-MEM: automatic links | A model builds and updates links by similarity | Links only when she makes them, and she must give a reason |
+| Mem0: add / update / delete | An ADD / UPDATE / DELETE memory layer | Append only; `then` is never rewritten |
+| MemGPT: context editing | The model reorganises and rewrites memory text itself | The model never edits the text; only she can append later notes |
+| Conway: life periods | Memories are layered, with "life periods" on top | Chapters are not cut automatically; she names them, and renaming keeps the old name |
+
+## 3. Arrived at ourselves
+
+These are the skeleton, and they predate any outside reading:
+
+- **`then` is immutable; `later` is append-only** — an old view is never overwritten
+- **If it cannot be found, say so** — an empty recall is a valid answer; nothing is invented (fabrication rate is 0 on both the dev and held-out sets)
+- **Sealing is not deletion** — not recalled, not shown on waking; the original text stays and can be unsealed at any time
+- **The unsaid drawer is never injected automatically** — only she can open it
+- **Detail recall returns only source text and an evidence status** — supported / related / ambiguous / unmatched; unrecorded details are never filled in
+- **What to remember and whether to let something go are hers to decide** — the system does not judge importance for her and does not expire things on a timer
+
+## One doubtful record
+
+A 0.11.1 handover receipt states that `doctor`, the indexing principle and the injection guard "referenced agent-soul".
+
+The author's account is that he never read other people's work. It is not part of the table above and is not a claim of ours; it stays here so the history is not silently erased.
+
+## Numbers
+
+```
+Paper references      35
+Systems compared       8
+Runtime dependencies   0  (no memory framework used)
+Core code          3,778 lines across 34 files, written here
+```
+
+Forced into a ratio: **the skeleton is original, the terminology and evaluation method come from outside, the implementation is ours.** There is no precise percentage, and there should not be.
+
+In one line: what was taken is "how to evaluate, how to record events, how to speak a protocol". What was not taken is "who gets to change her past" — and that is the position this project actually holds.
 
 ## Deliberately not done
 
-| What others commonly do | Why we do not do it |
+| What others commonly do | Why we do not |
 | --- | --- |
-| **Forgetting curves**: let memories that are not often recalled fade automatically along the Ebbinghaus curve ([MemoryBank](https://arxiv.org/abs/2305.10250)) | Automatic fading equals the system deciding for her that "this is no longer important". We record how many times and when something was recalled, but do not trim or downweight on that basis; she can choose to put it down herself. |
-| **LLM auto-organizing, merging, rewriting memories** (ADD / UPDATE / DELETE-style memory layers) | Rewriting erases "how it was thought at the time". We only append. |
-| **Automatically linking memories by similarity** ([A-MEM](https://arxiv.org/abs/2502.12110)'s Zettelkasten-style automatic links) | A relationship conjured automatically is not her own association. Our sources can only be written down explicitly by her. |
-| **Automatic emotion tagging** (a classifier labeling each sentence with 28 emotions, like SillyTavern's Expressions) | A tag is an external inference, not her feeling. `feeling` only takes the words she wrote herself. |
-| **Mood falling back to baseline over time** | Same as above: if she has not said she is at peace with it, we do not make her at peace. |
+| Automatic fading along a forgetting curve | Fading automatically means the system decides the thing no longer matters |
+| LLM tidying, merging, rewriting memories | Rewriting erases what she thought at the time |
+| Automatic similarity links | A link made by a similarity function is not her own association |
+| Automatic emotion labels | A label is an outside inference, not her feeling; `feeling` takes only words she writes |
+| Mood decaying back to a baseline | If she did not say she is over it, we do not get over it for her |
 
-## Still looking at
+## Still being considered
 
-- **"Why did she think that back then"**: the appraisal approach commonly used in emotion-understanding research — how she saw the event at the time (who caused it, whether it could be changed, what it meant to her). Perhaps as an optional field on `then`, written by her, not inferred by the system.
-- **Finding by feeling**: work like Emotional RAG lets the current emotion take part in retrieval. We lean toward an explicit `--feeling 闷` filter rather than letting the mood quietly change the ranking.
+- **"Why did she think that then"**: appraisal-style thinking, possibly an optional `then` field written by her.
+- **Finding by feeling**: Emotional RAG-style retrieval; we lean towards an explicit `--feeling` filter instead.
 
-None of this is done yet; before doing it we will write it into this page first, saying who it was borrowed from and what we changed.
+None of it is built; it will be written on this page first.
