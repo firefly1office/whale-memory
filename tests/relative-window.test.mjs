@@ -81,3 +81,42 @@ test('秒级时间戳也能判', () => {
   const win = { from: dayStart(2026, 11, 19), to: dayStart(2026, 11, 20), label: '昨天', kind: 'day' }
   assert.equal(inWindow(Math.floor((dayStart(2026, 11, 19) + 3600000) / 1000), win), true)
 })
+
+for (const phrase of ['周末', '周年', '周围', '周杰伦', '每周', '每周三', '礼拜堂', '下周三', '下个星期三', '这个月亮好圆', '这个月光很亮', '这个月饼好吃', '这个月份']) {
+  test(phrase + ' 不应触发回忆窗口', () => assert.equal(w(phrase), null))
+}
+
+test('没有周前缀时只接受明确的星期几', () => {
+  for (const phrase of ['周三', '星期三', '礼拜三']) {
+    assert.equal(w(phrase).from, dayStart(2026, 11, 18))
+  }
+  assert.equal(w('上个星期').from, dayStart(2026, 11, 9))
+})
+
+for (const phrase of ['大前天', '三天前天气很好']) {
+  test(phrase + ' 定位整整三天前', () => {
+    assert.equal(w(phrase).from, dayStart(2026, 11, 17))
+    assert.equal(w(phrase).to, dayStart(2026, 11, 18))
+  })
+}
+
+for (const [phrase, day, start, end] of [['昨晚', 19, 18, 22], ['今晚', 20, 18, 22], ['今早', 20, 6, 11]]) {
+  test(phrase + ' 限定本地时段', () => {
+    assert.equal(w(phrase).kind, 'part-of-day')
+    assert.equal(w(phrase).from, new Date(2026, 10, day, start).getTime())
+    assert.equal(w(phrase).to, new Date(2026, 10, day, end).getTime())
+  })
+}
+for (const phrase of ['前两天', '几天前']) {
+  test(phrase + ' 沿用前几天的宽窗口', () => assert.deepEqual(w(phrase), w('前几天')))
+}
+
+for (const [phrase, boundary] of [['上周以前', dayStart(2026, 11, 9)], ['上个月以前', dayStart(2026, 10, 1)]]) {
+  test(phrase + ' 在所指周期起点截止', () => {
+    const win = w(phrase)
+    assert.equal(win.kind, 'older')
+    assert.equal(win.to, boundary)
+    assert.equal(inWindow(boundary - 1, win), true)
+    assert.equal(inWindow(boundary, win), false)
+  })
+}
