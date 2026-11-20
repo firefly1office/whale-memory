@@ -1,0 +1,76 @@
+# 跨窗口记忆：别人的话，什么时候能带到另一个房间
+
+一个角色同时活在群聊、主人的私聊、朋友的私聊里。她该记得多少，是产品问题；她**能不能把 A 窗口的话带到 B 窗口**，是安全和分寸问题。
+
+这个仓库里通用的是判定和脱敏，不是某个宿主的实现。
+
+## 一、可见性不是「全共享」或「全隔离」
+
+真实需求通常是：
+
+| 来源 → 目标 | 期望 |
+| --- | --- |
+| 主人私聊 → 群 | **拒绝**（未经公开的私事不能进群） |
+| 本机主人会话 → 群 | 拒绝 |
+| 主人私聊 → 朋友的私聊 | 由产品决定（本项目默认放行） |
+| 朋友的私聊 → 群 | 由产品决定（默认放行，但我们建议谨慎） |
+| 群 A → 群 B | 放行 |
+| 同一个房间 | 只有同一套人设槽位才认 |
+
+`createAudience` 把这套判断做成纯函数：
+
+```js
+import { createAudience } from 'whale-memory-core/conversation-privacy'
+
+const aud = createAudience({ ownerId: '10001' })
+aud.permits('private_10001', 'group_40101')   // false：主人私聊不进群
+aud.permits('private_10001', 'private_20002') // true：换成朋友私聊可以接上
+aud.permits('group_40101', 'group_40102')     // true
+aud.permits('group_1#p_aa', 'group_1#p_bb')   // false：换人设不串
+```
+
+**默认值不藏在实现里**：`isActive` 交给宿主（比如人设槽位是否有效、是否已被遗忘），
+本项目只提供"主人私聊不流向群"这条硬边界和同房间规则。
+
+## 二、脱敏要在进提示词之前
+
+模型可以决定"要不要提"，但"长什么样能被复述"不该交给模型：
+
+```js
+import { redactSensitive } from 'whale-memory-core/conversation-privacy'
+
+redactSensitive('验证码 938475')        // '（密钥略）'
+redactSensitive('https://a.example.com/x') // '（链接略）'
+redactSensitive('昨天吃了黄焖鸡')          // 原样返回
+```
+
+数字（≥6 位）、链接、邮箱、密钥串、24 位以上长串，在内容进入提示词之前就被抹掉。
+模型看到的是"（数字略）"——它没法说漏自己没看到的东西。
+
+## 三、事实和事件分开存
+
+她记得"那天聊了什么"（事件），但不一定记得"他爱吃什么"（事实）。这两类东西的更新节奏不一样：
+事件只追加，事实会被覆盖。所以事实单独存一个 JSONL：
+
+```js
+import { saveFacts, relevantFacts, renderFactsLine } from 'whale-memory-core/fact-store'
+
+saveFacts(dir, [{ kind: 'like', value: '黄焖鸡' }])
+const top = relevantFacts(loadFacts(dir), '晚上吃黄焖鸡吗', { limit: 2 })
+renderFactsLine(top)   // '（你还记得：你喜欢黄焖鸡。）'
+```
+
+`relevantFacts` 只在被问到时挑相关的那几条；没有相关的就返回空——**宁可不说，也不乱说**。
+
+事实从哪里来？两条路：
+
+- `fact-card`：规则兜底，抓"项目叫 X / 我住在 Y / 我不吃 Z"。快、免费，但抓不到隐性说法。
+- `fact-judge`：把一批消息交给模型，要求它给出可以在原文中找到的引文；对不上就丢弃。
+
+## 四、这条路的代价
+
+跨窗口共享解决了"换个对话就像失忆"，代价是**别人的隐私可能被无意公开**。
+本仓库只提供判定与脱敏，剩下的取舍必须由每个宿主自己写清楚：哪些窗口开放、哪些永久隔离、
+哪些内容即使开放也只能模糊转述。
+
+如果不确定，按私密处理。

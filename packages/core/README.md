@@ -77,3 +77,18 @@ node demo.mjs
 一条经历一行 JSON，格式见 [`docs/schema.md`](../../docs/schema.md)。三条虚构样本在 [`examples/samples/`](../../examples/samples/)。
 
 移植说明见仓库根目录 [`docs/porting.md`](../../docs/porting.md)。
+| 模块 | 作用 |
+|---|---|
+| `self-experience.js` | 经历两层（then / later）、重要度、两段式回想 |
+| `self-memory.js` | 经历 + 日记的统一读取与渲染 |
+| `waking.js` | 醒来块：每天第一次唤醒给昨天的时间线 |
+| `self-prompt.js` | 提示词 overlay：版本只追加、可回退 |
+| `self-settings.js` | 她自己的设置（软限制归她） |
+| `time-sense.js` | 人话时间：刚刚 / 昨天 20:30 / 上周三 / 2 个月前 |
+| `relative-window.js` | 把「前几天 / 上周三 / 两周前」翻成时间窗口 |
+| `person-card.js` | 把「这个人是谁」压成一行；匹配不到就不写 |
+| `scope-key.js` | 会话作用域键：会话级与人设级的不对称规则 |
+| `conversation-privacy.js` | 跨窗口可见性判定 + 确定性脱敏 |
+| `fact-card.js` | 规则抽事实：项目、预算、喜恶、所在地、关系 |
+| `fact-store.js` | 事实卡存储与相关性挑选（宁可不说，不乱说） |
+| `fact-judge.js` | 模型抽事实的封装，引文必须能在原文找到 |
