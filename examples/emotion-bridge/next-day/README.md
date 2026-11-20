@@ -28,3 +28,7 @@
 ## 复跑
 
 在仓库根目录执行 `node examples/emotion-bridge/next-day/run.mjs`，会用本地模拟回答检查全部 48 份请求的时间边界、案例隔离和只读性。执行 `node examples/emotion-bridge/next-day/run.mjs --sample <新文件路径>` 会使用已配置的 `DEEPSEEK_API_KEY` 发起付费采样。报告保留请求指纹、模型原始回答、使用量和结构校验结果。所有输入来自同目录的虚构题。
+
+## 结构化取舍打分
+
+运行 `node examples/emotion-bridge/next-day/score.mjs 结果.json` 可离线读取已记录的结果。报告有题集指纹时须与当前题集一致。每条结果算一次尝试，逐题列出预期、回答和状态。昨天的基线仅计入状态统计。明确取舍的三字段须全对，回避、跳过及失败均留在正确率分母；单侧 95% 精确区间为 [lower95, 1]。无取舍分支按有效回答计算假阳性上界 [0, upper95]，另列该类尝试总数。预期不确定时单列强行取舍的回答。分母为零时返回 null。区间按固定样本独立二项模型计算，同题重复时仅作参考。失效率分子为 unavailable 和 invalid-response，提供方错误、主动跳过和计划请求总数另列。
