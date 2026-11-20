@@ -76,7 +76,10 @@ async function sample(job) {
       return JSON.parse(response.text)
     } })
     result.status = answer.status
-    if (answer.status === 'reflected') result.appraisal = answer.appraisal
+    if (answer.status === 'reflected') {
+      result.appraisal = answer.appraisal
+      result.flags = answer.flags
+    }
   } catch (err) {
     result.status = providerFailure ? 'provider-error' : 'invalid-response'
     result.error = err.message

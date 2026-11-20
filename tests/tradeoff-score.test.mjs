@@ -34,3 +34,12 @@ test('无结构回答记失效，提供方错误另列，未知题号显式报�
   assert.equal(report.failures.totalWithoutAppraisal, 2)
   assert.throws(() => run({ case: 'missing', condition: 'a' }))
 })
+
+test('按已记录的回避标记计数，旧报告缺字段时单列，不参与改判', () => {
+  const flag = 'tradeoff_unacknowledged'
+  const report = run({ ...attempt('a', none), flags: [flag] }, { ...attempt('control', none), flags: [] }, attempt('a', none))
+  assert.deepEqual(report.flags, { tradeoff_unacknowledged: 1, missingOnReflected: 1 })
+  assert.deepEqual(report.byCase.toy[0].flags, [flag])
+  assert.equal(report.forced.correct, 0)
+  assert.equal(report.none.falsePositives, 0)
+})

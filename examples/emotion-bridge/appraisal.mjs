@@ -136,5 +136,11 @@ export async function reflectOnExperience({ enabled = false, chatKey, dir, id, a
   const current = selectedExperience(dir, row.id, asOf)
   if (!current || JSON.stringify(reflectionSources(current)) !== JSON.stringify(sources)) return { status: 'unavailable' }
   const appraisal = validate(raw, sources)
-  return { status: 'reflected', id: row.id, recordedFeelings, appraisal }
+  const flags = []
+  if (appraisal.tradeoff.kind === 'none' &&
+      appraisal.nowEffects.some(item => item.effect === 'kept') &&
+      appraisal.nowEffects.some(item => item.effect === 'given_up')) {
+    flags.push('tradeoff_unacknowledged')
+  }
+  return { status: 'reflected', id: row.id, recordedFeelings, appraisal, flags }
 }

@@ -151,7 +151,15 @@ test('song b keeps the melody today even though cutting it frustrated that goal 
   const tradeoff = { kind: 'forced_choice', kept: 'unfinished', sacrificed: 'thought' }
   const raw = { ...answer(), perspectives, nowEffects, tradeoff }
   const reflect = changes => reflectOnExperience({ ...options, id, generate: () => ({ ...raw, ...changes }) })
-  assert.deepEqual((await reflect({})).appraisal, raw)
+  const forced = await reflect({})
+  assert.deepEqual(forced.appraisal, raw)
+  assert.deepEqual(forced.flags, [])
+  const noChoice = { kind: 'none', kept: null, sacrificed: null }
+  const flagged = await reflect({ tradeoff: noChoice })
+  assert.deepEqual(flagged.appraisal.tradeoff, noChoice)
+  assert.deepEqual(flagged.flags, ['tradeoff_unacknowledged'])
+  assert.deepEqual((await reflect({ tradeoff: { ...noChoice, kind: 'unclear' } })).flags, [])
+  assert.deepEqual((await reflect({ tradeoff: noChoice, nowEffects: nowEffects.slice(0, 1) })).flags, [])
   for (const changes of [
     { tradeoff: { ...tradeoff, sacrificed: 'unfinished' } },
     { tradeoff: { ...tradeoff, kept: 'thought', sacrificed: 'unfinished' } },

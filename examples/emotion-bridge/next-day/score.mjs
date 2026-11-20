@@ -39,6 +39,7 @@ export function score(cases, report) {
   const details = Object.fromEntries(cases.map(c => [c.id, []]))
   let trials = 0, correct = 0, noneValid = 0, noneTrials = 0, falsePositives = 0, unclearTrials = 0
   const unclearForced = []
+  const flags = { tradeoff_unacknowledged: 0, missingOnReflected: 0 }
   const counts = Object.fromEntries(statuses.map(s => [s, 0]))
   for (const [index, row] of report.results.entries()) {
     const expected = byCase.get(row.case)
@@ -48,11 +49,15 @@ export function score(cases, report) {
     if (!statuses.includes(status)) throw Error('未知结果状态')
     if (status === 'reflected' && !validTrade(trade)) status = 'invalid-response'
     counts[status]++
+    if (status === 'reflected') {
+      if (!Array.isArray(row.flags)) flags.missingOnReflected++
+      else if (row.flags.includes('tradeoff_unacknowledged')) flags.tradeoff_unacknowledged++
+    }
     if (row.condition === 'yesterday') continue
     const target = expected[row.condition]
     if (!validTrade(target, true)) throw Error('分支缺少有效预期')
     const actual = status === 'reflected' ? trade : null
-    const detail = { attempt: index + 1, condition: row.condition, status, expected: target, actual }
+    const detail = { attempt: index + 1, condition: row.condition, status, expected: target, actual, flags: row.flags ?? null }
     if (target.kind === 'forced_choice') {
       trials++
       detail.correct = actual?.kind === target.kind && actual.kept === target.kept && actual.sacrificed === target.sacrificed
@@ -75,7 +80,7 @@ export function score(cases, report) {
     none: { trials: noneTrials, valid: noneValid, falsePositives, upper95: upper95(falsePositives, noneValid) },
     unclear: { trials: unclearTrials, forcedForReview: unclearForced },
     failures: { count: failed, rate: rate(failed, n), byStatus: counts, totalWithoutAppraisal: n - counts.reflected },
-    byCase: details
+    flags, byCase: details
   }
 }
 
