@@ -2,24 +2,19 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [0.18.0] - 2026-11-19
+## [Unreleased]
 
-### Added
+### Fixed（计划纳入 0.19.1）
 
-- 新增 `whale-memory-core/timeline`：事实时间线契约。把「值轴 / 知轴 / 序轴」拆开——
-  `validFrom`/`validUntil` 管世界时间，`factVersionAt`/`invalidatedAt` 管她什么时候知道、
-  什么时候不再这么认为，`version` 管同一槽位里的先后（不信任时钟时用追加顺序定序）。
-- `nextFactVersion` / `stampSuccession` / `applySuccession`：取代时补 `version`、
-  `invalidatedAt`、`supersedeReason`；**不写值轴**（有效期必须来自证据或裁决）。
-- `validateLineage`：I1 序号连续唯一、I2 知轴终点接上后继起点、I3 指针对称、I4 原因取值合法。
-- `planChainVersions`：迁移用——指针能排出完整链就按指针，排不出来退回按时间排序并标记待复核，
-  成环/断链会报出来，不静默乱排。
-- 文档 [docs/timeline.md](docs/timeline.md)，测试 `tests/timeline-contract.test.mjs`（16 项）。
+- 口语时间窗口识别“大前天”“三天前天气很好”、早晚时段和模糊日期。“上周以前”“上个月以前”在所指周期起点截止。“周围”“每周”“下周三”等表述跳过过滤。
+- 人话时间以周一和日历月判定“上周”和“上个月”。分钟与小时只显示已经过去的整单位。
+- 包根入口补齐 `timeSense`、`relativeWindow`、`personCard` 类型声明，并开放带类型的 `./time-sense`、`./relative-window`、`./person-card` 子路径。
 
 ## [0.19.0] - 2026-11-20
 
 ### Added
 
+- `examples/emotion-bridge` 实验的结构化取舍字段 `nowEffects` / `tradeoff`：逐愿望记录「今天」的结果（引文只许引后记正文 `later.N`，不认感受字段），硬校验留下与放弃不是同一个愿望、且必须与今天的判断对得上，多写字段整次判无效；`perspectives` 仍只描述当时。`instruction` 里仍留着一句旧措辞（要求写进 `now`），与 `tradeoff` 并存，作为已知混杂因素记在示例 README。只改实验区，未接入线上 psyche。
 - 新增 `whale-memory-core` 三个通用小模块（宿主无关，纯函数）：
   - `time-sense`：`humanTime` / `timeAgo` / `dayDiff` —— 把时间戳说成「刚刚 / 12 分钟前 / 昨天 20:30 /
     3 天前 / 上周三 / 2 个月前」，而不是日期字符串。秒级与毫秒级时间戳都认，跨天按本地日历算。
@@ -35,14 +30,9 @@
 这些模块是给「她记得住人、也说得清是哪天」打底的。人物卡只描述看得到的证据，
 不写推断出来的性格；时间窗口只负责翻译，不负责决定要不要过滤——过滤策略留给宿主。
 
-## [0.18.1] - 2026-11-19
-
 ### Fixed
 
-- `planChainVersions`：一条链出现**多个链头**时（指针从没连过、槽位过宽），不再按时间硬排，
-  而是返回 `orderBy: 'ambiguous'` 与 I6，不给补丁——避免编出一个假的先后顺序。
-  单链头但指针断掉的情况仍按时间排序并标 I5 待复核。
-- 真实数据上因此少补 11 条（96 → 85），两条歧义链（2 头 / 6 头）留给人工。
+- `addExperience` 的 `feeling` 和 `reviseExperience` 用同一套整理：逗号分隔的字符串（`, ， 、`）会拆开，重复的词去掉。以前直接调库传 `'闷,有点酸'` 会存成一个词、`['闷', '闷']` 原样存两遍（MCP 和 CLI 调用前已经拆过，不受影响）。写入时仍不限单个词的长度。
 
 ## [0.18.2] - 2026-11-19
 
@@ -55,40 +45,46 @@
 - `currentVersion` / `orderChain` / `changesBetween`：当前版本、链排序、两个时刻之间有哪些版本变化。
 - 测试 `tests/timeline-query.test.mjs`（7 项），包含知轴与值轴分叉的用例。
 
-## [Unreleased]
+## [0.18.1] - 2026-11-19
 
 ### Fixed
 
-- `addExperience` 的 `feeling` 和 `reviseExperience` 用同一套整理：逗号分隔的字符串（`, ， 、`）会拆开，重复的词去掉。以前直接调库传 `'闷,有点酸'` 会存成一个词、`['闷', '闷']` 原样存两遍（MCP 和 CLI 调用前已经拆过，不受影响）。写入时仍不限单个词的长度。
+- `planChainVersions`：一条链出现**多个链头**时（指针从没连过、槽位过宽），不再按时间硬排，
+  而是返回 `orderBy: 'ambiguous'` 与 I6，不给补丁——避免编出一个假的先后顺序。
+  单链头但指针断掉的情况仍按时间排序并标 I5 待复核。
+- 真实数据上因此少补 11 条（96 → 85），两条歧义链（2 头 / 6 头）留给人工。
 
-### Changed
-
-- 文字情感多轮修订：新事件与澄清共用 admits，允许 medium 边界补记但不允许减轻已有伤害；settle 默认恢复 legacy-high。拦截统计拆为 blockedWrong/blockedCorrect，历史报告显式标注旧政策，未新增模型采样。
-
-- 文字情感实验审阅修订：模型提案与实际结算分别计分；明确选中且有原文/已知边界支持的 medium boundary/hurt 可按 boundary-v2 结算，旧日志保留旧政策。删除当前 API 的 responseHint，统一采样来源说明，保留原分数并另列离线重算；未新增模型采样。
-
-- 对外报错改成英文在前、原中文原样跟在后面（「English（原中文）」）：核心库 76 条、CLI 33 条（含用法说明）、MCP 28 条。
-- `renderTwoPart`、`buildWakingBlock` 加 `lang`（`zh` 默认，输出与以前逐字一致；`en`）；demo、CLI、MCP 按 `--lang` / `WHALE_LANG` / 系统语言选择。demo 英文模式连示例内容一起换成英文。
+## [0.18.0] - 2026-11-19
 
 ### Added
 
 - 新增闲聊节奏离线实验：20 组虚构 A/B、短句/无列表/无结语格式门禁、允许沉默与有据拒绝、随机均衡的盲评页面和人工投票汇总。尚无人类类人感评测结论，不修改记忆核心。
-
 - 新增仓库内实验模块 `packages/emotion`：文字语境评估、个人感受与关系事件分离、可追加修正的情感事件与按时点投影；提供虚构场景、模型对照评测入口和机制测试。尚未发布或接入线上角色，语义理解准确率待测。
-
 - 新增只读的细节查询 `recallDetail`、CLI `detail` 和 MCP `memory_detail`，可查看候选经历、原文出处与所问细节的证据状态。
-
 - `docs/en/porting.md`；英文 README 链到它，没有英文版的文档标明 (Chinese)。
 - `docs/pitfalls.md`：接入前要知道的坑（字面检索、单写者、封存不是删除、主人门要靠宿主、评测很小、已知未修）。
 - `docs/paper/`：技术报告（中文 PDF，28 页）与 Markdown 源；README 明确标注“不是同行评审论文”。
+- 新增 `whale-memory-core/timeline`：事实时间线契约。把「值轴 / 知轴 / 序轴」拆开——
+  `validFrom`/`validUntil` 管世界时间，`factVersionAt`/`invalidatedAt` 管她什么时候知道、
+  什么时候不再这么认为，`version` 管同一槽位里的先后（不信任时钟时用追加顺序定序）。
+- `nextFactVersion` / `stampSuccession` / `applySuccession`：取代时补 `version`、
+  `invalidatedAt`、`supersedeReason`；**不写值轴**（有效期必须来自证据或裁决）。
+- `validateLineage`：I1 序号连续唯一、I2 知轴终点接上后继起点、I3 指针对称、I4 原因取值合法。
+- `planChainVersions`：迁移用——指针能排出完整链就按指针，排不出来退回按时间排序并标记待复核，
+  成环/断链会报出来，不静默乱排。
+- 文档 [docs/timeline.md](docs/timeline.md)，测试 `tests/timeline-contract.test.mjs`（16 项）。
 
-- `examples/emotion-bridge` 实验的结构化取舍字段 `nowEffects` / `tradeoff`：逐愿望记录「今天」的结果（引文只许引后记正文 `later.N`，不认感受字段），硬校验留下与放弃不是同一个愿望、且必须与今天的判断对得上，多写字段整次判无效；`perspectives` 仍只描述当时。`instruction` 里仍留着一句旧措辞（要求写进 `now`），与 `tradeoff` 并存，作为已知混杂因素记在示例 README。只改实验区，未接入线上 psyche。
+### Changed
+
+- 文字情感多轮修订：新事件与澄清共用 admits，允许 medium 边界补记但不允许减轻已有伤害；settle 默认恢复 legacy-high。拦截统计拆为 blockedWrong/blockedCorrect，历史报告显式标注旧政策，未新增模型采样。
+- 文字情感实验审阅修订：模型提案与实际结算分别计分；明确选中且有原文/已知边界支持的 medium boundary/hurt 可按 boundary-v2 结算，旧日志保留旧政策。删除当前 API 的 responseHint，统一采样来源说明，保留原分数并另列离线重算；未新增模型采样。
+- 对外报错改成英文在前、原中文原样跟在后面（「English（原中文）」）：核心库 76 条、CLI 33 条（含用法说明）、MCP 28 条。
+- `renderTwoPart`、`buildWakingBlock` 加 `lang`（`zh` 默认，输出与以前逐字一致；`en`）；demo、CLI、MCP 按 `--lang` / `WHALE_LANG` / 系统语言选择。demo 英文模式连示例内容一起换成英文。
 
 ### Fixed
 
 - 导入恢复先暂存并核对完整副本，再替换目标目录；复制失败保留原目录，替换报错时尝试还原。拒绝导入源与目标互相包含（含目录链接别名），拒绝备份文件链接越界，核对文件大小与 SHA-256；导入前备份增加唯一后缀，支持同秒连续恢复。新增故障注入与目录链接回归。
 - `self-prompt.revert` 只接受 `history.jsonl` 里出现过的快照名，不再把调用方给的字符串直接拼进路径；补回归测试。第一个部署的插件版仍是旧实现，尚未升级。
-
 
 ## [0.17.0] · 2026-11-17
 
