@@ -117,6 +117,9 @@ validateLineage(chainRows)                                 // I1–I4，[] 表�
 | 让 DSH 通过命令读写经历 | [可独立复制的 DSH skill 和安装说明](examples/dsh-plugin/dsh-whale-memory/README.md) |
 | 给自己的 Agent 接入工具 | [命令行适配器](adapters/README.md)输出 JSON，由宿主决定何时调用 |
 | 接到 Claude Desktop / Claude Code / Cursor 等 MCP 客户端 | [MCP 适配器](adapters/mcp/README.md)：`npx -y -p whale-memory-core whale-memory-mcp --data <目录>`，stdio、只在本机、零依赖 |
+| 想知道她这一个月改过什么主意 | `changed --days 30`：当时的想法和后来的想法并排给出 |
+| 不想自己写"什么时候该递记忆" | `whale-memory-core/injection` 的 `surface()`：一对一、24 小时去重、递了才记，八条规则都在里面 |
+| 想先跑一个能用的宿主 | [80 行参考宿主](examples/reference-host/host.mjs)：`node examples/reference-host/host.mjs --data ./xiaozhou` |
 | 在 JavaScript 中直接读写 | [自传层内核](packages/core/README.md)（`npm install whale-memory-core`）和[宿主移植指南](docs/porting.md)。注意包名带 `-core`：npm 上不带 `-core` 的 `whale-memory` 是别人的包，和本项目无关 |
 | 从零开始接一个角色 | [30 分钟教程](docs/tutorial.md)：写下、想起、改主意、第二天醒来、封存、她的书、接进宿主 |
 | 看数据结构 | [数据格式 schema](docs/schema.md) 与[虚构样本](examples/samples/) |

@@ -4,7 +4,7 @@
 
 `recall` 只负责"找到"，不负责"该不该说"。这一段是宿主的事，也是最容易把记忆变成"记忆日志"的地方。
 
-下面是一套最笨、但能用的规则。可运行的版本在 [`examples/injection/`](../examples/injection/)，测试在 `tests/injection-example.test.mjs`。
+下面是一套最笨、但能用的规则。它们已经做成模块：`whale-memory-core/injection` 的 `surface()`，实现在 [`packages/core/lib/injection.js`](../packages/core/lib/injection.js)，测试在 `tests/injection.test.mjs`。最早的可运行示例仍留在 [`examples/injection/`](../examples/injection/)（现在只是薄壳）。
 
 ## 七条规则
 

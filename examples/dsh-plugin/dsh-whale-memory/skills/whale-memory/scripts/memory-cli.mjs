@@ -21,6 +21,7 @@ import * as book from './core/lib/book.js'
 import * as archive from './core/lib/archive.js'
 import * as unsaid from './core/lib/unsaid.js'
 import { parseAsOf } from './core/lib/as-of.js'
+import { changedSince } from './core/lib/changed.js'
 
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
 
@@ -251,6 +252,12 @@ try {
     const pending = exp.pendingLegacyEvents(MEM_DIR)
     if (pending.length) res.pending = { note: '这些后记/想起记录挂在几条旧经历共用的旧 id 上，没有自动归给任何一条，请人工核对。', items: pending }
     out(res)
+  } else if (cmd === 'changed') {
+    // 这一个月里她改过主意的几件事：当时的想法 vs 后来的想法
+    const days = Math.max(0, Number(arg('days', '30')) || 30)
+    const n = limitArg('limit', 5)
+    const rows = changedSince(MEM_DIR, { days, limit: n })
+    out({ ok: true, days, items: rows.map((r) => ({ id: r.id, day: r.day, then: r.then, now: r.now, daysAgo: r.daysAgo })) })
   } else if (cmd === 'revise') {
     const id = arg('id')
     const thought = arg('thought')

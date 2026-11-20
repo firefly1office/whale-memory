@@ -102,6 +102,9 @@ node adapters/cli/memory-cli.mjs read --limit 1
 | Let DSH read and write experiences through commands | [Standalone DSH skill and install notes](examples/dsh-plugin/dsh-whale-memory/README.md) |
 | Add tools to your own agent | [CLI adapter](adapters/README.md) — emits JSON; the host decides when to call it |
 | Plug into an MCP client (Claude Desktop, Claude Code, Cursor…) | [MCP adapter](adapters/mcp/README.md): `npx -y -p whale-memory-core whale-memory-mcp --data <dir>` — stdio, local only, zero dependencies |
+| See what she changed her mind about this month | `changed --days 30`: then and later, side by side |
+| Skip writing "when should this be injected" | `surface()` from `whale-memory-core/injection`: one-to-one only, 24-hour de-dupe, recorded only when actually shown |
+| Start from a working host | [80-line reference host](examples/reference-host/host.mjs) |
 | Use it directly from JavaScript | [Self-layer core](packages/core/README.md) (`npm install whale-memory-core`) and [porting guide](docs/en/porting.md). Mind the `-core`: the unscoped `whale-memory` package on npm belongs to someone else and is unrelated |
 | Wire up a character from scratch | [30-minute tutorial](docs/en/tutorial.md): write, recall, change your mind, wake up the next day, seal, her book, plug into a host |
 | Inspect the data format | [Schema](docs/en/schema.md) and [fictional samples](examples/samples/) |
