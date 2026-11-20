@@ -13,27 +13,19 @@ That is what this project makes possible.
 
 ## Thirty seconds
 
-Node.js 20 or newer, from the repository root. The demo uses a temp directory: offline, no API key.
+Node.js 20 or newer, from the repository root. Offline, no API key, data goes to `./data`:
 
 ```sh
 git clone https://github.com/firefly1office/whale-memory.git
 cd whale-memory
-node packages/core/demo.mjs
+node adapters/cli/memory-cli.mjs write --text "Read the opening; closed the book wondering: does the lighthouse keeper keep the light alone because he is afraid of the dark?" --thought "I thought he was afraid of the dark."
+node adapters/cli/memory-cli.mjs revise --id <the id printed above> --thought "She is keeping the light for the boats that come back late."
+node adapters/cli/memory-cli.mjs read --id <id>
 ```
 
-You will see the same experience at two moments (real output, trimmed):
+![One reading note; she changed her mind later](docs/assets/demo.gif)
 
-```
-[Then]
-- What I wrote: read the barbecue scene and laughed
-- What I thought: good things only happen in books
-
-[Later]
-- Recalled 1 time, last on 2026-11-20
-- What you thought later: now I think he was protecting a friend (2026-11-20)
-```
-
-![One experience, two views](docs/assets/then-later.png)
+One reading note; she changed her mind later. `--as-of` takes you back to what she thought first.
 
 ## Numbers
 

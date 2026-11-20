@@ -12,27 +12,20 @@
 
 ## 三十秒
 
-用 Node.js 20 或更新版本，在仓库根目录运行。演示走临时目录，离线、不需要密钥：
+用 Node.js 20 或更新版本，在仓库根目录运行。离线、不需要密钥，数据写在 `./data`：
 
 ```sh
 git clone https://github.com/firefly1office/whale-memory.git
 cd whale-memory
-node packages/core/demo.mjs
+node adapters/cli/memory-cli.mjs write --text "读到开头，合上书的时候在想：守灯人一个人守着灯，是不是也怕黑。" --thought "我以为守灯人怕黑。"
+node adapters/cli/memory-cli.mjs revise --id <上一步返回的 id> --thought "她在给晚归的船留灯。"
+node adapters/cli/memory-cli.mjs read --id <id>
 ```
 
-会看到同一条经历的两个时间（下面是真实输出，已截短）：
+![同一条读书手记，鲸鲸后来改了主意](docs/assets/demo.gif)
 
-```
-【当时】
-- 我写下的话：读到烤肉那段，笑了一下
-- 当时的想法：这种好事只在书里
+同一条读书手记，鲸鲸后来改了主意。用 `--as-of` 翻回去，还能读到她最初的想法。
 
-【现在】
-- 这条被你想起过 1 次，上次是 2026-11-20
-- 后来你想过：现在觉得那个人其实是在护着朋友（2026-11-20）
-```
-
-![一条经历，两种看法：当时的内容保留，后来的想法接在后面](docs/assets/then-later.png)
 
 ## 数字
 
@@ -62,7 +55,9 @@ node packages/core/demo.mjs
   "later": [{ "at": "2026-11-15T09:12:00Z", "thought": "现在觉得，他是在护着朋友" }] }
 ```
 
-`then` 写下就固定，`later` 只往后加——所以旧看法不会被新看法覆盖。完整字段见[数据格式](docs/schema.md)。
+`then` 写下就固定，`later` 只往后加——所以旧看法不会被新看法覆盖。
+
+![一条经历，两种看法：当时的内容保留，后来的想法接在后面](docs/assets/then-later.png)完整字段见[数据格式](docs/schema.md)。
 
 ## 数据在哪、备份带什么
 
