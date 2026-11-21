@@ -19,7 +19,7 @@ import * as exp from 'whale-memory-core/self-experience'
 - vault 存储与索引、evidence-policy 取证、consolidator 合并、注入预算
 - 跨会话可见性判断、宿主工具注册
 
-如果你要的是"一个 agent 的自传记忆"，这个包够用；如果你要的是"完整记忆系统"，看 [`docs/architecture.md`](../../docs/architecture.md) 与 [`docs/porting.md`](../../docs/porting.md)。
+如果你要的是"一个 agent 的自传记忆"，这个包够用；如果你要的是"完整记忆系统"，看 [`docs/architecture.md`](../../docs/archive/architecture.md) 与 [`docs/porting.md`](../../docs/archive/porting.md)。
 
 包名 `whale-memory-core`，入口：`whale-memory-core`（命名导出）以及五个子路径：`/self-experience`、`/self-memory`、`/waking`、`/self-prompt`、`/self-settings`。
 
@@ -74,9 +74,9 @@ node demo.mjs
 
 ## 数据
 
-一条经历一行 JSON，格式见 [`docs/schema.md`](../../docs/schema.md)。三条虚构样本在 [`examples/samples/`](../../examples/samples/)。
+一条经历一行 JSON，格式见 [`docs/schema.md`](../../docs/archive/schema.md)。三条虚构样本在 [`examples/samples/`](../../examples/samples/)。
 
-移植说明见仓库根目录 [`docs/porting.md`](../../docs/porting.md)。
+移植说明见仓库根目录 [`docs/porting.md`](../../docs/archive/porting.md)。
 | 模块 | 作用 |
 |---|---|
 | `self-experience.js` | 经历两层（then / later）、重要度、两段式回想 |

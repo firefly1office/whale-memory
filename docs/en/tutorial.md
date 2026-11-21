@@ -113,7 +113,7 @@ Hold to three rules when integrating:
 2. **Expose fewer write-type tools in group chats**: she can be induced by others to write.
 3. **An empty recall means saying she does not remember**: write that into the prompt.
 
-Injection timing is covered in [injection.md](injection.md), and the security boundary in [threat-model.md](threat-model.md).
+Injection timing is covered in [injection.md](../archive/injection.md), and the security boundary in [threat-model.md](../archive/threat-model.md).
 
 ## 7. Confirming that it really works (2 minutes)
 

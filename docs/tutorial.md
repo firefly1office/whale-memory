@@ -112,7 +112,7 @@ const block = waking.buildWakingBlock('./xiaozhou', 'local:owner')
 2. **群聊里少开写入类工具**：她可能被别人诱导去写。
 3. **召回为空就说不记得**：写进提示词。
 
-注入时机见 [injection.md](injection.md)，安全边界见 [threat-model.md](threat-model.md)。
+注入时机见 [injection.md](archive/injection.md)，安全边界见 [threat-model.md](archive/threat-model.md)。
 
 ## 7. 确认它真的在工作（2 分钟）
 

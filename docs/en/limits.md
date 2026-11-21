@@ -24,7 +24,7 @@ node tools/bench-recall.mjs --n=10000
 - **Event files only grow**: every recall adds a line to `recall-events.jsonl`, every change of mind adds a line to `later-events.jsonl`, every resolve: done / shelved / reopen adds a line to `unfinished-events.jsonl`, every seal or unseal adds a line to `seal-events.jsonl`, and every linked pair and every chapter opened / renamed / closed adds a line to `link-events.jsonl` / `chapter-events.jsonl` respectively (the last few are small). The table above only counts the experiences themselves; for long-term use, count these files too.
 - At tens of thousands it starts to get noticeably slower; at hundreds of thousands, this implementation is no longer suitable.
 
-**On purpose**: first guarantee "the original text cannot be changed" and "no record means saying there is none", then talk about throughput. To reach hundreds of thousands, the host should add its own index (see [composition.md](composition.md)) instead of stuffing vectors in here.
+**On purpose**: first guarantee "the original text cannot be changed" and "no record means saying there is none", then talk about throughput. To reach hundreds of thousands, the host should add its own index (see [composition.md](../archive/composition.md)) instead of stuffing vectors in here.
 
 ## Storage and encryption
 
@@ -97,7 +97,7 @@ Therefore: **stop the host before export, import or purge**, or accept that the 
 
 - Tokenization and stop words are tuned for Chinese: Chinese is split into adjacent two-character pairs, and common function words do not take part in matching.
 - English has only the most basic support: whole-word, lowercase matching with function-word filtering; no stemming, no synonyms.
-- If you need real multilingual semantic recall, hand retrieval to the host (see [composition.md](composition.md)).
+- If you need real multilingual semantic recall, hand retrieval to the host (see [composition.md](../archive/composition.md)).
 
 ## MCP adapter
 

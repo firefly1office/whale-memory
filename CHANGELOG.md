@@ -138,7 +138,7 @@
 - `validateLineage`：I1 序号连续唯一、I2 知轴终点接上后继起点、I3 指针对称、I4 原因取值合法。
 - `planChainVersions`：迁移用——指针能排出完整链就按指针，排不出来退回按时间排序并标记待复核，
   成环/断链会报出来，不静默乱排。
-- 文档 [docs/timeline.md](docs/timeline.md)，测试 `tests/timeline-contract.test.mjs`（16 项）。
+- 文档 [docs/archive/timeline.md](docs/archive/timeline.md)，测试 `tests/timeline-contract.test.mjs`（16 项）。
 
 ### Changed
 
@@ -526,7 +526,7 @@
 
 ### Breaking
 
-- **`plugin/` 移出公开仓库**。该目录自带的构建自检标记写着「不可安装」（指定构建未经扫描裁定，历史上出现过 Defender 告警），不应随 MIT 公开仓分发。完整引擎（约 26k 行）与具体宿主部署强耦合，改为在 [`docs/architecture.md`](docs/architecture.md) 里写清设计。
+- **`plugin/` 移出公开仓库**。该目录自带的构建自检标记写着「不可安装」（指定构建未经扫描裁定，历史上出现过 Defender 告警），不应随 MIT 公开仓分发。完整引擎（约 26k 行）与具体宿主部署强耦合，改为在 [`docs/archive/architecture.md`](docs/archive/architecture.md) 里写清设计。
 - `recall()` 默认 `mark: false`：**读操作不再写盘**。要记「想起」请显式传 `mark: true`，或调用 `markRecalled`。
 - `buildWakingBlock()` 改为纯只读；确认真的注入了，再调用新的 `consumeWaking()` 记「已展示」。CLI 的 `waking` 默认打印即消费，`--peek true` 可只看不消费。
 
@@ -540,7 +540,7 @@
 - `tools/privacy-canary.mjs` 改为验证「跨会话可见性规则」本身（`tools/lib/visibility.mjs`），不再依赖未公开的引擎；新增「别的私聊看得见自己的记录、但看不见主人的那条」用例。
 - 内部文档（`docs/项目原则.md`、`docs/计划-合并版-v2.md`）移出公开仓库：里面有真实部署的规模统计，不适合公开。
 - Node 版本要求统一为 **20+**（README、engines、CI 一致）。
-- 新增 `docs/architecture.md`：分层、事件溯源、证据策略、召回与写入约束。
+- 新增 `docs/archive/architecture.md`：分层、事件溯源、证据策略、召回与写入约束。
 
 ## [0.2.1] · 2026-11-15
 

@@ -10,7 +10,7 @@ Recall is literal matching: Chinese is grouped by adjacent character pairs, Engl
 
 - “下山” (going down the mountain) and “日落” (sunset) will not hit each other.
 - Ask about a detail that was never recorded in a real event (“what color was the scarf”) and strict mode returns empty — it cannot even recall the event itself.
-- To cover synonymous wording you need the host to put a retrieval layer in front and hand it the ids; see `docs/composition.md`.
+- To cover synonymous wording you need the host to put a retrieval layer in front and hand it the ids; see `docs/archive/composition.md`.
 
 ## 2. The threshold margin in strict mode is thin
 
@@ -87,6 +87,6 @@ Fixing three obvious bugs first — her own name does not count as content, QQ s
 
 The reason is structural: **the same primitive does not transfer to a different setting.** This measure is right for `self-experience` / `self-memory` / `detail-recall` — those look for work inside “what she herself has been through”, where the candidate set is her own memory and the prior is strong. Moved to “what other people said in other rooms”, the candidate set is far larger and the prior far weaker, so a single content-word hit turns from “barely recalls something” into “noise generator”. Adding stop words only treats the symptom: change the sample and a new set of colliding words appears.
 
-Where the conclusion stops — do not widen it: this only shows that **literal matching cannot decide “is this asking about the past”**. It does not show that cross-room memory is unworkable. Whether to carry anything across, and how much, is still the host's product decision — see `docs/cross-room-memory.md`.
+Where the conclusion stops — do not widen it: this only shows that **literal matching cannot decide “is this asking about the past”**. It does not show that cross-room memory is unworkable. Whether to carry anything across, and how much, is still the host's product decision — see `docs/archive/cross-room-memory.md`.
 
-These are not “later” to-dos; they are boundaries you have to know before integrating. To fix them, see section 8 of the paper and `docs/threat-model.md`.
+These are not “later” to-dos; they are boundaries you have to know before integrating. To fix them, see section 8 of the paper and `docs/archive/threat-model.md`.

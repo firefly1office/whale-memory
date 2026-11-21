@@ -24,7 +24,7 @@ node tools/bench-recall.mjs --n=10000
 - **事件文件只增不减**：每想起一次多一行 `recall-events.jsonl`，每改一次主意多一行 `later-events.jsonl`，每做一次「想通/暂放/再拾起」多一行 `unfinished-events.jsonl`，每封存或解封一次多一行 `seal-events.jsonl`，每连一对事、每开/改/结束一个章节各多一行 `link-events.jsonl` / `chapter-events.jsonl`（后面几个量都很小）。上面的表只算了经历本身，长期使用要把这几份也算进去。
 - 几万条会开始明显变慢；到十万级，这个实现就不合适了。
 
-**故意的**：先保"原文不可改"和"没有记录就说没有"，再谈吞吐。要上十万级，宿主应当自己加索引（见 [composition.md](composition.md)），而不是把向量塞进这里。
+**故意的**：先保"原文不可改"和"没有记录就说没有"，再谈吞吐。要上十万级，宿主应当自己加索引（见 [composition.md](archive/composition.md)），而不是把向量塞进这里。
 
 ## 存储与加密
 
@@ -99,7 +99,7 @@ node adapters/cli/memory-cli.mjs purge --data <数据根目录> --yes true  # �
 
 - 分词和停用词是按中文调的：中文按相邻两字切，常见虚词不参与匹配。
 - 英文只做了最基本的支持：按整词、小写匹配，虚词过滤；不做词干、不做同义。
-- 需要真正的多语言语义召回，请把检索交给宿主（见 [composition.md](composition.md)）。
+- 需要真正的多语言语义召回，请把检索交给宿主（见 [composition.md](archive/composition.md)）。
 
 ## MCP 适配器
 

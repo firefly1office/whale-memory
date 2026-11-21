@@ -98,5 +98,5 @@ node adapters/cli/memory-cli.mjs revise --id exp_xxx --thought "现在觉得那�
 
 ## 移植与设计说明
 
-- [docs/porting.md](../../docs/porting.md)：宿主契约、模块通用性、隐私规则
+- [docs/archive/porting.md](../../docs/archive/porting.md)：宿主契约、模块通用性、隐私规则
 - [packages/core/README.md](../../packages/core/README.md)：内核库与 `demo.mjs`

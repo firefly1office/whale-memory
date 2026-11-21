@@ -11,4 +11,4 @@ node examples/with-vector/host.mjs
 
 真接的时候，把 `vector-store.mjs` 换成 pgvector / sqlite-vec / Chroma 都行，接口只需要返回 `id`。
 
-完整说明见 [docs/composition.md](../../docs/composition.md)。
+完整说明见 [docs/archive/composition.md](../../docs/archive/composition.md)。

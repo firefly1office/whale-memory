@@ -42,7 +42,7 @@ import * as exp from './packages/core/lib/self-experience.js'
 ```
 
 适合你在自己的 agent 里已经有工具注册与提示词拼接，只缺记忆内核。
-完整契约见 [`../docs/porting.md`](../docs/porting.md)。
+完整契约见 [`../docs/archive/porting.md`](../docs/archive/porting.md)。
 
 ## 还没有的适配
 
