@@ -57,9 +57,9 @@ The overlay is injected into every conversation. In the first deployment, the to
 
 ## 8. Version and release status
 
-- Repository `v0.17.0` (commit `549e51c`) is the version the paper corresponds to; `main` has added English error messages after it, and the recall logic has not changed.
-- npm may still be stuck at 0.15.0 (the 0.16/0.17 releases were affected by the npm security freeze). Before installing, check `npm view whale-memory-core dist-tags`.
-- For the 0.17 `v0.17.0` tag, the MCP entry point, and the English docs, the repository is authoritative.
+- Both the repository and npm are at **0.21.0** (tag `core-v0.21.0`). The paper corresponds to `v0.17.0` (commit `549e51c`); what came after it is additional modules (`changed` / `injection` / `fact-*` / `conversation-privacy`, etc.) and docs. The strict-mode matching measure has not changed (`MIN_COVER` is still 0.7).
+- Before installing, still check `npm view whale-memory-core dist-tags` — caches and mirrors occasionally serve an old version.
+- For the MCP entry point and the English docs, the repository is authoritative.
 
 ## 9. Known and unfixed
 
@@ -67,5 +67,26 @@ The overlay is injected into every conversation. In the first deployment, the to
 - The `recall` core library does not validate `limit`; passing a negative number returns “everything but the last entry”.
 - The prompt overlay's write/revert tools had no owner gate in the first deployment.
 - The first deployment in production did not enable the cover gate; its two recall paths still use the old measure.
+
+## 10. Tried and it does not work: a literal-match gate for cross-room recall
+
+We took the literal matching from item 1 and pointed it at a different question: “is this line asking about something that was said in another room?” It does not work. We stopped using it. It is written down here so the next person does not redo it.
+
+The approach: take the current line as the query, search the history of other conversations, and accept a hit when ≥1 term matches and ≥1 of those terms carries content.
+
+15 real samples (actual conversations, not constructed scenarios): **0** were “on point and useful”; 3 were “related but useless”; 11 were noise; 1 had no hit at all (not wrong, and not a point in its favour either).
+
+Fixing three obvious bugs first — her own name does not count as content, QQ system notices like “nudged you” are not questions, and spurious pairs produced by shingling across a stop-word boundary (“你自己去” → “你自”, “己去”) do not count as hits — took firing from 14/15 down to 7/15. The remaining seven are all collisions on incidental wording:
+
+| What she heard | The old line pulled in | The colliding word |
+| --- | --- | --- |
+| “@小鲸鱼 出来” | “图我这边还是加载不出来” | 出来 |
+| “一点是多少” | “所以是多少钱啊” | 多少 |
+| “你自己去找” | “你可以去找大通要” | 去找 |
+| “一个会话用久了会变笨吗” | “不知不觉这个会话已经 2 个亿了” | 会话 |
+
+The reason is structural: **the same primitive does not transfer to a different setting.** This measure is right for `self-experience` / `self-memory` / `detail-recall` — those look for work inside “what she herself has been through”, where the candidate set is her own memory and the prior is strong. Moved to “what other people said in other rooms”, the candidate set is far larger and the prior far weaker, so a single content-word hit turns from “barely recalls something” into “noise generator”. Adding stop words only treats the symptom: change the sample and a new set of colliding words appears.
+
+Where the conclusion stops — do not widen it: this only shows that **literal matching cannot decide “is this asking about the past”**. It does not show that cross-room memory is unworkable. Whether to carry anything across, and how much, is still the host's product decision — see `docs/cross-room-memory.md`.
 
 These are not “later” to-dos; they are boundaries you have to know before integrating. To fix them, see section 8 of the paper and `docs/threat-model.md`.

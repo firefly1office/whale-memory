@@ -73,6 +73,8 @@ Where do facts come from? Two paths:
 Cross-window sharing solves "change the conversation and it is like amnesia"; the cost is that **other people's privacy may be exposed by accident**.
 This repository provides only the decision logic and the redaction; the rest of the trade-off has to be written down by each host: which windows are open, which are permanently isolated, and what may only be retold vaguely even when it is open.
 
+It also does **not** provide the retrieval half — deciding *whether* something should be recalled at all. We tried doing that with literal matching and it does not work: 0 useful hits across 15 real samples. The method and the numbers are in `docs/pitfalls.md`, item 10.
+
 If you are unsure, treat it as private.
 
 ### What redaction covers, and what it misses
