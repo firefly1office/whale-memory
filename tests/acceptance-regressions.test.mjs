@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import { safeRemove } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -15,7 +16,7 @@ const root = fileURLToPath(new URL('../', import.meta.url))
 
 function tmp(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-accept-'))
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  t.after(() => safeRemove(dir))
   return dir
 }
 const memOf = (dataDir) => path.join(dataDir, 'plugin-data', 'biomimetic-memory')

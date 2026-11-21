@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import { safeRemove } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import * as waking from '../packages/core/lib/waking.js'
@@ -9,7 +10,7 @@ import * as settings from '../packages/core/lib/self-settings.js'
 
 function tmp(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-aux-test-'))
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  t.after(() => safeRemove(dir))
   return dir
 }
 
@@ -169,7 +170,7 @@ test('提示词护栏：锁住时写入报错而不是覆盖', (t) => {
   assert.equal(res.ok, false)
   assert.match(res.error, /锁/)
   assert.match(res.error, /locked by another process/)
-  fs.rmSync(lock, { recursive: true, force: true })
+  safeRemove(lock)
   assert.equal(prompt.load(dataDir), '第一版', '失败时不能动生效文件')
 })
 

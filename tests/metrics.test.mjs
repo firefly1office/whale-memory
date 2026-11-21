@@ -1,13 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import { safeRemove } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { computeMetrics } from '../tools/metrics.mjs'
 
 function fixture(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-metrics-'))
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  t.after(() => safeRemove(dir))
   const mem = path.join(dir, 'plugin-data', 'biomimetic-memory')
   fs.mkdirSync(path.join(mem, 'prompt-overlay'), { recursive: true })
 

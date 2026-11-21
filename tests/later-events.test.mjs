@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import { safeRemove } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -15,7 +16,7 @@ const worker = path.join(root, 'tests', 'fixtures', 'revise-worker.mjs')
 
 function tmp(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-later-'))
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  t.after(() => safeRemove(dir))
   return dir
 }
 

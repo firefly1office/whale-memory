@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import { safeRemove } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import * as exp from '../packages/core/lib/self-experience.js'
@@ -8,7 +9,7 @@ import * as bridge from '../packages/core/lib/evidence-from-experience.js'
 
 function tmp(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-bridge-'))
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  t.after(() => safeRemove(dir))
   return dir
 }
 

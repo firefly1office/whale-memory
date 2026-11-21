@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import { safeRemove } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
@@ -11,7 +12,7 @@ const ENTRIES = ['packages/core/bin/whale-memory-mcp.mjs', 'adapters/mcp/whale-m
 
 function tmp(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-mcp-test-'))
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  t.after(() => safeRemove(dir))
   return dir
 }
 

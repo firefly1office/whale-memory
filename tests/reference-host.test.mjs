@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
+import { safeRemove } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -17,7 +18,7 @@ test('写下两条、问一句命中、最后能看到自己改过的主意', ()
   assert.ok(out.includes('已写下'), out)
   assert.ok(out.includes('灯塔'))
   assert.ok(out.includes('会把这一段递进上下文'), out)
-  fs.rmSync(dir, { recursive: true, force: true })
+  safeRemove(dir)
 })
 
 test('群聊会话不递记忆', () => {
@@ -28,5 +29,5 @@ test('群聊会话不递记忆', () => {
   assert.equal(r.status, 0, out)
   assert.ok(out.includes('not-private'), out)
   assert.ok(!out.includes('会把这一段递进上下文'))
-  fs.rmSync(dir, { recursive: true, force: true })
+  safeRemove(dir)
 })

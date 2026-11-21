@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import { safeRemove } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -16,7 +17,7 @@ function answer(input, kind = 'ordinary', relation = 'none') {
 }
 function setup(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-text-emotion-'))
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  t.after(() => safeRemove(dir))
   const input = context('谢谢你，我会遵守我们的约定。')
   const run = (i = input, a = answer(i), extra = {}) => evaluateEmotion({ enabled: true, dir, input: i, generate: () => a, ...extra })
   const view = (opts = {}) => projectEmotion(dir, input, { now: 1001000, ...opts })

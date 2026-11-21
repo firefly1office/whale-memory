@@ -3,6 +3,7 @@ import test from 'node:test'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import fs from 'node:fs'
+import { safeRemove } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { score } from '../examples/emotion-bridge/next-day/score.mjs'
@@ -89,7 +90,7 @@ test('命令行缺题集指纹直接拒绝打分', () => {
       () => execFileSync(process.execPath, [fileURLToPath(new URL('../examples/emotion-bridge/next-day/score.mjs', import.meta.url)), file], { encoding: 'utf8', stdio: 'pipe' }),
       error => error.status !== 0 && /题集指纹/.test(String(error.stdout) + String(error.stderr))
     )
-  } finally { fs.rmSync(dir, { recursive: true, force: true }) }
+  } finally { safeRemove(dir) }
 })
 
 test('按已记录的回避标记计数，旧报告缺字段时单列，不参与改判', () => {

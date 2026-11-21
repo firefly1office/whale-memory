@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import { safeRemove } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -13,7 +14,7 @@ const strict = selfExperience.recall
 
 function scenario(t, spec) {
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-detail-'))
-  t.after(() => fs.rmSync(data, { recursive: true, force: true }))
+  t.after(() => safeRemove(data))
   const dir = path.join(data, 'plugin-data', 'biomimetic-memory')
   fs.mkdirSync(dir, { recursive: true })
   const texts = [...spec.records, '在茶馆喝水。桌面是蓝色，账单一共十元。', '替同学拿快递，外包装印着商标。']

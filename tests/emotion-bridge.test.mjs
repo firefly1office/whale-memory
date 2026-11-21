@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import { safeRemove } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { selfExperience as mem, sealEvents } from '../packages/core/index.js'
@@ -10,7 +11,7 @@ import { reflectOnExperience } from '../examples/emotion-bridge/appraisal.mjs'
 
 function setup(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'emotion-bridge-test-'))
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  t.after(() => safeRemove(dir))
   const { id } = mem.addExperience(dir, { text: '我送出最后一张票。', thought: '我想让朋友进去。', unfinished: '我自己也想去。' })
   return { dir, id, enabled: true, chatKey: 'local:owner' }
 }

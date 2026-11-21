@@ -2,6 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import { safeRemove } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
@@ -24,7 +25,7 @@ const OWNER = 'local:owner'
 
 function tmp(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-015-'))
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  t.after(() => safeRemove(dir))
   return dir
 }
 const memOf = (data) => path.join(data, 'plugin-data', 'biomimetic-memory')
@@ -154,7 +155,7 @@ test('恢复演练：备份 → 删掉原目录 → 恢复，then / 后记 / 想
   for (const s of ['读完灯塔', '批评', '其实有点难过', '释然']) assert.ok(!JSON.stringify(check).includes(s), '报告里不该有原文：' + s)
 
   // 真的删掉再恢复：用 CLI 的 import
-  fs.rmSync(memOf(data), { recursive: true, force: true })
+  safeRemove(memOf(data))
   const r = spawnSync(process.execPath, [path.join(root, CLIS[0]), 'import', '--from', bk.dir, '--data', data], { encoding: 'utf8' })
   assert.equal(r.status, 0, r.stdout)
   const back = exp.loadAll(memOf(data))
