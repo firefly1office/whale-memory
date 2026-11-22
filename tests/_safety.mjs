@@ -1,36 +1,56 @@
-// 测试清理护栏：只允许删除临时目录。
+// 测试清理护栏：只允许删除**本次测试自己造出来的**目录。
 //
-// 背景（2026-11-22，见 docs/postmortem-2026-11-22.md）：一条用例先从运行环境推算出
-// 数据目录、之后才设置自己的临时目录；加载失败时 finally 仍然执行，把真实数据目录
-// 整棵删掉。教训不是"下次小心"，而是**让删除动作在越过临时目录时直接失败**。
+// 事故（2026-11-22）：一条用例先从运行环境推算出数据目录，之后才设临时目录；
+// 加载失败时 finally 仍然执行，把真实数据目录整棵删掉。
 //
-// 规则：测试里任何递归删除都走 safeRemove()；目标必须在系统临时目录下。
+// 第一版护栏查的是「路径在不在系统临时目录下」——这是黑名单式启发：
+// 仓库本身被 clone 到 /tmp 时，package.json 也在 /tmp 下，于是被放行、被删掉。
+// 现在改成白名单：只有经 tmpDir()/registerTmpRoot() 明确登记过的根，
+// 以及它下面的路径，才允许递归删除。其它一律拒绝。
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-const TMP_ROOT = (() => {
-  const raw = path.resolve(os.tmpdir())
-  return process.platform === 'win32' ? raw.toLowerCase() : raw
-})()
+const roots = new Set()
 
-export function assertUnderTmp(target) {
-  const resolved = path.resolve(String(target || ''))
-  const normalized = process.platform === 'win32' ? resolved.toLowerCase() : resolved
-  const within = normalized === TMP_ROOT || normalized.startsWith(TMP_ROOT + path.sep)
-  if (!within) {
-    const error = new Error('拒绝在临时目录之外做递归删除：' + resolved)
-    error.code = 'TEST_UNSAFE_REMOVE'
-    throw error
-  }
-  if (normalized === TMP_ROOT) {
-    const error = new Error('拒绝删除系统临时目录本身')
-    error.code = 'TEST_UNSAFE_REMOVE'
-    throw error
-  }
+const norm = (p) => {
+  const r = path.resolve(p)
+  return process.platform === 'win32' ? r.toLowerCase() : r
+}
+
+function within(root, target) {
+  const base = norm(root)
+  const p = norm(target)
+  return p === base || p.startsWith(base + path.sep)
+}
+
+/** 造一个临时目录并登记为可删除的根。测试里凡是需要清理的目录都该用它。 */
+export function tmpDir(prefix = 'whale-test-') {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix))
+  roots.add(norm(dir))
+  return dir
+}
+
+/** 给已经造好的目录登记（例如第三方 helper 里 mkdtemp 出来的）。 */
+export function registerTmpRoot(dir) {
+  const resolved = path.resolve(String(dir || ''))
+  if (!resolved) throw new Error('空路径不能登记')
+  roots.add(norm(resolved))
   return resolved
 }
 
+/** 只读检查：这个路径在不在登记过的根下面。不删除任何东西。 */
+export function assertRegistered(target) {
+  const resolved = path.resolve(String(target || ''))
+  for (const root of roots) {
+    if (within(root, resolved)) return resolved
+  }
+  const error = new Error('拒绝删除未登记的路径（只允许本次测试自己造的临时目录）：' + resolved)
+  error.code = 'TEST_UNSAFE_REMOVE'
+  throw error
+}
+
 export function safeRemove(target, options = {}) {
-  fs.rmSync(assertUnderTmp(target), { recursive: true, force: true, ...options })
+  const resolved = assertRegistered(target)
+  fs.rmSync(resolved, { recursive: true, force: true, ...options })
 }

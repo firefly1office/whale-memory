@@ -6,9 +6,10 @@ import path from 'node:path'
 import test from 'node:test'
 import { addExperience, loadAll, reviseExperience } from '../packages/core/lib/self-experience.js'
 import { INJECTION_RULES, shouldInject, surface } from '../packages/core/lib/injection.js'
+import { tmpDir } from './_safety.mjs'
 
 function fresh() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'inject-'))
+  const dir = tmpDir('inject-')
   const row = addExperience(dir, { text: '夜里翻完灯塔那一章，守灯人整晚没睡', thought: '她是在等人' })
   return { dir, row }
 }

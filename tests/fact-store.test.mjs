@@ -5,18 +5,17 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 import { loadFacts, relevantFacts, renderFactsLine, saveFacts } from '../packages/core/lib/fact-store.js'
+import { tmpDir } from './_safety.mjs'
 
-function tmpDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'facts-'))
-}
+const newTmp = () => tmpDir('facts-')
 
 test('空目录读出来是空数组', () => {
-  const dir = tmpDir()
+  const dir = newTmp()
   assert.deepEqual(loadFacts(dir), [])
 })
 
 test('写一条再读回来', () => {
-  const dir = tmpDir()
+  const dir = newTmp()
   const r = saveFacts(dir, [{ kind: 'like', value: '黄焖鸡', subject: 'Leo', ts: 1000 }])
   assert.deepEqual(r, { added: 1, updated: 0 })
   const rows = loadFacts(dir)
@@ -26,7 +25,7 @@ test('写一条再读回来', () => {
 })
 
 test('同 kind+value 不重复堆积，count 累加', () => {
-  const dir = tmpDir()
+  const dir = newTmp()
   saveFacts(dir, [{ kind: 'like', value: '黄焖鸡', ts: 1000 }])
   const r = saveFacts(dir, [{ kind: 'like', value: '黄焖鸡', ts: 2000, quote: '第二次' }])
   assert.deepEqual(r, { added: 0, updated: 1 })
@@ -38,7 +37,7 @@ test('同 kind+value 不重复堆积，count 累加', () => {
 })
 
 test('坏行跳过，不影响好行', () => {
-  const dir = tmpDir()
+  const dir = newTmp()
   fs.writeFileSync(path.join(dir, 'fact-cards.jsonl'), '{"kind":"like","value":"火锅"}\nnot-json\n\n', 'utf8')
   const rows = loadFacts(dir)
   assert.equal(rows.length, 1)
@@ -46,7 +45,7 @@ test('坏行跳过，不影响好行', () => {
 })
 
 test('写出来的文件是逐行 JSON，方便手改', () => {
-  const dir = tmpDir()
+  const dir = newTmp()
   saveFacts(dir, [{ kind: 'project', value: '鲸舟' }, { kind: 'dislike', value: '香菜' }])
   const lines = fs.readFileSync(path.join(dir, 'fact-cards.jsonl'), 'utf8').trim().split('\n')
   assert.equal(lines.length, 2)

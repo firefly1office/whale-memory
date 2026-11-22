@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { safeRemove } from './_safety.mjs'
+import { safeRemove, tmpDir } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
@@ -11,7 +11,7 @@ const root = fileURLToPath(new URL('../', import.meta.url))
 const ENTRIES = ['packages/core/bin/whale-memory-mcp.mjs', 'adapters/mcp/whale-memory-mcp.mjs']
 
 function tmp(t) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-mcp-test-'))
+  const dir = tmpDir('whale-mcp-test-')
   t.after(() => safeRemove(dir))
   return dir
 }

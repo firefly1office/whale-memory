@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
-import { safeRemove } from './_safety.mjs'
+import { safeRemove, tmpDir } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -10,7 +10,7 @@ import test from 'node:test'
 const host = new URL('../examples/reference-host/host.mjs', import.meta.url).pathname.replace(/^\/(\w:)/, '$1')
 
 test('写下两条、问一句命中、最后能看到自己改过的主意', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'refhost-'))
+  const dir = tmpDir('refhost-')
   const input = ['/write 夜里翻完灯塔那章，守灯人整晚没睡', '/changed', '灯塔那章你记得吗', '/quit'].join('\n')
   const r = spawnSync(process.execPath, [decodeURIComponent(host), '--data', dir], { input, encoding: 'utf8' })
   const out = (r.stdout || '') + (r.stderr || '')
@@ -22,7 +22,7 @@ test('写下两条、问一句命中、最后能看到自己改过的主意', ()
 })
 
 test('群聊会话不递记忆', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'refhost-group-'))
+  const dir = tmpDir('refhost-group-')
   const input = ['/write 夜里翻完灯塔那章', '灯塔那章你记得吗', '/quit'].join('\n')
   const r = spawnSync(process.execPath, [decodeURIComponent(host), '--data', dir, '--chat', 'group:10001'], { input, encoding: 'utf8' })
   const out = (r.stdout || '') + (r.stderr || '')

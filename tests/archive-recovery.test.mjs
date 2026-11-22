@@ -1,13 +1,13 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { safeRemove } from './_safety.mjs'
+import { safeRemove, tmpDir } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { exportArchive, importArchive, verifyArchive } from '../packages/core/lib/archive.js'
 
 function fixture(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-recovery-'))
+  const root = tmpDir('whale-recovery-')
   t.after(() => safeRemove(root))
   const source = path.join(root, 'source')
   const target = path.join(root, 'target')

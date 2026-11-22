@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { safeRemove } from './_safety.mjs'
+import { safeRemove, tmpDir } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -15,7 +15,7 @@ import { migrate as migrateRecall, rollback as rollbackRecall } from '../tools/m
 const root = fileURLToPath(new URL('../', import.meta.url))
 
 function tmp(t) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-accept-'))
+  const dir = tmpDir('whale-accept-')
   t.after(() => safeRemove(dir))
   return dir
 }

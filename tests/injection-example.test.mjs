@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { safeRemove } from './_safety.mjs'
+import { safeRemove, tmpDir } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -13,7 +13,7 @@ import { isPrivateKey } from '../packages/core/lib/waking.js'
 const root = fileURLToPath(new URL('../', import.meta.url))
 
 function tmp(t) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-inject-test-'))
+  const dir = tmpDir('whale-inject-test-')
   t.after(() => safeRemove(dir))
   return dir
 }

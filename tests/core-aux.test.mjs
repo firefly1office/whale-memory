@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { safeRemove } from './_safety.mjs'
+import { safeRemove, tmpDir } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import * as waking from '../packages/core/lib/waking.js'
@@ -9,7 +9,7 @@ import * as prompt from '../packages/core/lib/self-prompt.js'
 import * as settings from '../packages/core/lib/self-settings.js'
 
 function tmp(t) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-aux-test-'))
+  const dir = tmpDir('whale-aux-test-')
   t.after(() => safeRemove(dir))
   return dir
 }

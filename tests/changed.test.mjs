@@ -6,11 +6,12 @@ import path from 'node:path'
 import test from 'node:test'
 import { changedSince, renderChanged } from '../packages/core/lib/changed.js'
 import { addExperience, reviseExperience } from '../packages/core/lib/self-experience.js'
+import { tmpDir } from './_safety.mjs'
 
 const DAY = 24 * 3600 * 1000
 
 function fresh() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'changed-'))
+  return tmpDir('changed-')
 }
 
 test('改过主意的会被列出来，带当时和后来两句', () => {

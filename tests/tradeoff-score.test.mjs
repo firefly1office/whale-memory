@@ -3,7 +3,7 @@ import test from 'node:test'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import fs from 'node:fs'
-import { safeRemove } from './_safety.mjs'
+import { safeRemove, tmpDir } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { score } from '../examples/emotion-bridge/next-day/score.mjs'
@@ -82,7 +82,7 @@ test('落盘行数少于计划时显式报缺口，逐题合并另给，读数�
 })
 
 test('命令行缺题集指纹直接拒绝打分', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tradeoff-score-'))
+  const dir = tmpDir('tradeoff-score-')
   try {
     const file = path.join(dir, 'report.json')
     fs.writeFileSync(file, JSON.stringify({ results: [] }))

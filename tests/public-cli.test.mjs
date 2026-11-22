@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { safeRemove } from './_safety.mjs'
+import { safeRemove, tmpDir } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -23,7 +23,7 @@ function makeRunner(dir, script) {
 
 for (const script of CLIS) {
   test(script, t => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-cli-test-'))
+    const dir = tmpDir('whale-cli-test-')
     t.after(() => safeRemove(dir))
     const runRaw = makeRunner(dir, script)
     function run(args, status = 0) {
@@ -60,7 +60,7 @@ for (const script of CLIS) {
   })
 
   test(`参数边界（${path.basename(path.dirname(script))}）：空白、超长、非法 weight 都拒绝`, t => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-cli-edge-'))
+    const dir = tmpDir('whale-cli-edge-')
     t.after(() => safeRemove(dir))
     const run = makeRunner(dir, script)
 
@@ -85,7 +85,7 @@ for (const script of CLIS) {
   })
 
   test(`参数边界（${path.basename(path.dirname(script))}）：limit 0 = 一条都不要，负数拒绝`, t => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-cli-limit-'))
+    const dir = tmpDir('whale-cli-limit-')
     t.after(() => safeRemove(dir))
     const run = makeRunner(dir, script)
     run(['write', '--text', '第一条'])
@@ -101,7 +101,7 @@ for (const script of CLIS) {
   })
 
   test(`空 query（${path.basename(path.dirname(script))}）：最近 N 条，不是报错也不是硬凑`, t => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-cli-empty-'))
+    const dir = tmpDir('whale-cli-empty-')
     t.after(() => safeRemove(dir))
     const run = makeRunner(dir, script)
     run(['write', '--text', '第一条'])

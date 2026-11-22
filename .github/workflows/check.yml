@@ -21,6 +21,14 @@ jobs:
         run: node tools/sync-dsh-core.mjs --check
       - name: tests
         run: node tools/run-tests.mjs
+      # 护栏的白名单要经得起「仓库本身在 /tmp 下」：把仓库复制到 /tmp 再跑一遍测试。
+      # 之前那条会把 package.json 当临时文件删掉，正是缺了这一步。
+      - name: tests from a /tmp checkout
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
+        run: |
+          cp -R . /tmp/whale-shadow
+          cd /tmp/whale-shadow
+          node tools/run-tests.mjs
       - name: privacy canary
         run: node tools/privacy-canary.mjs
       - name: recall eval

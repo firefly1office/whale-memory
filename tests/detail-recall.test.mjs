@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { safeRemove } from './_safety.mjs'
+import { safeRemove, tmpDir } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -13,7 +13,7 @@ const holdout = readFixture('detail-holdout.json')
 const strict = selfExperience.recall
 
 function scenario(t, spec) {
-  const data = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-detail-'))
+  const data = tmpDir('whale-detail-')
   t.after(() => safeRemove(data))
   const dir = path.join(data, 'plugin-data', 'biomimetic-memory')
   fs.mkdirSync(dir, { recursive: true })
