@@ -80,3 +80,7 @@ npm run check # 语法 + 副本一致性 + 测试 + 金丝雀 + 召回评测
 ```
 
 本仓库采用 [MIT 许可证](LICENSE)。参与贡献前请读 [CONTRIBUTING.md](CONTRIBUTING.md)；变更见 [CHANGELOG.md](CHANGELOG.md)；隐私与安全问题见 [SECURITY.md](SECURITY.md)。
+## 更多文档
+
+- [情绪采集：把"她懂"和"她感到"分开](docs/emotion-intake-zh.md)
+- [计划与后果：让她自己定的时间算数](docs/self-plan-zh.md)

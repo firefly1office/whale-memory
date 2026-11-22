@@ -1,0 +1,9 @@
+{
+  "name": "whale-emotion-intake",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Turn a message into emotion candidates: clause-level experiencer check, evidence vs felt separation, per-turn caps.",
+  "license": "MIT",
+  "main": "index.js"
+}

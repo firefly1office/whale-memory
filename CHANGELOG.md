@@ -2,6 +2,14 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.21.1] - 2026-11-22
+
+### Added
+
+- `packages/emotion-intake`：把一句对话拆成情绪候选的纯函数模块（分句体验者判定、证据与感受分账、每回合限额），无存储/网络依赖。
+- `docs/emotion-intake-zh.md`：情绪采集的设计记录（含一次失败与关闭原因）。
+- `docs/self-plan-zh.md`：计划与后果闭环的设计记录。
+
 ## [0.21.0] - 2026-11-21
 
 这一版只做三件能直接减少"接进来有多难"的事。
@@ -80,7 +88,7 @@
 
 ### Added
 
-- `examples/emotion-bridge` 实验的结构化取舍字段 `nowEffects` / `tradeoff`：逐愿望记录「今天」的结果（引文只许引后记正文 `later.N`，不认感受字段），硬校验留下与放弃不是同一个愿望、且必须与今天的判断对得上，多写字段整次判无效；`perspectives` 仍只描述当时。`instruction` 里仍留着一句旧措辞（要求写进 `now`），与 `tradeoff` 并存，作为已知混杂因素记在示例 README。只改实验区，未接入线上 psyche。
+- `examples/emotion-bridge` 实验的结构化取舍字段 `nowEffects` / `tradeoff`：逐愿望记录「今天」的结果（引文只许引后记正文 `later.N`，不认感受字段），硬校验留下与放弃不是同一个愿望、且必须与今天的判断对得上，多写字段整次判无效；`perspectives` 仍只描述当时。`instruction` 里仍留着一句旧措辞（要求写进 `now`），与 `tradeoff` 并存，作为已知混杂因素记在示例 README。只改实验区，未接入线上宿主技能。
 - 新增 `whale-memory-core` 三个通用小模块（宿主无关，纯函数）：
   - `time-sense`：`humanTime` / `timeAgo` / `dayDiff` —— 把时间戳说成「刚刚 / 12 分钟前 / 昨天 20:30 /
     3 天前 / 上周三 / 2 个月前」，而不是日期字符串。秒级与毫秒级时间戳都认，跨天按本地日历算。
