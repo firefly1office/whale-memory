@@ -108,6 +108,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   const receiptFile = path.join(dir, 'later-events-migration-receipt.json')
   const experiencesText = rawText
   const sourceHash = createHash('sha256').update(fs.readFileSync(file)).digest('hex')
+  const hashOf = (p) => (fs.existsSync(p) ? createHash('sha256').update(fs.readFileSync(p)).digest('hex') : '')
   const receiptBefore = fs.existsSync(receiptFile) ? fs.readFileSync(receiptFile, 'utf8') : null
   let receipt = { version: 1, events: [] }
   if (receiptBefore) {
@@ -162,7 +163,8 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     const k = ownerKey(e.id) + '|' + sigOf(e)
     fileCounts.set(k, (fileCounts.get(k) || 0) + 1)
   }
-  const receiptValid = Boolean(receipt && receipt.sourceHash && receipt.sourceHash === sourceHash)
+  const receiptValid = Boolean(receipt && receipt.sourceHash === sourceHash
+    && (!receipt.eventsHash || receipt.eventsHash === hashOf(ev)))
   const receiptCounts = new Map()
   for (const e of (receiptValid && Array.isArray(receipt.events) ? receipt.events : [])) {
     if (!e || !e.id) continue
@@ -185,10 +187,10 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
 
   // 任何一步失败都把两份文件恢复原样，并核对回滚本身是否成功。
   // 事件文件"原本存在但为空"也要恢复成空文件，不能当成没有文件删掉。
-  const restoreBoth = () => {
+  const restoreBoth = ({ experiences = true, events = true } = {}) => {
     const restored = { experiences: false, events: false, receipt: false }
-    try { fs.copyFileSync(backup, file); restored.experiences = true } catch { /* 记在结果里 */ }
-    try {
+    if (experiences) try { fs.copyFileSync(backup, file); restored.experiences = true } catch { /* 记在结果里 */ }
+    if (events) try {
       if (eventsExisted) fs.copyFileSync(eventsBackup, ev)
       else fs.rmSync(ev, { force: true })
       restored.events = true
@@ -208,6 +210,8 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     const id = String(r.id || '')
     if (!id) continue
     const existingForId = existingEvents.filter((e) => ownerKey(e.id) === id)
+    const existingCurrent = existingForId.filter((e) => String(e.id) === id)
+    const existingAlias = existingForId.filter((e) => String(e.id) !== id)
     const freshForId = fresh.filter((e) => ownerKey(e.id) === id)
     const keptInline = skippedIdsForView.has(id)
       ? (Array.isArray(r.later) ? r.later.filter(Boolean) : [])
@@ -215,11 +219,15 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     const items = [
       ...keptInline.map((e) => ({ sig: sigOf(e), at: String(e.at || ''), kind: 0 })),
       ...freshForId.map((e) => ({ sig: sigOf(e), at: String(e.at || ''), kind: 0 })),
-      ...existingForId.map((e) => ({ sig: sigOf(e), at: String(e.at || ''), kind: 1 }))
+      ...existingCurrent.map((e) => ({ sig: sigOf(e), at: String(e.at || ''), kind: 1 })),
+      ...existingAlias.map((e) => ({ sig: sigOf(e), at: String(e.at || ''), kind: 2 }))
     ]
     items.sort((a, b) => (a.at === b.at ? a.kind - b.kind : a.at.localeCompare(b.at)))
     viewAfter.set(id, items.map((x) => x.sig))
   }
+  let wroteEvents = false
+  let wroteExperiences = false
+
   try {
     return withFileLock(ev + '.lock', () => {
       const beforeWrite = fs.existsSync(ev) ? fs.readFileSync(ev, 'utf8') : ''
@@ -249,6 +257,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
         const tmp = ev + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
         fs.writeFileSync(tmp, items.map((x) => x.line).join('\n') + '\n', 'utf8')
         fs.renameSync(tmp, ev)
+        wroteEvents = true
       }
 
       // 去掉行内 later（缺 at 的行整行保留，行为不变）
@@ -263,12 +272,14 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
       if (fs.readFileSync(file, 'utf8') !== experiencesText) {
         const err = new Error('经历文件在迁移期间被追加/修改（可能有并发写入），已停止')
         err.code = 'CONCURRENT_WRITE'
-        err.wrote = true
+        err.wroteEvents = wroteEvents
+        err.wroteExperiences = false
         throw err
       }
       const tmp2 = file + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
       fs.writeFileSync(tmp2, nextRows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
       fs.renameSync(tmp2, file)
+      wroteExperiences = true
 
       // 校验：按当前 id 比较完整字段、条数，以及**顺序**。
       const after = new Map()
@@ -294,6 +305,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
         const nextReceipt = {
           version: 2,
           sourceHash,
+          eventsHash: hashOf(ev),
           updatedAt: new Date().toISOString(),
           events: [
             ...(receiptValid && Array.isArray(receipt.events) ? receipt.events : []),
@@ -306,10 +318,13 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
       return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: fresh.length, eventsMatched: matched, skipped, backup, eventsBackup }
     })
   } catch (error) {
-    if (error && error.code === 'CONCURRENT_WRITE' && !error.wrote) {
-      return { ok: false, error: String(error.message || error), concurrent: true, backup, eventsBackup }
+    // 没有写过任何正式文件时不回滚：回滚用的是旧备份，会覆盖并发写者刚追加的内容。
+    const wroteEventsNow = wroteEvents
+    const wroteExperiencesNow = wroteExperiences
+    if (!wroteEventsNow && !wroteExperiencesNow) {
+      return { ok: false, error: String(error?.message || error), code: error?.code, backup, eventsBackup }
     }
-    const restored = restoreBoth()
+    const restored = restoreBoth({ events: wroteEventsNow, experiences: wroteExperiencesNow })
     return {
       ok: false,
       error: '迁移中途失败（' + String(error?.code || error?.message || error) + '），已回滚两份文件：'
