@@ -48,7 +48,12 @@ export function plan({ dataDir }) {
     // 没有 id 的行不能迁移：事件必须能挂回某条经历，否则校验必然失败。
     // 在写盘之前就把它们挑出来，避免"写了一半再回滚"。
     if (!id) { invalid.push({ day: String(r.day || ''), laterCount: list.length }); continue }
-    if (String(r.id) !== id) { invalid.push({ id: String(r.id), reason: 'id 首尾有空白，先修好再迁移' }); continue }
+    if (/[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/.test(String(r.id))) {
+      invalid.push({ id: String(r.id), reason: 'id 含控制/零宽字符，先修好再迁移' }); continue
+    }
+    if (String(r.id) !== String(r.id).trim()) {
+      invalid.push({ id: String(r.id), reason: 'id 首尾有空白，先修好再迁移' }); continue
+    }
     // 行内后记缺 at 时迁移会借用经历时间：asOf 会提前看到它。
     // 时间未知就整行保留在原文件里，行为不变。
     if (list.some((l) => l && l.thought && !l.at)) { skipped.push({ id, reason: '行内后记缺 at，保留原样' }); continue }
@@ -66,6 +71,17 @@ export function plan({ dataDir }) {
       events.push(event)
     }
   }
+  // 规范化后相同的 id 会指向同一条事件，无法安全归属
+  const byNorm = new Map()
+  const dup = new Set()
+  for (const r of rows) {
+    const id = String(r.id || '').trim()
+    if (!id) continue
+    const norm = id.normalize('NFC')
+    if (byNorm.has(norm) && byNorm.get(norm) !== String(r.id)) dup.add(norm)
+    else byNorm.set(norm, String(r.id))
+  }
+  if (dup.size) invalid.push({ reason: '规范化后重复的 id：' + [...dup].join(', '), dup: [...dup] })
   return { rows, events, invalid, skipped }
 }
 
@@ -189,13 +205,20 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   // 任何一步失败都把两份文件恢复原样，并核对回滚本身是否成功。
   // 事件文件"原本存在但为空"也要恢复成空文件，不能当成没有文件删掉。
   const restoreBoth = ({ experiences = true, events = true } = {}) => {
-    const restored = { experiences: false, events: false, receipt: false }
-    if (experiences) try { fs.copyFileSync(backup, file); restored.experiences = true } catch { /* 记在结果里 */ }
-    if (events) try {
-      if (eventsExisted) fs.copyFileSync(eventsBackup, ev)
-      else fs.rmSync(ev, { force: true })
-      restored.events = true
-    } catch { /* 记在结果里 */ }
+    const restored = { experiences: false, events: false, receipt: false, conflicts: [] }
+    // 回滚前确认文件仍是本工具写出的内容：锁可能过期被抢占，旧备份会覆盖别人刚写的数据。
+    if (experiences) {
+      if (hashOf(file) !== wroteExperiencesHash) restored.conflicts.push('经历文件已被其它进程改动，未覆盖')
+      else try { fs.copyFileSync(backup, file); restored.experiences = true } catch { /* 记在结果里 */ }
+    }
+    if (events) {
+      if (hashOf(ev) !== wroteEventsHash) restored.conflicts.push('事件文件已被其它进程改动，未覆盖')
+      else try {
+        if (eventsExisted) fs.copyFileSync(eventsBackup, ev)
+        else fs.rmSync(ev, { force: true })
+        restored.events = true
+      } catch { /* 记在结果里 */ }
+    }
     try {
       if (receiptBefore === null) fs.rmSync(receiptFile, { force: true })
       else fs.writeFileSync(receiptFile, receiptBefore, 'utf8')
@@ -228,6 +251,8 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   }
   let wroteEvents = false
   let wroteExperiences = false
+  let wroteEventsHash = ''
+  let wroteExperiencesHash = ''
 
   try {
     return withFileLock(ev + '.lock', () => {
@@ -235,6 +260,11 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
       const beforeWrite = fs.existsSync(ev) ? fs.readFileSync(ev, 'utf8') : ''
       if (fs.readFileSync(file, 'utf8') !== experiencesText) {
         const err = new Error('经历文件在迁移期间被追加/修改（可能有并发写入），已停止')
+        err.code = 'CONCURRENT_WRITE'
+        throw err
+      }
+      if (receiptValid && hashOf(ev) !== receipt.eventsHash) {
+        const err = new Error('回执校验后事件文件发生变化，已停止')
         err.code = 'CONCURRENT_WRITE'
         throw err
       }
@@ -260,6 +290,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
         fs.writeFileSync(tmp, items.map((x) => x.line).join('\n') + '\n', 'utf8')
         fs.renameSync(tmp, ev)
         wroteEvents = true
+        wroteEventsHash = hashOf(ev)
       }
 
       // 去掉行内 later（缺 at 的行整行保留，行为不变）
@@ -282,6 +313,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
       fs.writeFileSync(tmp2, nextRows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
       fs.renameSync(tmp2, file)
       wroteExperiences = true
+      wroteExperiencesHash = hashOf(file)
 
       // 校验：按当前 id 比较完整字段、条数，以及**顺序**。
       const after = new Map()

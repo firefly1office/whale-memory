@@ -317,3 +317,12 @@ test('id 首尾有空白：写盘前拒绝', () => {
   assert.match(out.error, /没有 id/)
   assert.equal(fs.readFileSync(path.join(dir, 'self-experience.jsonl')).compare(before), 0)
 })
+
+test('id 含零宽字符：写盘前拒绝', () => {
+  const rows = [{ id: 'X\u200B', day: '2026-11-01', then: { text: 'A', thought: '旧' }, later: [{ at: '2026-11-02T00:00:00.000Z', thought: '新' }] }]
+  const { dataDir, dir } = seed(rows)
+  const before = fs.readFileSync(path.join(dir, 'self-experience.jsonl'))
+  const out = migrate({ dataDir, apply: true })
+  assert.equal(out.ok, false)
+  assert.equal(fs.readFileSync(path.join(dir, 'self-experience.jsonl')).compare(before), 0)
+})
