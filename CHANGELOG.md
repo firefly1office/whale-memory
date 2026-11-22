@@ -2,6 +2,12 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Added
+
+- `packages/emotion-intake` 以 `whale-emotion-intake@0.1.0` 形式准备发布：纯函数情绪候选模块、十行示例、接入指南；0.x 期间 API 不保证稳定。
+
 ## [0.21.1] - 2026-11-22
 
 ### Added

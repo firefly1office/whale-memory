@@ -17,16 +17,30 @@ export const COOLDOWN_TURNS = 2
 export const DAY_CAP = 6
 export const MOMENT_DAY_CAP = 3
 
+// 来源名归一化：旧名 → 新名；只统计认可来源，未知标签不计
+const SOURCE_ALIAS = { her_felt: 'self_felt', his_direct: 'other_direct', his_evidence: 'other_evidence', her_weak: 'self_weak' }
+const ALLOWED_SOURCES = new Set(['self_felt', 'other_direct', 'other_evidence', 'self_weak', 'contagion'])
+const ALWAYS_STRONG = new Set(['self_felt', 'other_direct', 'other_evidence'])
+function normalizeSources(sources) {
+  return [...new Set((Array.isArray(sources) ? sources : []).map((s) => SOURCE_ALIAS[s] || s).filter((s) => ALLOWED_SOURCES.has(s)))]
+}
+function isStrong(sources) {
+  if (sources.some((s) => ALWAYS_STRONG.has(s))) return true
+  // 弱源例外：必须 self_weak 与 contagion 成对，单个弱源不算
+  return sources.includes('self_weak') && sources.includes('contagion')
+}
+
 const FELT = ['烦', '闷', '累', '疼', '怕', '慌', '难受', '委屈', '堵', '酸', '丧', '难过', '低落', '焦虑', '孤单', '生气', '冲', '开心', '高兴', '松', '暖', '舒服', '轻松', '踏实', '爽', '安', '喜']
 const FELT_POS = new Set(['开心', '高兴', '松', '暖', '舒服', '轻松', '踏实', '爽', '安', '喜'])
+const FELT_RE = FELT.join('|')
 const EVAL = ['好听', '好看', '不错', '喜欢', '可爱', '帅', '美', '棒', '行', '可以', '难听', '难看', '不行', '讨厌', '丑', '差', '冲', '快']
 const DIRECT_POS = ['我喜欢你', '爱你', '想你', '喜欢你', '我喜欢这个']
-const DIRECT_NEG = ['我讨厌你', '烦你', '不想理你', '不喜欢你', '我不喜欢这个']
+const DIRECT_NEG = ['我讨厌你', '烦你', '不想理你', '不喜欢你', '我不喜欢这个', '不爱你', '不爱你了']
 export const LEXICON_WORDS = [...new Set([...DIRECT_POS, ...DIRECT_NEG, ...FELT, ...EVAL])]
 
 const FIRST_PERSON = /我|咱/
 const HEARSAY = /(他说|她说|听说|据说|别人说|好像说)/
-const QUESTION = /[?？]\s*$|吗\s*$|呢\s*$|怎么样/
+const QUESTION = /[?？]\s*$|(吗|呢)\s*[。.!！]?\s*$|怎么样/
 const NEGATION = /(不|没|别|勿)\s*\S{0,2}$/
 const PREV_ASK_SELF = /(你|你自己).{0,8}(烦|闷|累|怕|难受|开心|高兴|舒服|感觉|觉得|感受)/
 
@@ -65,10 +79,15 @@ export function categoryOf(word) {
   return 'neutral'
 }
 
-const splitClauses = (text) => String(text || '')
-  .split(/[，,。！!？?；;\n]/)
-  .map((s) => s.trim())
-  .filter(Boolean)
+const splitClauses = (text) => {
+  const parts = String(text || '').split(/([，,。！!？?；;\n])/)
+  const out = []
+  for (let i = 0; i < parts.length; i += 2) {
+    const s = (parts[i] + (parts[i + 1] || '')).trim()
+    if (s) out.push(s)
+  }
+  return out
+}
 
 const hits = (c, list) => list.filter((w) => c.includes(w))
 
@@ -102,12 +121,18 @@ export function classifyClause(clause, { speaker = 'other', prevAskedSelf = fals
   if (hearsay) return { evidence: [], transfer: felt.map((w) => ({ word: w })), cue: null, reason: 'hearsay' }
   if (question) return { evidence: [], cue: null, reason: 'question' }
 
-  // 他：直接喜欢/不喜欢是唯一进 C 的例外（极性优先，先于否定判断）
-  if (speaker === 'other' && (directPos.length || directNeg.length)) {
-    const sign = directPos.length && !directNeg.length ? 1 : directNeg.length && !directPos.length ? -1 : 0
+  // 「她不爱你了」「如果我不爱你」不是在陈述说话者自己的偏好
+  const thirdSubject = new RegExp(`(他|她|他们|她们|别人)[^，。！？]{0,6}(${FELT_RE}|${DIRECT_POS.join('|')}|${DIRECT_NEG.join('|')})`).test(c)
+  const hypotheticalEarly = /(如果|要是|假如|万一)/.test(c.replace(/主要是/g, ''))
+    || (/的话/.test(c) && !/你的话/.test(c))
+
+  // 他：直接喜欢/不喜欢是唯一进 C 的例外（否定短语包含肯定子串，先判否定）
+  if (speaker === 'other' && !thirdSubject && !hypotheticalEarly && (directPos.length || directNeg.length)) {
+    const sign = directNeg.length || negated ? -1 : 1
+    const words = directNeg.length ? directNeg : directPos
     return {
-      evidence: [...directPos, ...directNeg].map((w) => ({ word: w, strong: true })),
-      cue: sign ? { source: 'other_direct', dim: 'v', value: sign * C_HIS_DIRECT, strong: true } : null,
+      evidence: words.map((w) => ({ word: w, strong: true })),
+      cue: { source: 'other_direct', dim: 'v', value: sign * C_HIS_DIRECT, strong: true },
       reason: 'direct'
     }
   }
@@ -120,7 +145,19 @@ export function classifyClause(clause, { speaker = 'other', prevAskedSelf = fals
   }
 
   // 她：第一人称 / "让我" + 感受/躯体 → 强情绪
-  const selfFelt = (firstPerson || /让我/.test(c)) && felt.length
+  // 但「我觉得房间有点闷」是在评价对象，不是她的体感
+  const OBJECT = /(房间|屋子|天气|这个|那个|它|歌|视频|声音|音色|电影|剧|书|饭|菜|作业|题)/
+  const feltIdx = felt.length ? Math.min(...felt.map((w) => c.indexOf(w)).filter((i) => i >= 0)) : -1
+  const objIdx = c.search(OBJECT)
+  // 「让我」要直接支配感受词（中间只允许程度副词）；「让我看看房间有多闷」不算
+  const letCause = new RegExp(`让我\\s*(很|有点|有些|挺|太|特别|好|真)?\\s*(${FELT_RE})`).test(c)
+  const aboutObject = objIdx >= 0 && feltIdx >= 0 && objIdx < feltIdx && !letCause
+  // 第三人称/第二人称、假设句里的感受不归她
+  const thirdPerson = new RegExp(`(他|她|他们|她们|别人)\\s*[^，。！？]{0,6}?(${FELT_RE})`).test(c)
+  const secondPerson = new RegExp(`你[^，。！？]{0,6}?(${FELT_RE})`).test(c)
+  const hypothetical = /(如果|要是|假如|万一)/.test(c.replace(/主要是/g, ''))
+    || (/的话/.test(c) && !/你的话/.test(c))
+  const selfFelt = (firstPerson || letCause) && felt.length && !aboutObject && !(thirdPerson && !letCause) && !(secondPerson && !letCause) && !hypothetical
   if (selfFelt) {
     const pos = felt.some((w) => FELT_POS.has(w))
     const neg = felt.some((w) => !FELT_POS.has(w))
@@ -134,8 +171,8 @@ export function classifyClause(clause, { speaker = 'other', prevAskedSelf = fals
 
   // 她：无对象 + 程度 + 上轮在问自己感受 → 弱锚定（问音色则不算）
   const degree = /(有点|有些|挺|很|太|特别|好)/.test(c)
-  const noObject = !/(这个|那个|它|他|你|歌|视频)/.test(c)
-  if (prevAskedSelf && degree && noObject && felt.length) {
+  const noObject = !OBJECT.test(c) && !/(他|她|你)/.test(c)
+  if (prevAskedSelf && degree && noObject && felt.length && !thirdPerson && !hypothetical) {
     const pos = felt.some((w) => FELT_POS.has(w))
     const neg = felt.some((w) => !FELT_POS.has(w))
     const sign = pos && !neg ? 1 : neg && !pos ? -1 : 0
@@ -219,6 +256,9 @@ export function recordWrite(state, { turnIndex = 0, now, write = null } = {}) {
   if (!state || typeof state !== 'object') return null;
   if (!Number.isFinite(now)) return null;
   if (!write || typeof write !== 'object') return null;
+  if (!['v', 'a'].includes(write.dim)) return null;
+  if (typeof write.value !== 'number' || !Number.isFinite(write.value)) return null;
+  if (typeof write.source !== 'string' || !write.source.trim()) return null;
   const prev = Array.isArray(state.intakeLog) ? state.intakeLog.slice() : []
   const day = new Date(now).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })
   prev.push({ turn: turnIndex, day, dim: write.dim || '', value: write.value || 0, source: write.source || '' })
@@ -230,19 +270,20 @@ export function recordWrite(state, { turnIndex = 0, now, write = null } = {}) {
  * 返回 true 才允许 noteCandidate。
  */
 export function momentDue(state, { turnIndex = 0, sources = [], now = Date.now() } = {}) {
-  if (!Array.isArray(sources) || sources.length < 2) return false
+  const norm = normalizeSources(sources)
+  if (norm.length < 2) return false
   if (Number.isFinite(state.lastMomentTurn) && turnIndex - state.lastMomentTurn < 2) return false
   const day = new Date(now).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })
-  const pair = [...sources].sort().join('+')
+  const pair = norm.sort().join('+')
   const pairs = Array.isArray(state.momentPairs) ? state.momentPairs : []
-  if (pairs.some((p) => p.day === day && p.pair === pair)) return false
+  if (pairs.some((p) => p.day === day && normalizeSources(String(p.pair || '').split('+')).sort().join('+') === pair)) return false
   return true
 }
 
 export function recordMoment(state, { turnIndex = 0, sources = [], now = Date.now() } = {}) {
   const day = new Date(now).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })
   state.momentPairs = Array.isArray(state.momentPairs) ? state.momentPairs : []
-  state.momentPairs.push({ day, pair: [...sources].sort().join('+'), turn: turnIndex })
+  state.momentPairs.push({ day, pair: normalizeSources(sources).sort().join('+'), turn: turnIndex })
   state.momentPairs = state.momentPairs.slice(-50)
   state.lastMomentTurn = turnIndex
 }
@@ -256,16 +297,35 @@ export function contagionCueOf(contagion) {
 }
 
 /**
- * moment 跨回合窗口：3 回合内的独立源合并；过期失效；同一证据不重复消费。
- * 返回 { due, sources }，due=true 才允许写 moment。
+ * moment 跨回合窗口：3 回合内的独立源合并；按来源各自最后出现的回合淘汰。
+ * 旧来源名先归一化再计数；兼容旧格式窗口（只有 turn/sources，没有 last）。
  */
 export function mergeMomentWindow(state, { turnIndex = 0, sources = [] } = {}) {
-  const w = state.momentWindow && turnIndex - state.momentWindow.turn <= 3
-    ? state.momentWindow
-    : { turn: turnIndex, sources: [] }
-  w.sources = [...new Set([...w.sources, ...sources])]
+  const old = state.momentWindow
+  const oldTurn = old && Number.isFinite(Number(old.turn)) ? Number(old.turn) : null
+  const fresh = oldTurn !== null && turnIndex - oldTurn <= 3
+  const w = fresh ? old : { turn: turnIndex, sources: [], last: {} }
+  const last = {}
+  // 已存的 last 也要过白名单与别名：旧版本可能存过未知标签
+  if (w.last && typeof w.last === 'object') {
+    for (const [k, v] of Object.entries(w.last)) {
+      const name = SOURCE_ALIAS[k] || k
+      if (!ALLOWED_SOURCES.has(name) || !Number.isFinite(Number(v))) continue
+      last[name] = Math.max(Number.isFinite(last[name]) ? last[name] : -Infinity, Number(v))
+    }
+  }
+  // 旧格式没有 last：只有 turn 表示窗口最近一次更新，无法还原每个来源的实际出现回合，
+  // 迁就取这个更新回合作为上界。
+  if (!w.last && Array.isArray(w.sources)) {
+    const t = oldTurn !== null ? oldTurn : turnIndex
+    for (const s of normalizeSources(w.sources)) last[s] = t
+  }
+  for (const s of normalizeSources(sources)) last[s] = turnIndex
+  // 只保留 3 回合内出现过的来源；空回合不会给旧证据续期
+  const alive = Object.fromEntries(Object.entries(last).filter(([, t]) => turnIndex - t <= 3))
+  w.sources = Object.keys(alive)
+  w.last = alive
   w.turn = turnIndex
   state.momentWindow = w
-  const strong = w.sources.some((s) => s === 'her_felt' || s === 'his_direct' || s === 'his_evidence')
-  return { due: w.sources.length >= 2 && strong, sources: w.sources }
+  return { due: w.sources.length >= 2 && isStrong(w.sources), sources: w.sources }
 }
