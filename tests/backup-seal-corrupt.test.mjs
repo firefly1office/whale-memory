@@ -86,3 +86,12 @@ test('封存坏行 + 其它事件坏行：省略 --data 也不能放行', () => 
   assert.equal(r.ok, false, JSON.stringify(r.checks))
   assert.equal(r.verdict, '不可恢复')
 })
+test('经历主文件有坏行：省略 --data 时不能报可恢复', () => {
+  const { data, mem } = seedCorrupt()
+  fs.appendFileSync(path.join(mem, 'self-experience.jsonl'), '{"broken":\n', 'utf8')
+  const out = tmpDir('seal-corrupt-out-')
+  const bk = backup({ data, out })
+  const r = restoreCheck({ from: bk.dir })
+  assert.equal(r.ok, false, JSON.stringify(r.checks))
+  assert.equal(r.verdict, '不可恢复')
+})

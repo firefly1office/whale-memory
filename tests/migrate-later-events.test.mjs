@@ -250,3 +250,32 @@ test('formerId 指向多条经历：写盘前拒绝，两份文件都不动', ()
   assert.ok(Array.isArray(out.ambiguous), JSON.stringify(out))
   assert.equal(fs.readFileSync(expFile).compare(before), 0)
 })
+
+test('缺 at 的行内后记：整行保留，不迁移也不改历史视图', () => {
+  const rows = [{
+    id: 'exp_noat',
+    day: '2026-11-01',
+    then: { text: 'A', thought: '旧' },
+    later: [{ thought: '不知道哪天的想法' }]
+  }]
+  const { dataDir, dir } = seed(rows)
+  const out = migrate({ dataDir, apply: true })
+  assert.equal(out.ok, true, JSON.stringify(out))
+  assert.equal(out.eventsCreated, 0)
+  assert.ok((out.skipped || []).some((s) => s.id === 'exp_noat'))
+  const raw = JSON.parse(fs.readFileSync(path.join(dir, 'self-experience.jsonl'), 'utf8').trim())
+  assert.equal(raw.later.length, 1, '缺 at 的后记要留在原文件里')
+})
+
+test('formerId 撞上另一条的当前 id：写盘前拒绝', () => {
+  const rows = [
+    { id: 'X', day: '2026-11-01', then: { text: 'A', thought: '旧 A' }, later: [{ at: '2026-11-02T00:00:00.000Z', thought: '新 A' }] },
+    { id: 'exp_b', formerId: 'X', day: '2026-11-01', then: { text: 'B', thought: '旧 B' }, later: [{ at: '2026-11-03T00:00:00.000Z', thought: '新 B' }] }
+  ]
+  const { dataDir, dir } = seed(rows)
+  const before = fs.readFileSync(path.join(dir, 'self-experience.jsonl'))
+  const out = migrate({ dataDir, apply: true })
+  assert.equal(out.ok, false)
+  assert.ok(Array.isArray(out.ambiguous), JSON.stringify(out))
+  assert.equal(fs.readFileSync(path.join(dir, 'self-experience.jsonl')).compare(before), 0)
+})

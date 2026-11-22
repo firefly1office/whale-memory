@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { writeManifest, rollback as rollbackFromBackup } from './lib/migration-backup.mjs'
+import { withFileLock } from '../packages/core/lib/file-lock.js'
 import { eventsFile } from '../packages/core/lib/later-events.js'
 import { loadAll } from '../packages/core/lib/self-experience.js'
 
@@ -38,6 +39,7 @@ export function plan({ dataDir }) {
   const { rows } = readRows(dataDir)
   const events = []
   const invalid = []
+  const skipped = []
   for (const r of rows) {
     const list = Array.isArray(r.later) ? r.later : []
     if (!list.length) continue
@@ -45,6 +47,9 @@ export function plan({ dataDir }) {
     // 没有 id 的行不能迁移：事件必须能挂回某条经历，否则校验必然失败。
     // 在写盘之前就把它们挑出来，避免"写了一半再回滚"。
     if (!id) { invalid.push({ day: String(r.day || ''), laterCount: list.length }); continue }
+    // 行内后记缺 at 时迁移会借用经历时间：asOf 会提前看到它。
+    // 时间未知就整行保留在原文件里，行为不变。
+    if (list.some((l) => l && l.thought && !l.at)) { skipped.push({ id, reason: '行内后记缺 at，保留原样' }); continue }
     for (const l of list) {
       if (!l || !l.thought) continue
       const event = {
@@ -59,7 +64,7 @@ export function plan({ dataDir }) {
       events.push(event)
     }
   }
-  return { rows, events, invalid }
+  return { rows, events, invalid, skipped }
 }
 
 function sameFeeling(a, b) {
@@ -69,10 +74,10 @@ function sameFeeling(a, b) {
 }
 
 export function migrate({ dataDir, apply = false, backupDir = '' }) {
-  let rows, file, events, invalid
+  let rows, file, events, invalid, skipped
   try {
     ({ rows, file } = readRows(dataDir))
-    ;({ events, invalid } = plan({ dataDir }))
+    ;({ events, invalid, skipped } = plan({ dataDir }))
   } catch (error) {
     // 读不了就明确失败：不能回退成"空库、成功迁移 0 条"。
     return { ok: false, error: String(error?.message || error) }
@@ -81,7 +86,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     return { ok: false, error: '有 ' + invalid.length + ' 条经历没有 id，不能迁移（先在经历里补 id 再跑）。', invalid, experiences: rows.length }
   }
   if (!apply) return { ok: true, dryRun: true, experiences: rows.length, eventsToCreate: events.length }
-  if (!events.length) return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: 0 }
+  if (!events.length) return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: 0, skipped }
 
   const dir = memDir(dataDir)
   fs.mkdirSync(dir, { recursive: true })
@@ -130,23 +135,23 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   }
   // 旧后记可能挂在 formerId 上；读取时两条 id 会合并到同一条经历。
   // 抵扣与校验都按"当前 id"归并，否则合法旧 id 会被误判成缺一条。
-  const ownerOf = new Map()
+  // 与读取端同一套规则：显式 id 优先；formerId 只有在不是任何一条的当前 id 时才作别名。
+  const idSet = new Set(rows.map((r) => String(r.id || '')).filter(Boolean))
   const aliasSeen = new Map()
   const ambiguous = new Set()
   for (const r of rows) {
     const id = String(r.id || '')
-    if (!id) continue
-    ownerOf.set(id, id)
-    if (!r.formerId) continue
+    if (!id || !r.formerId) continue
     const alias = String(r.formerId)
+    // 别名恰好是另一条经历的当前 id：读取端两条都会把这条事件算进来，归谁无法判定，直接拒绝。
+    if (idSet.has(alias)) { if (alias !== id) ambiguous.add(alias); continue }
     if (aliasSeen.has(alias) && aliasSeen.get(alias) !== id) ambiguous.add(alias)
     else aliasSeen.set(alias, id)
-    ownerOf.set(alias, id)
   }
   if (ambiguous.size) {
     return { ok: false, error: 'formerId 指向多条经历，迁移前需人工确认：' + [...ambiguous].join(', '), ambiguous: [...ambiguous] }
   }
-  const ownerKey = (id) => ownerOf.get(String(id)) || String(id)
+  const ownerKey = (id) => (idSet.has(String(id)) ? String(id) : (aliasSeen.get(String(id)) || String(id)))
 
   // 只有"文件里确实有这条 + 上次迁移回执也承认写过这条"才抵扣。
   const fileCounts = new Map()
@@ -207,64 +212,77 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     viewAfter.set(id, items.map((x) => x.sig))
   }
   try {
-    if (fresh.length) {
-      // 先记回执再改文件：回执只是"允许抵扣"的凭据，且与文件内容取交集，写多不会造成丢失。
-      const nextReceipt = {
-        version: 1,
-        updatedAt: new Date().toISOString(),
-        events: [
-          ...(Array.isArray(receipt.events) ? receipt.events : []),
-          ...fresh.map((e) => ({ id: String(e.id), ...JSON.parse(sigOf(e)) }))
-        ]
+    return withFileLock(ev + '.lock', () => {
+      const beforeWrite = fs.existsSync(ev) ? fs.readFileSync(ev, 'utf8') : ''
+      if (beforeWrite !== existing) {
+        const err = new Error('事件文件在迁移期间被改动（可能有并发写入），已停止')
+        err.code = 'CONCURRENT_WRITE'
+        throw err
       }
-      fs.writeFileSync(receiptFile, JSON.stringify(nextReceipt) + '\n', 'utf8')
 
-      // 事件文件按时间插入，而不是整批追加：同一时间戳时，行内后记原本在事件之前，
-      // 追加到末尾会把"现在怎么想"从后一条换成前一条。
-      const items = []
-      for (const line of existing.split('\n')) {
-        if (!line.trim()) continue
-        let at = ''
-        try { const r = JSON.parse(line); if (r?.at) at = String(r.at) } catch { /* 坏行保留 */ }
-        items.push({ line, at, kind: 1, seq: items.length })
+      if (fresh.length) {
+        // 事件文件按时间插入，而不是整批追加：同一时间戳时，行内后记原本在事件之前，
+        // 追加到末尾会把"现在怎么想"从后一条换成前一条。
+        const items = []
+        for (const line of existing.split('\n')) {
+          if (!line.trim()) continue
+          let at = ''
+          try { const r = JSON.parse(line); if (r?.at) at = String(r.at) } catch { /* 坏行保留 */ }
+          items.push({ line, at, kind: 1, seq: items.length })
+        }
+        fresh.forEach((e, i) => items.push({ line: JSON.stringify(e), at: String(e.at || ''), kind: 0, seq: i }))
+        items.sort((a, b) => (a.at === b.at ? (a.kind - b.kind || a.seq - b.seq) : a.at.localeCompare(b.at)))
+        const tmp = ev + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
+        fs.writeFileSync(tmp, items.map((x) => x.line).join('\n') + '\n', 'utf8')
+        fs.renameSync(tmp, ev)
       }
-      fresh.forEach((e, i) => items.push({ line: JSON.stringify(e), at: String(e.at || ''), kind: 0, seq: i }))
-      items.sort((a, b) => (a.at === b.at ? (a.kind - b.kind || a.seq - b.seq) : a.at.localeCompare(b.at)))
-      const tmp = ev + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
-      fs.writeFileSync(tmp, items.map((x) => x.line).join('\n') + '\n', 'utf8')
-      fs.renameSync(tmp, ev)
-    }
 
-    // 去掉行内 later（保留其他字段原样）
-    const nextRows = rows.map((r) => {
-      const { later, ...rest } = r
-      void later
-      return rest
+      // 去掉行内 later（缺 at 的行整行保留，行为不变）
+      const skippedIds = new Set((skipped || []).map((s) => s.id))
+      const nextRows = rows.map((r) => {
+        if (skippedIds.has(String(r.id || ''))) return r
+        const { later, ...rest } = r
+        void later
+        return rest
+      })
+      const tmp2 = file + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
+      fs.writeFileSync(tmp2, nextRows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
+      fs.renameSync(tmp2, file)
+
+      // 校验：按当前 id 比较完整字段、条数，以及**顺序**。
+      const after = new Map()
+      for (const r of loadAll(dir, { allowSealCorrupt: true })) {
+        after.set(String(r.id), (r.later || []).map(sigOf))
+      }
+      const diffs = []
+      for (const [id, want] of viewAfter) {
+        const got = after.get(id) || []
+        const n = Math.max(want.length, got.length)
+        for (let i = 0; i < n; i += 1) {
+          if (want[i] !== got[i]) diffs.push({ id, field: '第 ' + (i + 1) + ' 条不同', want: want[i], got: got[i] })
+        }
+      }
+      if (diffs.length) {
+        const err = new Error('校验不一致')
+        err.missing = diffs
+        throw err
+      }
+
+      // 回执最后写：只有真正落盘并校验通过后，才承认"这些副本是迁移写的"。
+      if (fresh.length) {
+        const nextReceipt = {
+          version: 1,
+          updatedAt: new Date().toISOString(),
+          events: [
+            ...(Array.isArray(receipt.events) ? receipt.events : []),
+            ...fresh.map((e) => ({ id: String(e.id), ...JSON.parse(sigOf(e)) }))
+          ]
+        }
+        fs.writeFileSync(receiptFile, JSON.stringify(nextReceipt) + '\n', 'utf8')
+      }
+
+      return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: fresh.length, eventsMatched: matched, skipped, backup, eventsBackup }
     })
-    const tmp2 = file + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
-    fs.writeFileSync(tmp2, nextRows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
-    fs.renameSync(tmp2, file)
-
-    // 校验：按当前 id 比较完整字段、条数，以及**顺序**。
-    const after = new Map()
-    for (const r of loadAll(dir, { allowSealCorrupt: true })) {
-      after.set(String(r.id), (r.later || []).map(sigOf))
-    }
-    const diffs = []
-    for (const [id, want] of viewAfter) {
-      const got = after.get(id) || []
-      const n = Math.max(want.length, got.length)
-      for (let i = 0; i < n; i += 1) {
-        if (want[i] !== got[i]) diffs.push({ id, field: '第 ' + (i + 1) + ' 条不同', want: want[i], got: got[i] })
-      }
-    }
-    if (diffs.length) {
-      const err = new Error('校验不一致')
-      err.missing = diffs
-      throw err
-    }
-
-    return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: fresh.length, eventsMatched: matched, backup, eventsBackup }
   } catch (error) {
     const restored = restoreBoth()
     return {
@@ -282,7 +300,9 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
 // 可以重复回滚：备份不删，当前事件文件只挪开不删（见 lib/migration-backup.mjs）
 export function rollback({ dataDir, backup, eventsBackup = '' }) {
   const dir = memDir(dataDir)
-  return rollbackFromBackup({ experiencesFile: path.join(dir, EXPERIENCES), eventsFile: eventsFile(dir), backup, eventsBackup })
+  const out = rollbackFromBackup({ experiencesFile: path.join(dir, EXPERIENCES), eventsFile: eventsFile(dir), backup, eventsBackup })
+  try { fs.rmSync(path.join(dir, 'later-events-migration-receipt.json'), { force: true }) } catch { /* 清不掉不影响回滚结果 */ }
+  return out
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)

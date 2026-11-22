@@ -39,15 +39,30 @@ function drawer(memDir) {
   return { open: res.items.filter((x) => x.status === 'open').length, spoken: res.items.filter((x) => x.status === 'spoken').length }
 }
 
+// 经历主文件本身也可能有坏行：loadAll 会跳过，但备份演练不能因此默认它没问题。
+function badExperiences(memDir) {
+  const file = path.join(memDir, 'self-experience.jsonl')
+  if (!fs.existsSync(file)) return 0
+  let bad = 0
+  for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
+    if (!line.trim()) continue
+    try {
+      const r = JSON.parse(line)
+      if (!r || !r.id) bad += 1
+    } catch { bad += 1 }
+  }
+  return bad
+}
+
 function badLines(memDir) {
-  return [laterEvents, recallEvents, unfinishedEvents, sealEvents, linkEvents, chapterEvents].reduce((n, m) => n + m.readAll(memDir).bad, 0) + unsaid.badLines(memDir)
+  return badExperiences(memDir) + [laterEvents, recallEvents, unfinishedEvents, sealEvents, linkEvents, chapterEvents].reduce((n, m) => n + m.readAll(memDir).bad, 0) + unsaid.badLines(memDir)
 }
 
 // 坏行分布：封存日志的坏行可以"按字节保全 + 展示前修复"，
 // 其它事件文件的坏行不能因此一起被放行。
 function badBreakdown(memDir) {
   const seal = sealEvents.readAll(memDir).bad
-  const other = [laterEvents, recallEvents, unfinishedEvents, linkEvents, chapterEvents]
+  const other = badExperiences(memDir) + [laterEvents, recallEvents, unfinishedEvents, linkEvents, chapterEvents]
     .reduce((n, m) => n + m.readAll(memDir).bad, 0) + unsaid.badLines(memDir)
   return { seal, other }
 }
