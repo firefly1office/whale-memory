@@ -143,11 +143,12 @@ export function loadAll(dir, { asOf = null } = {}) {
   // 她选择封存的：不再被主动想起，但还在。
   // 读不出来就抛出去，不能当成"什么都没封存"——否则正文可读、日志读不了时，
   // 召回/醒来/书会把本该藏起来的经历重新拿出来。
-  const sealedMap = sealEvents.sealedByExp(dir, { until })
+  // strict：坏行也算"状态未知"，展示路径必须 fail closed。
+  const sealedMap = sealEvents.sealedByExp(dir, { until, strict: true })
   // 翻回那天时，她**现在**封存着的也不翻出来：封存说的是她现在不想被提起，而翻回那天正是在提起旧事。
   // 那时还没封存的，标成 afterAsOf（后来才封存），各处过滤照常生效；点名读仍然给，并写明是后来封存的
   let sealedNowMap = sealedMap
-  if (until !== null) sealedNowMap = sealEvents.sealedByExp(dir)
+  if (until !== null) sealedNowMap = sealEvents.sealedByExp(dir, { strict: true })
 
   const viewed = rows.map((r) => {
     const keys = r.formerId ? [r.id, r.formerId] : [r.id]

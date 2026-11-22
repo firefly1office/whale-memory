@@ -114,7 +114,10 @@ function validate(raw, sources) {
 // The core's ordinary views tolerate damaged lines. Model handoff needs a
 // stricter check: a corrupt or unreadable seal could conceal a refusal.
 function selectedExperience(dir, id, asOf) {
-  const row = selfExperience.currentView(dir, id, { asOf })
+  // 封存状态不可确定时 currentView 会抛错（坏行/读失败）；这里按"不可用"处理，
+  // 不把不确定当成可见。
+  let row
+  try { row = selfExperience.currentView(dir, id, { asOf }) } catch { return null }
   if (!row || row.sealed || row.author !== 'self' || row.source !== 'own-time') return null
   let ledger
   try { ledger = fs.readFileSync(sealEvents.eventsFile(dir), 'utf8') }

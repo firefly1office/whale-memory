@@ -75,3 +75,51 @@ test('重复跑迁移不会叠加后记', () => {
   const loaded = loadAll(dir).find((r) => r.id === 'exp_2')
   assert.equal(loaded.later.length, 1, '不该变成 2 条')
 })
+test('第二次改名抛 EIO：两份文件都回滚，重试后不重复', () => {
+  const rows = [{ id: 'exp_io', day: '2026-11-01', then: { text: 'A', thought: '旧' }, later: [{ at: '2026-11-02T00:00:00.000Z', thought: '新', feeling: ['calm'] }] }]
+  const { dataDir, dir } = seed(rows)
+  const expFile = path.join(dir, 'self-experience.jsonl')
+  const beforeExp = fs.readFileSync(expFile)
+  const evFile = eventsFile(dir)
+  const beforeEv = fs.existsSync(evFile) ? fs.readFileSync(evFile) : null
+
+  // 第一次 rename 是事件文件，第二次是经历文件——让第二次抛 EIO
+  const original = fs.renameSync
+  let calls = 0
+  fs.renameSync = (...args) => {
+    calls += 1
+    if (calls === 2) { const e = new Error('EIO'); e.code = 'EIO'; throw e }
+    return original(...args)
+  }
+  let failed
+  try { failed = migrate({ dataDir, apply: true }) } finally { fs.renameSync = original }
+
+  assert.equal(failed.ok, false, JSON.stringify(failed))
+  assert.equal(fs.readFileSync(expFile).compare(beforeExp), 0, '经历文件要恢复原样')
+  const evNow = fs.existsSync(evFile) ? fs.readFileSync(evFile) : null
+  assert.equal(evNow ? evNow.compare(beforeEv) : null, beforeEv ? 0 : null, '事件文件要恢复原样')
+
+  const retry = migrate({ dataDir, apply: true })
+  assert.equal(retry.ok, true, JSON.stringify(retry))
+  const loaded = loadAll(dir).find((r) => r.id === 'exp_io')
+  assert.equal(loaded.later.length, 1, '重试后不能变成 2 条')
+  assert.deepEqual(loaded.later[0].feeling, ['calm'])
+})
+test('经历文件读不出来（非 ENOENT）：迁移返回失败，不报成功 0 条', () => {
+  const dir = tmpDir('migrate-eacces-')
+  const mem = path.join(dir, 'plugin-data', 'biomimetic-memory')
+  fs.mkdirSync(mem, { recursive: true })
+  const file = path.join(mem, 'self-experience.jsonl')
+  fs.writeFileSync(file, JSON.stringify({ id: 'x', day: '2026-11-01', then: { text: 'A', thought: '旧' } }) + '\n', 'utf8')
+
+  const original = fs.readFileSync
+  fs.readFileSync = (...args) => {
+    if (String(args[0]) === file) { const e = new Error('EACCES'); e.code = 'EACCES'; throw e }
+    return original(...args)
+  }
+  let out
+  try { out = migrate({ dataDir: dir, apply: true }) } finally { fs.readFileSync = original }
+
+  assert.equal(out.ok, false, JSON.stringify(out))
+  assert.match(out.error, /经历文件读不出来/)
+})

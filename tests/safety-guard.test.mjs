@@ -63,3 +63,10 @@ test('registerTmpRoot 拒绝空参数（不能把当前目录登记成可删）'
   assert.throws(() => registerTmpRoot('   '), /空路径不能登记/)
   assert.throws(() => registerTmpRoot(process.cwd()), /当前工作目录/)
 })
+test('registerTmpRoot 拒绝工作目录的上级（否则仓库文件可被删）', () => {
+  const parent = path.dirname(process.cwd())
+  assert.throws(() => registerTmpRoot(parent), /包含当前工作目录/)
+  // 大小写变体同样拒绝（Windows 上 cwd 比较不应区分大小写）
+  const upper = path.dirname(process.cwd()).toUpperCase()
+  assert.throws(() => registerTmpRoot(upper), /包含当前工作目录|ENOENT|no such file/)
+})

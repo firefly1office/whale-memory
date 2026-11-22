@@ -42,10 +42,13 @@ export function decide(memDir, { id, action, note = '' } = {}, opts = {}) {
   if (!ACTIONS.has(action)) throw new Error('action must be seal / unseal（action 只能是 seal / unseal）')
   fs.mkdirSync(memDir, { recursive: true })
   return withFileLock(eventsFile(memDir) + '.lock', () => {
-    const rows = readAll(memDir).rows.filter((r) => r.id === String(id))
+    const all = readAll(memDir)
+    const rows = all.rows.filter((r) => r.id === String(id))
     const last = rows[rows.length - 1] || null
     const sealedNow = Boolean(last && last.action === 'seal')
-    if ((action === 'seal' && sealedNow) || (action === 'unseal' && !sealedNow)) return { row: last, noop: true }
+    // 有坏行时状态不确定：不做"重复操作"的合并，直接按她的请求追加，
+    // 让最后一次显式动作成为真正生效的那条。
+    if (!all.bad && ((action === 'seal' && sealedNow) || (action === 'unseal' && !sealedNow))) return { row: last, noop: true }
     return { row: appendUnlocked(memDir, makeRow({ id, action, note })), noop: false }
   }, opts)
 }
@@ -77,8 +80,16 @@ export function readAll(memDir) {
 }
 
 // 每个经历 id 现在是否封存着：只收最后一次是 seal 的；until 用于翻回那天（那时还没封存就不算）
-export function sealedByExp(memDir, { until = null } = {}) {
-  const { rows } = readAll(memDir)
+// strict：展示路径用。日志里有坏行时"某条经历唯一一次封存"可能正好坏掉，
+// 这时不能默认可见——把"状态未知"抛给调用方（fail closed）。
+export function sealedByExp(memDir, { until = null, strict = false } = {}) {
+  const { rows, bad } = readAll(memDir)
+  if (strict && bad > 0) {
+    const error = new Error('封存日志有 ' + bad + ' 行无法解析，封存状态不确定')
+    error.code = 'SEAL_EVENTS_CORRUPT'
+    error.bad = bad
+    throw error
+  }
   const last = new Map()
   for (const r of rows) {
     if (!before(r, until)) continue

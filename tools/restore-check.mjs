@@ -43,21 +43,6 @@ function badLines(memDir) {
   return [laterEvents, recallEvents, unfinishedEvents, sealEvents, linkEvents, chapterEvents].reduce((n, m) => n + m.readAll(memDir).bad, 0) + unsaid.badLines(memDir)
 }
 
-// 归档范围内的相对文件清单 + 内容摘要：只比经历字段会漏掉日记、抽屉这类旁支文件。
-function fileDigests(memDir) {
-  const out = new Map()
-  const walk = (dir, rel = '') => {
-    for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-      const abs = path.join(dir, ent.name)
-      const key = rel ? rel + '/' + ent.name : ent.name
-      if (ent.isDirectory()) walk(abs, key)
-      else if (ent.isFile()) out.set(key, crypto.createHash('sha256').update(fs.readFileSync(abs)).digest('hex'))
-    }
-  }
-  if (fs.existsSync(memDir)) walk(memDir)
-  return out
-}
-
 export function restoreCheck({ from, data = '' }) {
   if (!from) throw new Error('需要 --from <备份包目录>')
   const report = { ok: false, verdict: '不可恢复', from: path.resolve(from), checks: [] }
@@ -90,32 +75,40 @@ export function restoreCheck({ from, data = '' }) {
       if (!fs.existsSync(origMem)) {
         check('与原数据一致', false, '找不到原数据：' + origMem)
       } else {
-        const orig = new Map(loadAll(origMem).map((r) => [r.id, fingerprint(r)]))
-        const back = new Map(rows.map((r) => [r.id, fingerprint(r)]))
-        const diffs = []
-        for (const [id, fp] of orig) {
-          const b = back.get(id)
-          if (!b) { diffs.push({ id, field: '整条缺失' }); continue }
-          for (const k of Object.keys(fp)) if (fp[k] !== b[k]) diffs.push({ id, field: k })
+        // 原数据读不了是"没法比对"，不是"备份坏了"：单独记，别把恢复演练判成不可恢复。
+        try {
+          const orig = new Map(loadAll(origMem).map((r) => [r.id, fingerprint(r)]))
+          const back = new Map(rows.map((r) => [r.id, fingerprint(r)]))
+          const diffs = []
+          for (const [id, fp] of orig) {
+            const b = back.get(id)
+            if (!b) { diffs.push({ id, field: '整条缺失' }); continue }
+            for (const k of Object.keys(fp)) if (fp[k] !== b[k]) diffs.push({ id, field: k })
+          }
+          for (const id of back.keys()) if (!orig.has(id)) diffs.push({ id, field: '原数据里没有（备份之后被删？）' })
+          const d0 = drawer(origMem), d1 = drawer(restored)
+          if (d0.open !== d1.open || d0.spoken !== d1.spoken) diffs.push({ id: '（抽屉）', field: `开着 ${d0.open}→${d1.open}，说出口 ${d0.spoken}→${d1.spoken}` })
+
+          // 文件层比对：用归档自己的 collectFiles，范围才和导出完全一致（跳过锁与临时项）。
+          const digestOf = (list) => new Map(list.map((f) => [f.name, crypto.createHash('sha256').update(fs.readFileSync(f.abs)).digest('hex')]))
+          const f0 = digestOf(archive.collectFiles(origMem))
+          const f1 = digestOf(archive.collectFiles(restored))
+          const missingFiles = [...f0.keys()].filter((k) => !f1.has(k))
+          const extraFiles = [...f1.keys()].filter((k) => !f0.has(k))
+          const changedFiles = [...f0.entries()].filter(([k, v]) => f1.has(k) && f1.get(k) !== v).map(([k]) => k)
+          for (const k of missingFiles) diffs.push({ id: '（文件）', field: '恢复后缺：' + k })
+          for (const k of extraFiles) diffs.push({ id: '（文件）', field: '原数据没有：' + k })
+          for (const k of changedFiles) diffs.push({ id: '（文件）', field: '内容不同：' + k })
+
+          report.diffs = diffs.slice(0, 50)
+          check('与原数据一致', diffs.length === 0, diffs.length
+            ? diffs.length + ' 处不一致（只列 id、文件名和字段；如果备份之后她又写过东西，这里有差异是正常的）'
+            : orig.size + ' 条经历的 then、后记、想起次数、未完状态、封存、联想、章节全部一致；抽屉 ' + d0.open + ' 条开着、' + d0.spoken + ' 条说出口了；'
+              + f1.size + ' 个文件的内容摘要全部一致')
+        } catch (e) {
+          report.compareError = String(e && e.message ? e.message : e)
+          check('与原数据一致', false, '原数据读取失败，未完成比对：' + report.compareError)
         }
-        for (const id of back.keys()) if (!orig.has(id)) diffs.push({ id, field: '原数据里没有（备份之后被删？）' })
-        const d0 = drawer(origMem), d1 = drawer(restored)
-        if (d0.open !== d1.open || d0.spoken !== d1.spoken) diffs.push({ id: '（抽屉）', field: `开着 ${d0.open}→${d1.open}，说出口 ${d0.spoken}→${d1.spoken}` })
-
-        // 文件层比对：清单少一个、多一个、内容变一个，都算不一致。
-        const f0 = fileDigests(origMem), f1 = fileDigests(restored)
-        const missingFiles = [...f0.keys()].filter((k) => !f1.has(k))
-        const extraFiles = [...f1.keys()].filter((k) => !f0.has(k))
-        const changedFiles = [...f0.entries()].filter(([k, v]) => f1.has(k) && f1.get(k) !== v).map(([k]) => k)
-        for (const k of missingFiles) diffs.push({ id: '（文件）', field: '恢复后缺：' + k })
-        for (const k of extraFiles) diffs.push({ id: '（文件）', field: '原数据没有：' + k })
-        for (const k of changedFiles) diffs.push({ id: '（文件）', field: '内容不同：' + k })
-
-        report.diffs = diffs.slice(0, 50)
-        check('与原数据一致', diffs.length === 0, diffs.length
-          ? diffs.length + ' 处不一致（只列 id、文件名和字段；如果备份之后她又写过东西，这里有差异是正常的）'
-          : orig.size + ' 条经历的 then、后记、想起次数、未完状态、封存、联想、章节全部一致；抽屉 ' + d0.open + ' 条开着、' + d0.spoken + ' 条说出口了；'
-            + f1.size + ' 个文件的内容摘要全部一致')
       }
     }
   } catch (e) {
@@ -129,9 +122,11 @@ export function restoreCheck({ from, data = '' }) {
   // 没给原目录时只说"演练通过"，不能声称"与原数据一致"——那需要真的比过。
   report.verdict = !fatalOk
     ? '不可恢复'
-    : compared
-      ? (report.ok ? '可恢复，且与原数据一致' : '可恢复，但与原数据有差异')
-      : '可恢复（未提供原数据，未做一致性比对）'
+    : report.compareError
+      ? '可恢复（原数据读取失败，未完成比对）'
+      : compared
+        ? (report.ok ? '可恢复，且与原数据一致' : '可恢复，但与原数据有差异')
+        : '可恢复（未提供原数据，未做一致性比对）'
   return report
 }
 

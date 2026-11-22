@@ -46,3 +46,26 @@ test('原数据没变时仍然判一致', () => {
   const r = restoreCheck({ from: bk.dir, data })
   assert.equal(r.verdict, '可恢复，且与原数据一致', JSON.stringify(r.diffs || r.checks))
 })
+test('归档跳过的临时文件不算缺失（和导出范围一致）', () => {
+  const { data, out, mem } = seed()
+  fs.writeFileSync(path.join(mem, 'settings.json.tmp-123'), '{}', 'utf8')
+  const bk = backup({ data, out })
+  const r = restoreCheck({ from: bk.dir, data })
+  assert.equal(r.verdict, '可恢复，且与原数据一致', JSON.stringify(r.diffs || r.checks))
+})
+
+test('原库读不了：不把备份判成不可恢复，只说未完成比对', () => {
+  const { data, out, mem } = seed()
+  const bk = backup({ data, out })
+  const target = path.join(mem, 'autobiography.jsonl')
+  const original = fs.readFileSync
+  fs.readFileSync = (...args) => {
+    if (String(args[0]) === target) { const e = new Error('EACCES'); e.code = 'EACCES'; throw e }
+    return original(...args)
+  }
+  let r
+  try { r = restoreCheck({ from: bk.dir, data }) } finally { fs.readFileSync = original }
+
+  assert.equal(r.verdict, '可恢复（原数据读取失败，未完成比对）', JSON.stringify(r.checks))
+  assert.ok(!String(r.verdict).includes('不可恢复'))
+})

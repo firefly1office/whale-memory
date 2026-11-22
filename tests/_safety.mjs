@@ -37,10 +37,13 @@ export function registerTmpRoot(dir) {
   const raw = String(dir || '').trim()
   if (!raw) throw new Error('空路径不能登记')
   const resolved = path.resolve(raw)
-  if (resolved === path.resolve(process.cwd())) throw new Error('不能把当前工作目录登记成可删目录')
+  const cwd = norm(process.cwd())
+  const target = norm(resolved)
+  // 也不能登记工作目录的上级：那会把 cwd 和整个仓库都放进可删范围。
+  if (cwd === target || cwd.startsWith(target + path.sep)) throw new Error('不能登记包含当前工作目录的目录：' + resolved)
   const st = fs.statSync(resolved)
   if (!st.isDirectory()) throw new Error('只能登记目录：' + resolved)
-  roots.add(norm(resolved))
+  roots.add(target)
   return resolved
 }
 

@@ -17,7 +17,13 @@ function memDir(dataDir) {
 function readRows(dataDir) {
   const file = path.join(memDir(dataDir), EXPERIENCES)
   let raw = ''
-  try { raw = fs.readFileSync(file, 'utf8') } catch { return { rows: [], file } }
+  try {
+    raw = fs.readFileSync(file, 'utf8')
+  } catch (error) {
+    // 只有"还没有经历文件"能当成空库；权限/磁盘错误必须停下来，不能报"成功、0 条"。
+    if (error?.code === 'ENOENT') return { rows: [], file }
+    throw new Error('经历文件读不出来：' + String(error?.message || error))
+  }
   const rows = []
   for (const line of raw.split('\n')) {
     if (!line.trim()) continue
@@ -63,8 +69,14 @@ function sameFeeling(a, b) {
 }
 
 export function migrate({ dataDir, apply = false, backupDir = '' }) {
-  const { rows, file } = readRows(dataDir)
-  const { events, invalid } = plan({ dataDir })
+  let rows, file, events, invalid
+  try {
+    ({ rows, file } = readRows(dataDir))
+    ;({ events, invalid } = plan({ dataDir }))
+  } catch (error) {
+    // 读不了就明确失败：不能回退成"空库、成功迁移 0 条"。
+    return { ok: false, error: String(error?.message || error) }
+  }
   if (invalid.length) {
     return { ok: false, error: '有 ' + invalid.length + ' 条经历没有 id，不能迁移（先在经历里补 id 再跑）。', invalid, experiences: rows.length }
   }
@@ -83,41 +95,76 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   const eventsBackup = existing ? backup + '.events' : ''
   if (existing) fs.copyFileSync(ev, eventsBackup)
   writeManifest(backup, { eventsBackup })
-  const prefix = existing && !existing.endsWith('\n') ? '\n' : ''
-  const tmp = ev + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
-  fs.writeFileSync(tmp, existing + prefix + events.map((e) => JSON.stringify(e)).join('\n') + '\n', 'utf8')
-  fs.renameSync(tmp, ev)
 
-  // 去掉行内 later（保留其他字段原样）
-  const nextRows = rows.map((r) => {
-    const { later, ...rest } = r
-    void later
-    return rest
-  })
-  const tmp2 = file + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
-  fs.writeFileSync(tmp2, nextRows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
-  fs.renameSync(tmp2, file)
-
-  // 等价校验：每条计划事件都要能在迁移后的视图里找到，且 at / thought / reason / feeling 都对得上
-  const views = new Map(loadAll(dir).map((r) => [r.id, r]))
-  const missing = []
-  for (const e of events) {
-    const row = views.get(e.id)
-    const hit = row && (row.later || []).some((l) => String(l.at || '') === e.at
-      && String(l.thought) === e.thought
-      && String(l.reason || '') === String(e.reason || '')
-      && sameFeeling(l.feeling, e.feeling))
-    if (!hit) missing.push(e)
+  // 已经写过的事件不再写：上次中途失败后重试，不会把同一条后记加成两条。
+  const seen = new Set()
+  for (const line of existing.split('\n')) {
+    if (!line.trim()) continue
+    try {
+      const r = JSON.parse(line)
+      seen.add(r.id + '|' + r.at + '|' + r.thought)
+    } catch { /* 已有坏行原样保留 */ }
   }
-  if (missing.length) {
-    // 两份文件一起回滚：只恢复经历、留下事件就是重复后记的来源。
-    fs.copyFileSync(backup, file)
-    if (eventsBackup) fs.copyFileSync(eventsBackup, ev)
-    else { try { fs.rmSync(ev, { force: true }) } catch { /* 删不掉就标明 */ } }
-    return { ok: false, error: '校验不一致，已回滚经历与事件两份文件。', missing, backup }
+  const fresh = events.filter((e) => !seen.has(e.id + '|' + e.at + '|' + e.thought))
+
+  // 任何一步失败都把两份文件恢复原样，并核对回滚本身是否成功。
+  const restoreBoth = () => {
+    const restored = { experiences: false, events: false }
+    try { fs.copyFileSync(backup, file); restored.experiences = true } catch { /* 记在结果里 */ }
+    try {
+      if (eventsBackup) { fs.copyFileSync(eventsBackup, ev); restored.events = true } else { fs.rmSync(ev, { force: true }); restored.events = true }
+    } catch { /* 记在结果里 */ }
+    return restored
   }
 
-  return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: events.length, backup, eventsBackup }
+  try {
+    if (fresh.length) {
+      const prefix = existing && !existing.endsWith('\n') ? '\n' : ''
+      const tmp = ev + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
+      fs.writeFileSync(tmp, existing + prefix + fresh.map((e) => JSON.stringify(e)).join('\n') + '\n', 'utf8')
+      fs.renameSync(tmp, ev)
+    }
+
+    // 去掉行内 later（保留其他字段原样）
+    const nextRows = rows.map((r) => {
+      const { later, ...rest } = r
+      void later
+      return rest
+    })
+    const tmp2 = file + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
+    fs.writeFileSync(tmp2, nextRows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
+    fs.renameSync(tmp2, file)
+
+    // 等价校验：每条计划事件都要能在迁移后的视图里找到，且 at / thought / reason / feeling 都对得上
+    const views = new Map(loadAll(dir).map((r) => [r.id, r]))
+    const missing = []
+    for (const e of events) {
+      const row = views.get(e.id)
+      const hit = row && (row.later || []).some((l) => String(l.at || '') === e.at
+        && String(l.thought) === e.thought
+        && String(l.reason || '') === String(e.reason || '')
+        && sameFeeling(l.feeling, e.feeling))
+      if (!hit) missing.push(e)
+    }
+    if (missing.length) {
+      const err = new Error('校验不一致')
+      err.missing = missing
+      throw err
+    }
+
+    return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: fresh.length, backup, eventsBackup }
+  } catch (error) {
+    const restored = restoreBoth()
+    return {
+      ok: false,
+      error: '迁移中途失败（' + String(error?.code || error?.message || error) + '），已回滚两份文件：'
+        + (restored.experiences ? '经历已恢复' : '经历恢复失败') + '；' + (restored.events ? '事件已恢复' : '事件恢复失败'),
+      missing: error?.missing,
+      restored,
+      backup,
+      eventsBackup
+    }
+  }
 }
 
 // 可以重复回滚：备份不删，当前事件文件只挪开不删（见 lib/migration-backup.mjs）

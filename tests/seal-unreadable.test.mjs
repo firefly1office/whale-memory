@@ -10,7 +10,7 @@ import path from 'node:path'
 import test from 'node:test'
 
 import { renderBook } from '../packages/core/lib/book.js'
-import { readAll } from '../packages/core/lib/seal-events.js'
+import { decide, readAll } from '../packages/core/lib/seal-events.js'
 import { addExperience, loadAll } from '../packages/core/lib/self-experience.js'
 import { buildWakingBlock } from '../packages/core/lib/waking.js'
 import { tmpDir } from './_safety.mjs'
@@ -40,16 +40,38 @@ test('文件还不存在（ENOENT）仍然按空处理：旧库不该报错', ()
   assert.equal(loadAll(dir).length, 1)
 })
 
-test('自动展示宁可为空：醒来块与书都不把经历露出来', () => {
+test('自动展示宁可为空：醒来块不把经历露出来；显式导出抛错', () => {
   const dir = brokenSealLog()
   const dataDir = tmpDir('seal-display-')
   const memDir = path.join(dataDir, 'plugin-data', 'biomimetic-memory')
   fs.mkdirSync(memDir, { recursive: true })
   fs.cpSync(dir, memDir, { recursive: true })
 
-  const wake = buildWakingBlock(dataDir, 'private_3249105390')
+  const wake = buildWakingBlock(dataDir, 'private:fixture-owner')
   assert.equal(wake, '', '醒来块应为空')
 
-  const book = renderBook(memDir)
-  assert.equal(book, '', '书应为空')
+  // 书是显式导出：不能返回空书把上一次成功的文件覆盖掉，必须抛错让调用方收手。
+  assert.throws(() => renderBook(memDir), /封存日志读不出来/)
+})
+
+test('日志可读但坏了一行：封存状态未知，默认展示也要挡住', () => {
+  const dir = tmpDir('seal-corrupt-')
+  const row = addExperience(dir, { text: '她唯一封存过的那件事', thought: '旧想法' })
+  // 这一行是她唯一的封存事件；写坏它，解析时只会增加 bad 计数。
+  fs.writeFileSync(path.join(dir, 'seal-events.jsonl'), '{"id":"' + row.id + '","action":"seal", 坏行\n', 'utf8')
+
+  assert.throws(() => loadAll(dir), /封存日志有 1 行无法解析|封存状态不确定/)
+  assert.throws(() => renderBook(dir), /封存日志有 1 行无法解析|封存状态不确定/)
+
+  const dataDir = tmpDir('seal-corrupt-display-')
+  const memDir = path.join(dataDir, 'plugin-data', 'biomimetic-memory')
+  fs.mkdirSync(memDir, { recursive: true })
+  fs.cpSync(dir, memDir, { recursive: true })
+  assert.equal(buildWakingBlock(dataDir, 'private:fixture-owner'), '')
+
+  // 封存/解封本身还能工作：坏行不该把写入口也堵死，诊断工具需要看到 bad 计数。
+  const out = decide(memDir, { id: row.id, action: 'unseal' })
+  assert.equal(out.ok, undefined)
+  assert.ok(out.row)
+  assert.equal(readAll(memDir).bad, 1)
 })
