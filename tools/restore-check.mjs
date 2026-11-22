@@ -49,7 +49,7 @@ function badExperiences(memDir) {
     try {
       const r = JSON.parse(line)
       // 合法旧记录可能没有 id 但顶层 text；只有"没有正文"或"解析失败"才算坏。
-      const body = r?.then?.text || r?.text
+      const body = (r.then && typeof r.then === 'object') ? r.then.text : r.text
       if (!r || !String(body || '').trim()) bad += 1
     } catch { bad += 1 }
   }

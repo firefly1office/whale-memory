@@ -275,15 +275,18 @@ test('缺 at 的行内后记：整行保留，不迁移也不改历史视图', (
   assert.equal(raw.later.length, 1, '缺 at 的后记要留在原文件里')
 })
 
-test('formerId 撞上另一条的当前 id：写盘前拒绝', () => {
+test('formerId 撞上另一条的当前 id：按读取端规则忽略别名，迁移正常进行', () => {
   const rows = [
     { id: 'X', day: '2026-11-01', then: { text: 'A', thought: '旧 A' }, later: [{ at: '2026-11-02T00:00:00.000Z', thought: '新 A' }] },
     { id: 'exp_b', formerId: 'X', day: '2026-11-01', then: { text: 'B', thought: '旧 B' }, later: [{ at: '2026-11-03T00:00:00.000Z', thought: '新 B' }] }
   ]
   const { dataDir, dir } = seed(rows)
-  const before = fs.readFileSync(path.join(dir, 'self-experience.jsonl'))
   const out = migrate({ dataDir, apply: true })
-  assert.equal(out.ok, false)
-  assert.ok(Array.isArray(out.ambiguous), JSON.stringify(out))
-  assert.equal(fs.readFileSync(path.join(dir, 'self-experience.jsonl')).compare(before), 0)
+  assert.equal(out.ok, true, JSON.stringify(out))
+  const loaded = loadAll(dir)
+  const a = loaded.find((r) => r.id === 'X')
+  const bRow = loaded.find((r) => r.id === 'exp_b')
+  assert.equal(a.later.length, 1)
+  assert.equal(bRow.later.length, 1, 'B 自己的后记照常迁移')
+  assert.equal(bRow.formerId || '', '', '撞上显式 id 的别名会被读取端清掉')
 })

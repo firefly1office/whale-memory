@@ -31,7 +31,7 @@ function readRows(dataDir) {
     if (!line.trim()) continue
     try { rows.push(JSON.parse(line)) } catch { throw new Error('经历文件里有坏行，先修好再迁移。') }
   }
-  return { rows, file }
+  return { rows, file, raw }
 }
 
 const stamp = () => new Date().toISOString().replace(/[:.]/g, '-').slice(0, 23)
@@ -75,9 +75,9 @@ function sameFeeling(a, b) {
 }
 
 export function migrate({ dataDir, apply = false, backupDir = '' }) {
-  let rows, file, events, invalid, skipped
+  let rows, file, events, invalid, skipped, rawText
   try {
-    ({ rows, file } = readRows(dataDir))
+    ({ rows, file, raw: rawText } = readRows(dataDir))
     ;({ events, invalid, skipped } = plan({ dataDir }))
   } catch (error) {
     // 读不了就明确失败：不能回退成"空库、成功迁移 0 条"。
@@ -106,7 +106,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   // 迁移回执：只有上一次迁移明确写过的副本才允许抵扣。
   // 没有回执时宁可留两条（来源不明的重复），也不能吞掉一条独立写下的后记。
   const receiptFile = path.join(dir, 'later-events-migration-receipt.json')
-  const experiencesText = fs.readFileSync(file, 'utf8')
+  const experiencesText = rawText
   const sourceHash = createHash('sha256').update(fs.readFileSync(file)).digest('hex')
   const receiptBefore = fs.existsSync(receiptFile) ? fs.readFileSync(receiptFile, 'utf8') : null
   let receipt = { version: 1, events: [] }
@@ -146,8 +146,8 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     const id = String(r.id || '')
     if (!id || !r.formerId) continue
     const alias = String(r.formerId)
-    // 别名恰好是另一条的当前 id：读取端会把同一事件算给两条，归谁无法判定，写盘前拒绝。
-    if (idSet.has(alias)) { ambiguous.add(alias); continue }
+    // 读取端 identify 会把撞上显式 id 的别名清掉；迁移也忽略这个别名。
+    if (idSet.has(alias)) continue
     if (aliasSeen.has(alias) && aliasSeen.get(alias) !== id) ambiguous.add(alias)
     else aliasSeen.set(alias, id)
   }
@@ -210,13 +210,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     const existingForId = existingEvents.filter((e) => ownerKey(e.id) === id)
     const freshForId = fresh.filter((e) => ownerKey(e.id) === id)
     const keptInline = skippedIdsForView.has(id)
-      ? (Array.isArray(r.later) ? r.later.filter(Boolean).map((l) => ({
-        at: String(l.at || r.at || ''),
-        day: String(l.day || r.day || ''),
-        thought: String(l.thought || ''),
-        reason: String(l.reason || ''),
-        feeling: l.feeling
-      })) : [])
+      ? (Array.isArray(r.later) ? r.later.filter(Boolean) : [])
       : []
     const items = [
       ...keptInline.map((e) => ({ sig: sigOf(e), at: String(e.at || ''), kind: 0 })),
@@ -229,6 +223,11 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   try {
     return withFileLock(ev + '.lock', () => {
       const beforeWrite = fs.existsSync(ev) ? fs.readFileSync(ev, 'utf8') : ''
+      if (fs.readFileSync(file, 'utf8') !== experiencesText) {
+        const err = new Error('经历文件在迁移期间被追加/修改（可能有并发写入），已停止')
+        err.code = 'CONCURRENT_WRITE'
+        throw err
+      }
       if (beforeWrite !== existing) {
         const err = new Error('事件文件在迁移期间被改动（可能有并发写入），已停止')
         err.code = 'CONCURRENT_WRITE'
@@ -264,6 +263,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
       if (fs.readFileSync(file, 'utf8') !== experiencesText) {
         const err = new Error('经历文件在迁移期间被追加/修改（可能有并发写入），已停止')
         err.code = 'CONCURRENT_WRITE'
+        err.wrote = true
         throw err
       }
       const tmp2 = file + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
@@ -296,7 +296,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
           sourceHash,
           updatedAt: new Date().toISOString(),
           events: [
-            ...(Array.isArray(receipt.events) ? receipt.events : []),
+            ...(receiptValid && Array.isArray(receipt.events) ? receipt.events : []),
             ...fresh.map((e) => ({ id: String(e.id), ...JSON.parse(sigOf(e)) }))
           ]
         }
@@ -306,7 +306,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
       return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: fresh.length, eventsMatched: matched, skipped, backup, eventsBackup }
     })
   } catch (error) {
-    if (error && error.code === 'CONCURRENT_WRITE') {
+    if (error && error.code === 'CONCURRENT_WRITE' && !error.wrote) {
       return { ok: false, error: String(error.message || error), concurrent: true, backup, eventsBackup }
     }
     const restored = restoreBoth()
