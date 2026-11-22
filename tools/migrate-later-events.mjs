@@ -97,6 +97,18 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   if (eventsExisted) fs.copyFileSync(ev, eventsBackup)
   writeManifest(backup, { eventsBackup })
 
+  // 迁移回执：只有上一次迁移明确写过的副本才允许抵扣。
+  // 没有回执时宁可留两条（来源不明的重复），也不能吞掉一条独立写下的后记。
+  const receiptFile = path.join(dir, 'later-events-migration-receipt.json')
+  const receiptBefore = fs.existsSync(receiptFile) ? fs.readFileSync(receiptFile, 'utf8') : null
+  let receipt = { version: 1, events: [] }
+  if (receiptBefore) {
+    try {
+      const parsed = JSON.parse(receiptBefore)
+      if (parsed && Array.isArray(parsed.events)) receipt = parsed
+    } catch { /* 回执坏了就当没有：只影响抵扣，不影响安全 */ }
+  }
+
   // 每条事件的全字段签名：字段不同就是不同事件，自然日不同也不能合并。
   const sigOf = (e) => JSON.stringify({
     at: String(e.at || ''),
@@ -119,18 +131,39 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   // 旧后记可能挂在 formerId 上；读取时两条 id 会合并到同一条经历。
   // 抵扣与校验都按"当前 id"归并，否则合法旧 id 会被误判成缺一条。
   const ownerOf = new Map()
+  const aliasSeen = new Map()
+  const ambiguous = new Set()
   for (const r of rows) {
     const id = String(r.id || '')
     if (!id) continue
     ownerOf.set(id, id)
-    if (r.formerId) ownerOf.set(String(r.formerId), id)
+    if (!r.formerId) continue
+    const alias = String(r.formerId)
+    if (aliasSeen.has(alias) && aliasSeen.get(alias) !== id) ambiguous.add(alias)
+    else aliasSeen.set(alias, id)
+    ownerOf.set(alias, id)
+  }
+  if (ambiguous.size) {
+    return { ok: false, error: 'formerId 指向多条经历，迁移前需人工确认：' + [...ambiguous].join(', '), ambiguous: [...ambiguous] }
   }
   const ownerKey = (id) => ownerOf.get(String(id)) || String(id)
 
-  const available = new Map()
+  // 只有"文件里确实有这条 + 上次迁移回执也承认写过这条"才抵扣。
+  const fileCounts = new Map()
   for (const e of existingEvents) {
     const k = ownerKey(e.id) + '|' + sigOf(e)
-    available.set(k, (available.get(k) || 0) + 1)
+    fileCounts.set(k, (fileCounts.get(k) || 0) + 1)
+  }
+  const receiptCounts = new Map()
+  for (const e of (Array.isArray(receipt.events) ? receipt.events : [])) {
+    if (!e || !e.id) continue
+    const k = ownerKey(e.id) + '|' + sigOf(e)
+    receiptCounts.set(k, (receiptCounts.get(k) || 0) + 1)
+  }
+  const available = new Map()
+  for (const [k, n] of fileCounts) {
+    const r = receiptCounts.get(k) || 0
+    if (r > 0) available.set(k, Math.min(n, r))
   }
   const fresh = []
   let matched = 0
@@ -144,52 +177,48 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   // 任何一步失败都把两份文件恢复原样，并核对回滚本身是否成功。
   // 事件文件"原本存在但为空"也要恢复成空文件，不能当成没有文件删掉。
   const restoreBoth = () => {
-    const restored = { experiences: false, events: false }
+    const restored = { experiences: false, events: false, receipt: false }
     try { fs.copyFileSync(backup, file); restored.experiences = true } catch { /* 记在结果里 */ }
     try {
       if (eventsExisted) fs.copyFileSync(eventsBackup, ev)
       else fs.rmSync(ev, { force: true })
       restored.events = true
     } catch { /* 记在结果里 */ }
+    try {
+      if (receiptBefore === null) fs.rmSync(receiptFile, { force: true })
+      else fs.writeFileSync(receiptFile, receiptBefore, 'utf8')
+      restored.receipt = true
+    } catch { /* 记在结果里 */ }
     return restored
   }
 
-  // 迁移后的预期视图：已有事件全留；行内后记里，凡已有相同事件的那条算"上次已复制"，不再留；
-// 其余按原顺序插入。同一时间戳时行内后记在事件之前（与迁移前一致）。
+  // 迁移后的预期视图：已有事件 + 这次真正要写入的 fresh；同一时间戳时 fresh 在前。
   const viewAfter = new Map()
   for (const r of rows) {
     const id = String(r.id || '')
     if (!id) continue
-    const inline = Array.isArray(r.later) ? r.later.filter(Boolean).map((l) => ({
-      at: String(l.at || r.at || ''),
-      day: String(l.day || r.day || ''),
-      thought: String(l.thought || ''),
-      reason: String(l.reason || ''),
-      feeling: l.feeling
-    })) : []
     const existingForId = existingEvents.filter((e) => ownerKey(e.id) === id)
-    const counts = new Map()
-    for (const e of existingForId) {
-      const k = sigOf(e)
-      counts.set(k, (counts.get(k) || 0) + 1)
-    }
-    const kept = []
-    for (const l of inline) {
-      const k = sigOf(l)
-      const left = counts.get(k) || 0
-      if (left > 0) { counts.set(k, left - 1); continue }
-      kept.push(l)
-    }
+    const freshForId = fresh.filter((e) => ownerKey(e.id) === id)
     const items = [
-      ...existingForId.map((e) => ({ sig: sigOf(e), at: String(e.at || ''), kind: 1, seq: 0 })),
-      ...kept.map((l) => ({ sig: sigOf(l), at: String(l.at || ''), kind: 0, seq: 0 }))
+      ...freshForId.map((e) => ({ sig: sigOf(e), at: String(e.at || ''), kind: 0 })),
+      ...existingForId.map((e) => ({ sig: sigOf(e), at: String(e.at || ''), kind: 1 }))
     ]
     items.sort((a, b) => (a.at === b.at ? a.kind - b.kind : a.at.localeCompare(b.at)))
     viewAfter.set(id, items.map((x) => x.sig))
   }
-
   try {
     if (fresh.length) {
+      // 先记回执再改文件：回执只是"允许抵扣"的凭据，且与文件内容取交集，写多不会造成丢失。
+      const nextReceipt = {
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        events: [
+          ...(Array.isArray(receipt.events) ? receipt.events : []),
+          ...fresh.map((e) => ({ id: String(e.id), ...JSON.parse(sigOf(e)) }))
+        ]
+      }
+      fs.writeFileSync(receiptFile, JSON.stringify(nextReceipt) + '\n', 'utf8')
+
       // 事件文件按时间插入，而不是整批追加：同一时间戳时，行内后记原本在事件之前，
       // 追加到末尾会把"现在怎么想"从后一条换成前一条。
       const items = []

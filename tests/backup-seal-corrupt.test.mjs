@@ -77,3 +77,12 @@ test('只剩备份（不给 --data）时：字节可恢复、未比对、坏行�
   assert.ok(r.verdict.includes('未做一致性比对'), r.verdict)
   assert.ok(r.verdict.includes('封存日志'), r.verdict)
 })
+test('封存坏行 + 其它事件坏行：省略 --data 也不能放行', () => {
+  const { data, mem } = seedCorrupt()
+  fs.appendFileSync(path.join(mem, 'later-events.jsonl'), '{"broken":\n', 'utf8')
+  const out = tmpDir('seal-corrupt-out-')
+  const bk = backup({ data, out })
+  const r = restoreCheck({ from: bk.dir })
+  assert.equal(r.ok, false, JSON.stringify(r.checks))
+  assert.equal(r.verdict, '不可恢复')
+})

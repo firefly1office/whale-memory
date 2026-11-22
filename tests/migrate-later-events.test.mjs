@@ -124,13 +124,15 @@ test('经历文件读不出来（非 ENOENT）：迁移返回失败，不报成�
   assert.equal(out.ok, false, JSON.stringify(out))
   assert.match(out.error, /经历文件读不出来/)
 })
-test('两条相同行内后记 + 一条已有副本：只抵扣一条，另一条要迁移过去', () => {
+test('两条相同行内后记 + 一条已有副本（有迁移回执）：只抵扣一条，另一条要迁移过去', () => {
   const later = { at: '2026-11-02T00:00:00.000Z', day: '2026-11-02', thought: '新', reason: '' }
   const rows = [{ id: 'exp_dup', day: '2026-11-01', then: { text: 'A', thought: '旧' }, later: [later, { ...later }] }]
   const { dataDir, dir } = seed(rows)
   const ev = eventsFile(dir)
   const existing = { id: 'exp_dup', ...later }
   fs.writeFileSync(ev, JSON.stringify(existing) + '\n', 'utf8')
+  // 回执：这条事件是上次迁移写下的副本
+  fs.writeFileSync(path.join(dir, 'later-events-migration-receipt.json'), JSON.stringify({ version: 1, events: [existing] }) + '\n', 'utf8')
 
   const out = migrate({ dataDir, apply: true })
   assert.equal(out.ok, true, JSON.stringify(out))
@@ -209,7 +211,9 @@ test('旧 ID（formerId）上的后记：迁移不被误判缺条', () => {
     later: [{ at: '2026-11-02T00:00:00.000Z', day: '2026-11-02', thought: '新想法' }]
   }]
   const { dataDir, dir } = seed(rows)
-  fs.writeFileSync(eventsFile(dir), JSON.stringify({ id: 'old_123', at: '2026-11-02T00:00:00.000Z', day: '2026-11-02', thought: '新想法', reason: '' }) + '\n', 'utf8')
+  const legacy = { id: 'old_123', at: '2026-11-02T00:00:00.000Z', day: '2026-11-02', thought: '新想法', reason: '' }
+  fs.writeFileSync(eventsFile(dir), JSON.stringify(legacy) + '\n', 'utf8')
+  fs.writeFileSync(path.join(dir, 'later-events-migration-receipt.json'), JSON.stringify({ version: 1, events: [legacy] }) + '\n', 'utf8')
 
   const out = migrate({ dataDir, apply: true })
   assert.equal(out.ok, true, JSON.stringify(out))
@@ -217,4 +221,32 @@ test('旧 ID（formerId）上的后记：迁移不被误判缺条', () => {
   assert.equal(out.eventsCreated, 0)
   const loaded = loadAll(dir).find((r) => r.id === 'exp_new')
   assert.equal(loaded.later.length, 1)
+})
+
+test('没有迁移回执时：相同的行内后记与事件都保留，不吞任何一条', () => {
+  const later = { at: '2026-11-02T00:00:00.000Z', day: '2026-11-02', thought: '同一条' }
+  const rows = [{ id: 'exp_noreceipt', day: '2026-11-01', then: { text: 'A', thought: '旧' }, later: [{ ...later }] }]
+  const { dataDir, dir } = seed(rows)
+  fs.writeFileSync(eventsFile(dir), JSON.stringify({ id: 'exp_noreceipt', ...later, reason: '' }) + '\n', 'utf8')
+
+  const out = migrate({ dataDir, apply: true })
+  assert.equal(out.ok, true, JSON.stringify(out))
+  assert.equal(out.eventsMatched, 0, '没有回执不能抵扣')
+  assert.equal(out.eventsCreated, 1)
+  const loaded = loadAll(dir).find((r) => r.id === 'exp_noreceipt')
+  assert.equal(loaded.later.length, 2, '来源不明时宁可留两条')
+})
+
+test('formerId 指向多条经历：写盘前拒绝，两份文件都不动', () => {
+  const rows = [
+    { id: 'exp_a', formerId: 'dup_alias', day: '2026-11-01', then: { text: 'A', thought: '旧 A' }, later: [{ at: '2026-11-02T00:00:00.000Z', thought: '新 A' }] },
+    { id: 'exp_b', formerId: 'dup_alias', day: '2026-11-01', then: { text: 'B', thought: '旧 B' }, later: [{ at: '2026-11-03T00:00:00.000Z', thought: '新 B' }] }
+  ]
+  const { dataDir, dir } = seed(rows)
+  const expFile = path.join(dir, 'self-experience.jsonl')
+  const before = fs.readFileSync(expFile)
+  const out = migrate({ dataDir, apply: true })
+  assert.equal(out.ok, false)
+  assert.ok(Array.isArray(out.ambiguous), JSON.stringify(out))
+  assert.equal(fs.readFileSync(expFile).compare(before), 0)
 })

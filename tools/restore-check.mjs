@@ -43,6 +43,15 @@ function badLines(memDir) {
   return [laterEvents, recallEvents, unfinishedEvents, sealEvents, linkEvents, chapterEvents].reduce((n, m) => n + m.readAll(memDir).bad, 0) + unsaid.badLines(memDir)
 }
 
+// 坏行分布：封存日志的坏行可以"按字节保全 + 展示前修复"，
+// 其它事件文件的坏行不能因此一起被放行。
+function badBreakdown(memDir) {
+  const seal = sealEvents.readAll(memDir).bad
+  const other = [laterEvents, recallEvents, unfinishedEvents, linkEvents, chapterEvents]
+    .reduce((n, m) => n + m.readAll(memDir).bad, 0) + unsaid.badLines(memDir)
+  return { seal, other }
+}
+
 export function restoreCheck({ from, data = '' }) {
   if (!from) throw new Error('需要 --from <备份包目录>')
   const report = { ok: false, verdict: '不可恢复', from: path.resolve(from), checks: [] }
@@ -70,7 +79,8 @@ export function restoreCheck({ from, data = '' }) {
     // 原数据里本来就有的坏行（插件读的时候会跳过），备份如实带上不算备份坏了；只有比原数据多出来的才算
     let origBad = null
     if (data) { const om = path.join(path.resolve(data), 'plugin-data', 'biomimetic-memory'); if (fs.existsSync(om)) { try { origBad = badLines(om) } catch { origBad = null } } }
-    const badOk = bad === 0 || (origBad !== null && bad <= origBad) || (!data && sealBad > 0)
+    const parts = badBreakdown(restored)
+    const badOk = bad === 0 || (origBad !== null && bad <= origBad) || (!data && parts.seal > 0 && parts.other === 0)
     check('事件文件没有坏行', badOk, bad === 0
       ? '没有坏行'
       : badOk
