@@ -33,8 +33,13 @@ export function tmpDir(prefix = 'whale-test-') {
 
 /** 给已经造好的目录登记（例如第三方 helper 里 mkdtemp 出来的）。 */
 export function registerTmpRoot(dir) {
-  const resolved = path.resolve(String(dir || ''))
-  if (!resolved) throw new Error('空路径不能登记')
+  // 先拒空再 resolve：path.resolve('') 会变成当前工作目录，等于把仓库登记成可删。
+  const raw = String(dir || '').trim()
+  if (!raw) throw new Error('空路径不能登记')
+  const resolved = path.resolve(raw)
+  if (resolved === path.resolve(process.cwd())) throw new Error('不能把当前工作目录登记成可删目录')
+  const st = fs.statSync(resolved)
+  if (!st.isDirectory()) throw new Error('只能登记目录：' + resolved)
   roots.add(norm(resolved))
   return resolved
 }

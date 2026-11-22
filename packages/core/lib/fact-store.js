@@ -32,25 +32,30 @@ export function loadFacts(dir) {
 }
 
 /**
- * 合并写入：同 kind + value 只留一条，更新时间和次数，不重复堆积。
+ * 合并写入：同 kind + value + 主体 只留一条，更新时间和次数，不重复堆积。
+ * 主体必须进合并键：Alice 喜欢咖啡和 Bob 喜欢咖啡是两条事实，不能合成一个人。
  * @returns {{added:number, updated:number}}
  */
 export function saveFacts(dir, facts) {
   const existing = loadFacts(dir);
-  const byKey = new Map(existing.map((f) => [`${f.kind}|${f.value}`, f]));
+  const keyOf = (f) => `${f.kind}|${String(f.subject || '').trim()}|${f.value}`;
+  const byKey = new Map(existing.map((f) => [keyOf(f), f]));
   let added = 0;
   let updated = 0;
   for (const fact of Array.isArray(facts) ? facts : []) {
     if (!fact?.kind || !fact?.value) continue;
-    const key = `${fact.kind}|${fact.value}`;
+    const subject = String(fact.subject || '').trim();
+    const key = `${fact.kind}|${subject}|${fact.value}`;
+    const chatKey = String(fact.chatKey || '');
     const cur = byKey.get(key);
     if (!cur) {
       byKey.set(key, {
         kind: fact.kind,
         value: fact.value,
-        subject: String(fact.subject || ''),
+        subject,
         quote: String(fact.quote || '').slice(0, 80),
-        chatKey: String(fact.chatKey || ''),
+        chatKey,
+        sources: chatKey ? [chatKey] : [],
         ts: Number(fact.ts) || Date.now(),
         count: 1
       });
@@ -58,11 +63,16 @@ export function saveFacts(dir, facts) {
       continue;
     }
     cur.count = (Number(cur.count) || 1) + 1;
+    // 会话来源单独留一份：同一主体在不同会话里说过，不能只记住最后一次。
+    if (chatKey) {
+      const sources = Array.isArray(cur.sources) ? cur.sources : (cur.chatKey ? [cur.chatKey] : []);
+      if (!sources.includes(chatKey)) sources.push(chatKey);
+      cur.sources = sources;
+      cur.chatKey = chatKey;
+    }
     if ((Number(fact.ts) || 0) >= (Number(cur.ts) || 0)) {
       cur.ts = Number(fact.ts) || cur.ts;
       cur.quote = String(fact.quote || cur.quote || '').slice(0, 80);
-      cur.chatKey = String(fact.chatKey || cur.chatKey || '');
-      cur.subject = String(fact.subject || cur.subject || '');
     }
     updated += 1;
   }

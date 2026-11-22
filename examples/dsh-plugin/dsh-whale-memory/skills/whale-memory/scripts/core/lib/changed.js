@@ -35,7 +35,10 @@ export function changedSince(dir, { days = 30, limit = 5, now = Date.now(), incl
   const horizon = now - Number(days) * DAY
   const out = []
   for (const entry of loadAll(dir)) {
-    if (!entry || entry.sealed === true && !includeSealed) continue
+    if (!entry) continue
+    // 封存标记可能是布尔值，也可能是正式接口写的 { at, day, note } 对象；
+    // 这里按"有值即封存"判断，跟 book / recap / detail 的过滤保持一致。
+    if (!includeSealed && entry.sealed) continue
     const later = Array.isArray(entry.later) ? entry.later : []
     if (!later.length) continue
     const latest = later[later.length - 1]

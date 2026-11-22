@@ -91,3 +91,24 @@ test('后来改过主意的条目，递出去时带上新看法', () => {
   const r = surface(dir, { chatKey: OWNER_DM, text: '灯塔那章' })
   assert.ok(r.block.includes('等邮船'))
 })
+test('同一次展示确认两次，想起次数只加一次', () => {
+  const { dir } = fresh()
+  const r = surface(dir, { chatKey: OWNER_DM, text: '灯塔那章你记得吗' })
+  assert.equal(r.confirm(), true)
+  assert.equal(r.confirm(), true)
+  const loaded = loadAll(dir).find((x) => x.id === r.id)
+  assert.equal(loaded.recalls, 1, '重复确认不该把想起次数加成 2')
+})
+
+test('回执写失败时 confirm 返回 false，且下次还能重试', () => {
+  const { dir } = fresh()
+  const r = surface(dir, { chatKey: OWNER_DM, text: '灯塔那章你记得吗' })
+  // 让 recall-events.jsonl 变成一个目录：追加必然失败（不是 ENOENT）
+  const ev = path.join(dir, 'recall-events.jsonl')
+  fs.mkdirSync(ev, { recursive: true })
+  assert.equal(r.confirm(), false, '写失败不能报告成功')
+  fs.rmSync(ev, { recursive: true, force: true })
+  assert.equal(r.confirm(), true, '修好之后应该还能重试成功')
+  const loaded = loadAll(dir).find((x) => x.id === r.id)
+  assert.equal(loaded.recalls, 1)
+})

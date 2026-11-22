@@ -48,7 +48,8 @@ export function buildWakingBlock(dataDir, chatKey, { now = new Date(), allowGrou
   // 用合并后的视图：明确想通/暂放的不再进入未完列表；旧库没有状态事件，行为不变
   // 她封存了的经历不出现在醒来块里，昨天的、没弄完的都一样
   let loaded = []
-  try { loaded = exp.loadAll(dir) } catch { }
+  // 封存状态读不出来时宁可不展示：醒来块是自动放进去的，不能把该藏的经历带出来。
+  try { loaded = exp.loadAll(dir) } catch { return '' }
   const rows = loaded.filter((r) => !r.sealed).map((r) => ({
     day: r.day,
     text: r.then.text,

@@ -40,7 +40,9 @@ function entry(r) {
 
 export function renderBook(dir, { asOf = null, includeSealed = false, title = '她的自传', now = new Date() } = {}) {
   const until = parseAsOf(asOf)
-  const rows = loadAll(dir, { asOf })
+  let rows = []
+  // 封存日志读不出来时，给一本空书，而不是一本把该藏的都露出来的书。
+  try { rows = loadAll(dir, { asOf }) } catch { return '' }
   const visible = rows.filter((r) => includeSealed || !r.sealed).sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')))
   const hidden = rows.length - visible.length
   const chapters = chapterEvents.chapters(dir, { until })

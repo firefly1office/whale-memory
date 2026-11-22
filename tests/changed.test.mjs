@@ -5,7 +5,8 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 import { changedSince, renderChanged } from '../packages/core/lib/changed.js'
-import { addExperience, reviseExperience } from '../packages/core/lib/self-experience.js'
+import { addExperience, loadAll, reviseExperience } from '../packages/core/lib/self-experience.js'
+import { decide } from '../packages/core/lib/seal-events.js'
 import { tmpDir } from './_safety.mjs'
 
 const DAY = 24 * 3600 * 1000
@@ -57,18 +58,31 @@ test('limit 生效，按最近改的排前面', () => {
   assert.ok(['新 A', '新 B'].includes(list[0].now))
 })
 
-test('封存的默认不出现在列表里', () => {
+test('封存的默认不出现在列表里（走正式封存接口，标记是对象不是布尔）', () => {
   const dir = fresh()
   const row = addExperience(dir, { text: '不想再提', thought: '旧' })
   reviseExperience(dir, { id: row.id, thought: '新' })
-  fs.writeFileSync(path.join(dir, 'self-experience.jsonl'), fs.readFileSync(path.join(dir, 'self-experience.jsonl'), 'utf8'), 'utf8')
-  // 直接改文件里的 sealed 标记，避免依赖 seal 事件
+  // 用真正的封存入口，而不是手写 sealed=true：正式标记是 { at, day, note }
+  decide(dir, { id: row.id, action: 'seal', note: '不想再提' })
+  const loaded = loadAll(dir).find((r) => r.id === row.id)
+  assert.equal(typeof loaded.sealed, 'object', '正式封存写出来的应是一个对象')
+  assert.deepEqual(changedSince(dir, { days: 30 }), [])
+  assert.equal(changedSince(dir, { days: 30, includeSealed: true }).length, 1)
+
+  // 解封之后重新出现
+  decide(dir, { id: row.id, action: 'unseal' })
+  assert.equal(changedSince(dir, { days: 30 }).length, 1)
+})
+
+test('布尔形状的旧标记同样算封存', () => {
+  const dir = fresh()
+  const row = addExperience(dir, { text: '旧数据', thought: '旧' })
+  reviseExperience(dir, { id: row.id, thought: '新' })
   const file = path.join(dir, 'self-experience.jsonl')
   const rows = fs.readFileSync(file, 'utf8').trim().split('\n').map((l) => JSON.parse(l))
   for (const r of rows) if (r.id === row.id) r.sealed = true
   fs.writeFileSync(file, rows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
   assert.deepEqual(changedSince(dir, { days: 30 }), [])
-  assert.equal(changedSince(dir, { days: 30, includeSealed: true }).length, 1)
 })
 
 test('渲染成给人看的一段', () => {

@@ -31,3 +31,16 @@ test('群聊会话不递记忆', () => {
   assert.ok(!out.includes('会把这一段递进上下文'))
   safeRemove(dir)
 })
+
+test('群聊里 /changed 不打印任何原文', () => {
+  const dir = tmpDir('refhost-group-changed-')
+  // 先造一条改过主意的经历，再进群聊模式敲 /changed
+  const input = ['/write 夜里翻完灯塔那章', '/changed', '/quit'].join('\n')
+  const r = spawnSync(process.execPath, [decodeURIComponent(host), '--data', dir, '--chat', 'group:10001'], { input, encoding: 'utf8' })
+  const out = (r.stdout || '') + (r.stderr || '')
+  assert.equal(r.status, 0, out)
+  assert.ok(out.includes('群聊里不列这些'), out)
+  assert.ok(!out.includes('你改过主意的事'), '群聊里不该出现改主意列表：' + out)
+  assert.ok(!out.includes('灯塔'), '群聊里不该出现原文：' + out)
+  safeRemove(dir)
+})

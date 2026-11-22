@@ -7,6 +7,7 @@ import { parseArgs } from 'node:util'
 import { addExperience, loadAll } from '../../packages/core/lib/self-experience.js'
 import { changedSince, renderChanged } from '../../packages/core/lib/changed.js'
 import { surface } from '../../packages/core/lib/injection.js'
+import { isPrivateKey } from '../../packages/core/lib/waking.js'
 
 const { values } = parseArgs({ options: { data: { type: 'string', default: './xiaozhou' }, chat: { type: 'string', default: 'local:owner' } } })
 const dir = values.data + '/plugin-data/biomimetic-memory'
@@ -33,6 +34,11 @@ rl.on('line', (line) => {
   }
 
   if (text === '/changed') {
+    // 和普通输入走同一道会话门：改主意是私下的事，群聊里不列。
+    if (!isPrivateKey(chatKey)) {
+      console.log('  群聊里不列这些（改主意是私下的事）。\n')
+      return rl.prompt()
+    }
     const block = renderChanged(changedSince(dir, { days: 30, limit: 5 }))
     console.log(block ? block + '\n' : '  这一个月没有改过主意。\n')
     return rl.prompt()

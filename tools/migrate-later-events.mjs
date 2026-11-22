@@ -31,25 +31,43 @@ const stamp = () => new Date().toISOString().replace(/[:.]/g, '-').slice(0, 23)
 export function plan({ dataDir }) {
   const { rows } = readRows(dataDir)
   const events = []
+  const invalid = []
   for (const r of rows) {
     const list = Array.isArray(r.later) ? r.later : []
+    if (!list.length) continue
+    const id = String(r.id || '').trim()
+    // 没有 id 的行不能迁移：事件必须能挂回某条经历，否则校验必然失败。
+    // 在写盘之前就把它们挑出来，避免"写了一半再回滚"。
+    if (!id) { invalid.push({ day: String(r.day || ''), laterCount: list.length }); continue }
     for (const l of list) {
       if (!l || !l.thought) continue
-      events.push({
-        id: String(r.id || ''),
+      const event = {
+        id,
         at: String(l.at || r.at || new Date().toISOString()),
         day: String(l.day || r.day || ''),
         thought: String(l.thought),
         reason: String(l.reason || '')
-      })
+      }
+      // feeling 是她后来再想起时的感觉；迁移必须原样带过去，不能丢。
+      if (Array.isArray(l.feeling) && l.feeling.length) event.feeling = l.feeling.map(String)
+      events.push(event)
     }
   }
-  return { rows, events }
+  return { rows, events, invalid }
+}
+
+function sameFeeling(a, b) {
+  const x = Array.isArray(a) ? a.map(String) : []
+  const y = Array.isArray(b) ? b.map(String) : []
+  return x.length === y.length && x.every((v, i) => v === y[i])
 }
 
 export function migrate({ dataDir, apply = false, backupDir = '' }) {
   const { rows, file } = readRows(dataDir)
-  const { events } = plan({ dataDir })
+  const { events, invalid } = plan({ dataDir })
+  if (invalid.length) {
+    return { ok: false, error: '有 ' + invalid.length + ' 条经历没有 id，不能迁移（先在经历里补 id 再跑）。', invalid, experiences: rows.length }
+  }
   if (!apply) return { ok: true, dryRun: true, experiences: rows.length, eventsToCreate: events.length }
   if (!events.length) return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: 0 }
 
@@ -80,19 +98,23 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   fs.writeFileSync(tmp2, nextRows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
   fs.renameSync(tmp2, file)
 
-  // 等价校验：迁移后 loadAll 的 later 条数与内容，必须和计划一致
-  const planned = new Map()
-  for (const e of events) planned.set(e.id + '|' + e.at + '|' + e.thought, true)
+  // 等价校验：每条计划事件都要能在迁移后的视图里找到，且 at / thought / reason / feeling 都对得上
   const views = new Map(loadAll(dir).map((r) => [r.id, r]))
   const missing = []
   for (const e of events) {
     const row = views.get(e.id)
-    const hit = row && (row.later || []).some((l) => String(l.thought) === e.thought)
+    const hit = row && (row.later || []).some((l) => String(l.at || '') === e.at
+      && String(l.thought) === e.thought
+      && String(l.reason || '') === String(e.reason || '')
+      && sameFeeling(l.feeling, e.feeling))
     if (!hit) missing.push(e)
   }
   if (missing.length) {
+    // 两份文件一起回滚：只恢复经历、留下事件就是重复后记的来源。
     fs.copyFileSync(backup, file)
-    return { ok: false, error: '校验不一致，已回滚经历文件；事件文件保留，请人工检查。', missing, backup }
+    if (eventsBackup) fs.copyFileSync(eventsBackup, ev)
+    else { try { fs.rmSync(ev, { force: true }) } catch { /* 删不掉就标明 */ } }
+    return { ok: false, error: '校验不一致，已回滚经历与事件两份文件。', missing, backup }
   }
 
   return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: events.length, backup, eventsBackup }

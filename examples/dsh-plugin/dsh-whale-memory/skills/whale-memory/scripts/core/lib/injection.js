@@ -44,13 +44,19 @@ export function surface(memDir, { chatKey = '', text = '', seen = {}, now = Date
   const last = Number(seen[hit.id] || 0)
   if (last && now - last < DAY) return { block: '', reason: 'recently-shown' }
 
+  let confirmed = false
   return {
     block: renderTwoPart(hit),
     id: hit.id,
     reason: 'ok',
     confirm() {
-      markRecalled(memDir, hit.id)
+      // 同一次展示只记一次：宿主重试或重复确认不会把想起次数加成 2。
+      if (confirmed) return true
+      // 落盘失败要如实返回 false，并且不占掉 seen，下次还能再试。
+      const wrote = markRecalled(memDir, hit.id)
+      if (!wrote) return false
       seen[hit.id] = now
+      confirmed = true
       return true
     }
   }

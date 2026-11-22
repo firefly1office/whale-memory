@@ -52,7 +52,17 @@ export function decide(memDir, { id, action, note = '' } = {}, opts = {}) {
 
 export function readAll(memDir) {
   let raw = ''
-  try { raw = fs.readFileSync(eventsFile(memDir), 'utf8') } catch { return { rows: [], bad: 0 } }
+  try {
+    raw = fs.readFileSync(eventsFile(memDir), 'utf8')
+  } catch (error) {
+    // 只有"还没有这个文件"能当空；权限、磁盘、路径是目录这类错误必须抛出去。
+    // 否则正文可读、封存日志读不出来时，召回/醒来/书会当成"她什么都没封存"。
+    if (error?.code === 'ENOENT') return { rows: [], bad: 0 }
+    const wrapped = new Error('封存日志读不出来：' + String(error?.message || error))
+    wrapped.code = 'SEAL_EVENTS_UNREADABLE'
+    wrapped.cause = error
+    throw wrapped
+  }
   const rows = []
   let bad = 0
   for (const line of raw.split('\n')) {

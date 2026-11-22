@@ -193,7 +193,8 @@ test('恢复演练：备份之后她又写了东西 → 可恢复，但如实报
   exp.reviseExperience(memOf(data), { id: a.id, thought: '又想了想' })
   const r = restoreCheck({ from: bk.dir, data })
   assert.equal(r.verdict, '可恢复，但与原数据有差异')
-  assert.deepEqual(r.diffs, [{ id: a.id, field: 'later' }])
+  // 字段差异之外，文件级比对也会指出 later-events.jsonl 变了；这里只要求覆盖到那条经历。
+  assert.ok(r.diffs.some((d) => d.id === a.id && d.field === 'later'), JSON.stringify(r.diffs))
   const cli = spawnSync(process.execPath, [path.join(root, 'tools/restore-check.mjs'), '--from', bk.dir, '--data', data], { encoding: 'utf8' })
   assert.equal(cli.status, 2)
 })

@@ -58,3 +58,8 @@ test('registerTmpRoot 可以把已有目录纳入白名单', () => {
     try { fs.rmSync(dir, { recursive: true, force: true }) } catch { /* 已删 */ }
   }
 })
+test('registerTmpRoot 拒绝空参数（不能把当前目录登记成可删）', () => {
+  assert.throws(() => registerTmpRoot(''), /空路径不能登记/)
+  assert.throws(() => registerTmpRoot('   '), /空路径不能登记/)
+  assert.throws(() => registerTmpRoot(process.cwd()), /当前工作目录/)
+})

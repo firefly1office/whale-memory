@@ -5,6 +5,7 @@
 //   2. 导入到临时目录，确认能读出来、事件文件没有坏行、出处都在
 //   3. 给了 --data 时，逐条比对原数据与恢复后的：then、later、想起次数、未完状态、封存（还有联想、章节、抽屉条数）
 // 输出只有 id、字段名和数字，不打印任何原文。全程不改原数据，临时目录用完即删
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -40,6 +41,21 @@ function drawer(memDir) {
 
 function badLines(memDir) {
   return [laterEvents, recallEvents, unfinishedEvents, sealEvents, linkEvents, chapterEvents].reduce((n, m) => n + m.readAll(memDir).bad, 0) + unsaid.badLines(memDir)
+}
+
+// 归档范围内的相对文件清单 + 内容摘要：只比经历字段会漏掉日记、抽屉这类旁支文件。
+function fileDigests(memDir) {
+  const out = new Map()
+  const walk = (dir, rel = '') => {
+    for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, ent.name)
+      const key = rel ? rel + '/' + ent.name : ent.name
+      if (ent.isDirectory()) walk(abs, key)
+      else if (ent.isFile()) out.set(key, crypto.createHash('sha256').update(fs.readFileSync(abs)).digest('hex'))
+    }
+  }
+  if (fs.existsSync(memDir)) walk(memDir)
+  return out
 }
 
 export function restoreCheck({ from, data = '' }) {
@@ -85,10 +101,21 @@ export function restoreCheck({ from, data = '' }) {
         for (const id of back.keys()) if (!orig.has(id)) diffs.push({ id, field: '原数据里没有（备份之后被删？）' })
         const d0 = drawer(origMem), d1 = drawer(restored)
         if (d0.open !== d1.open || d0.spoken !== d1.spoken) diffs.push({ id: '（抽屉）', field: `开着 ${d0.open}→${d1.open}，说出口 ${d0.spoken}→${d1.spoken}` })
+
+        // 文件层比对：清单少一个、多一个、内容变一个，都算不一致。
+        const f0 = fileDigests(origMem), f1 = fileDigests(restored)
+        const missingFiles = [...f0.keys()].filter((k) => !f1.has(k))
+        const extraFiles = [...f1.keys()].filter((k) => !f0.has(k))
+        const changedFiles = [...f0.entries()].filter(([k, v]) => f1.has(k) && f1.get(k) !== v).map(([k]) => k)
+        for (const k of missingFiles) diffs.push({ id: '（文件）', field: '恢复后缺：' + k })
+        for (const k of extraFiles) diffs.push({ id: '（文件）', field: '原数据没有：' + k })
+        for (const k of changedFiles) diffs.push({ id: '（文件）', field: '内容不同：' + k })
+
         report.diffs = diffs.slice(0, 50)
         check('与原数据一致', diffs.length === 0, diffs.length
-          ? diffs.length + ' 处不一致（只列 id 和字段；如果备份之后她又写过东西，这里有差异是正常的）'
-          : orig.size + ' 条经历的 then、后记、想起次数、未完状态、封存、联想、章节全部一致；抽屉 ' + d0.open + ' 条开着、' + d0.spoken + ' 条说出口了')
+          ? diffs.length + ' 处不一致（只列 id、文件名和字段；如果备份之后她又写过东西，这里有差异是正常的）'
+          : orig.size + ' 条经历的 then、后记、想起次数、未完状态、封存、联想、章节全部一致；抽屉 ' + d0.open + ' 条开着、' + d0.spoken + ' 条说出口了；'
+            + f1.size + ' 个文件的内容摘要全部一致')
       }
     }
   } catch (e) {
@@ -97,7 +124,14 @@ export function restoreCheck({ from, data = '' }) {
     fs.rmSync(tmp, { recursive: true, force: true })
   }
   report.ok = report.checks.every((c) => c.ok)
-  report.verdict = report.checks.filter((c) => c.name !== '与原数据一致').every((c) => c.ok) ? (report.ok ? '可恢复，且与原数据一致' : '可恢复，但与原数据有差异') : '不可恢复'
+  const fatalOk = report.checks.filter((c) => c.name !== '与原数据一致').every((c) => c.ok)
+  const compared = report.checks.some((c) => c.name === '与原数据一致')
+  // 没给原目录时只说"演练通过"，不能声称"与原数据一致"——那需要真的比过。
+  report.verdict = !fatalOk
+    ? '不可恢复'
+    : compared
+      ? (report.ok ? '可恢复，且与原数据一致' : '可恢复，但与原数据有差异')
+      : '可恢复（未提供原数据，未做一致性比对）'
   return report
 }
 
