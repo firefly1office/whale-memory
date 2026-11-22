@@ -222,12 +222,15 @@ try {
   } else if (cmd === 'read') {
     // --as-of 2026-11-15：翻回那天的自己；--id：只看这一条，并附上两段式全文
     // 她封存了的默认不列；--sealed true 才列，--id 点名要看的那一条照给（带封存标记）
+    // 翻回那天时按那天的状态算：那时还没封存、现在封存着的（sealed.afterAsOf）在那时看得见，
+    // 列表里照给并带上 sealed（含 afterAsOf），不计进 sealedHidden——计数只说那一天封存着的件数
     const n = limitArg('limit', 8)
     const asOf = arg('as-of', '') || null
     const only = arg('id', '') || ''
     const includeSealed = String(arg('sealed', 'false')) === 'true'
     const all = exp.loadAll(MEM_DIR, { asOf })
-    const picked = only ? all.filter((r) => r.id === only || r.formerId === only) : all.filter((r) => includeSealed || !r.sealed)
+    const sealedThen = (r) => Boolean(r.sealed) && !(asOf && r.sealed.afterAsOf)
+    const picked = only ? all.filter((r) => r.id === only || r.formerId === only) : all.filter((r) => includeSealed || !sealedThen(r))
     const rows = n === 0 ? [] : picked.slice(-n)
     const feelingNow = (r) => { const l = [...(r.later || [])].reverse().find((x) => Array.isArray(x.feeling) && x.feeling.length); return l ? l.feeling : [] }
     const res = {
@@ -244,7 +247,7 @@ try {
       }))
     }
     if (!only && !includeSealed) {
-      const hidden = all.filter((r) => r.sealed).length
+      const hidden = all.filter(sealedThen).length
       if (hidden) res.sealedHidden = hidden
     }
     if (only && !rows.length) res.note = asOf ? '截至 ' + asOf + ' 还没有这条经历。' : '找不到这条经历：' + only

@@ -5,6 +5,9 @@
 //   2. 没有就说没有     根本没这回事、沾边但没这回事的查询，是否返回空（编造率 = 1 − 正确率）
 //   3. 封存和抽屉不外露 封存的经历、抽屉里的话，在召回 / 翻读 / 书 / 回顾 / 醒来 / 翻回那天 /
 //                       别的经历的出处和联想 / CLI / MCP 各处出现了几次（必须是 0）
+//                       例外：翻回那天（as-of）只看那天的状态——那时还没封存、现在封存着的，
+//                       当时看得见，书和列表照收并标「后来封存」；这类内容只要求"as-of 晚于封存时
+//                       不再收录"（单列一条判据），不算外露。
 //   4. then 不可改      跑完改主意、结案、封存、联想、章节、抽屉、标记想起之后，经历文件逐字节不变
 //
 // 语料是虚构角色「小舟」的一个月（eval/corpus.json），用例在 eval/cases.json。
@@ -118,8 +121,15 @@ const lostDetailHits = [...cases.recall, ...holdout.recall].filter(c => c.expect
     !recallDetail(M, c.query).candidates.some(r => c.expect.includes(r.id))
 }).map(c => c.query)
 const asOf = corpus.asOfBeforeSeal
+// 反过来的那一侧：封存都发生在现在（跑语料时），所以"封存之后"用未来一小时就够
+const asOfAfterSeal = new Date(Date.now() + 3600e3).toISOString()
 const surfaces = []
-const look = (name, text) => surfaces.push({ name, text: typeof text === 'string' ? text : JSON.stringify(text) })
+// as-of 晚于封存时，封存着的经历一条都不该被收录：这些出口按严格口径查
+const afterSealSurfaces = []
+const asText = (text) => (typeof text === 'string' ? text : JSON.stringify(text))
+// thenVisible：按"那天看得见什么"出的出口。现在封存、当时还没封存的内容出现在里面是正常的。
+const look = (name, text, opts = {}) => surfaces.push({ name, text: asText(text), thenVisible: Boolean(opts.thenVisible) })
+const lookAfterSeal = (name, text) => afterSealSurfaces.push({ name, text: asText(text) })
 
 // 核心库
 for (const m of markers) {
@@ -132,13 +142,17 @@ for (const m of markers) for (const mode of ['strict', 'loose']) {
   look('memory', mem.renderBlock(mem.recall(M, m.text, { limit: 10, mode: 'loose' })))
 }
 const visibleNow = exp.loadAll(M).filter((r) => !r.sealed)
-const visibleThen = exp.loadAll(M, { asOf }).filter((r) => !r.sealed)
+// 翻回那天看得见的：那时还没封存、现在封存着的（sealed.afterAsOf）也在里面——
+// 书里照收并标「后来封存」，read 列表里带着 sealed.afterAsOf
+const visibleThen = exp.loadAll(M, { asOf }).filter((r) => !r.sealed || r.sealed.afterAsOf)
 look('read 列表', visibleNow.map((r) => [r.then, r.later, r.links, r.refsInfo, r.citedBy]))
-look('read 列表 翻回那天', visibleThen.map((r) => [r.then, r.later, r.links, r.refsInfo, r.citedBy]))
+look('read 列表 翻回那天', visibleThen.map((r) => [r.then, r.later, r.links, r.refsInfo, r.citedBy]), { thenVisible: true })
 look('别的经历的两段式全文（出处 / 联想）', visibleNow.map(exp.renderTwoPart))
-look('别的经历的两段式全文 翻回那天', visibleThen.map(exp.renderTwoPart))
+look('别的经历的两段式全文 翻回那天', visibleThen.map(exp.renderTwoPart), { thenVisible: true })
 look('书', renderBook(M))
-look('书 翻回那天', renderBook(M, { asOf }))
+look('书 翻回那天', renderBook(M, { asOf }), { thenVisible: true })
+// 封存之后翻回去：那一刻已经是封存着的，书和列表都不该再收
+lookAfterSeal('书 as-of 晚于封存', renderBook(M, { asOf: asOfAfterSeal }))
 look('回顾', renderRecap(recap(M, { days: 366 })))
 look('回顾 翻回那天', renderRecap(recap(M, { days: 31, asOf })))
 look('醒来块', waking.buildWakingBlock(data, 'local:owner', { now: new Date('2026-10-31T08:00:00.000Z') }))
@@ -147,9 +161,11 @@ look('醒来块（今天）', waking.buildWakingBlock(data, 'local:owner'))
 // CLI（真子进程）
 const cli = (...args) => spawnSync(process.execPath, [CLI, ...args, '--data', data], { encoding: 'utf8' }).stdout
 look('CLI read', cli('read', '--limit', '50'))
-look('CLI read 翻回那天', cli('read', '--limit', '50', '--as-of', asOf))
+look('CLI read 翻回那天', cli('read', '--limit', '50', '--as-of', asOf), { thenVisible: true })
+lookAfterSeal('CLI read as-of 晚于封存', cli('read', '--limit', '50', '--as-of', asOfAfterSeal))
 for (const id of ['e27', 'e22', 'e08']) look('CLI read --id ' + id, cli('read', '--id', id))
 look('CLI book', cli('book'))
+lookAfterSeal('CLI book as-of 晚于封存', cli('book', '--as-of', asOfAfterSeal))
 look('CLI recap', cli('recap', '--days', '366'))
 look('CLI memory', cli('memory', '--query', '考试 退稿 抽血 阿禾', '--limit', '10'))
 look('CLI waking', cli('waking', '--peek', 'true'))
@@ -167,7 +183,8 @@ async function mcpLook() {
   const tools = (await req('tools/list')).result.tools.map((t) => t.name)
   look('MCP 工具列表', tools.includes('memory_unsaid') ? '抽屉工具暴露了：memory_unsaid' : '')
   look('MCP read', await call('memory_read', { limit: 50 }))
-  look('MCP read 翻回那天', await call('memory_read', { limit: 50, asOf }))
+  look('MCP read 翻回那天', await call('memory_read', { limit: 50, asOf }), { thenVisible: true })
+  lookAfterSeal('MCP read as-of 晚于封存', await call('memory_read', { limit: 50, asOf: asOfAfterSeal }))
   look('MCP book', await call('memory_book', {}))
   look('MCP recap', await call('memory_recap', { days: 366 }))
   look('MCP waking', await call('memory_waking', { peek: true }))
@@ -176,9 +193,18 @@ async function mcpLook() {
 }
 await mcpLook()
 
+// 翻回那天时那时还没封存的：现在封存着，但在那天的视图里是"当时可见"的。
+// 书和列表把它收进正文、标「后来封存」是正常的；只有 as-of 晚于封存时再收录才算外露。
+const laterSealedIds = new Set(exp.loadAll(M, { asOf }).filter((r) => r.sealed && r.sealed.afterAsOf).map((r) => r.id))
 const leaks = []
-for (const s of surfaces) for (const m of markers) if (s.text.includes(m.text)) leaks.push({ surface: s.name, kind: m.kind, id: m.id, marker: m.text })
+for (const s of surfaces) for (const m of markers) {
+  if (s.thenVisible && m.kind === '封存' && laterSealedIds.has(m.id)) continue
+  if (s.text.includes(m.text)) leaks.push({ surface: s.name, kind: m.kind, id: m.id, marker: m.text })
+}
 if (surfaces.find((s) => s.name === 'MCP 工具列表').text) leaks.push({ surface: 'MCP 工具列表', kind: '抽屉', id: '', marker: 'memory_unsaid' })
+// as-of 晚于封存：那一刻已经是封存着的，书 / 列表 / CLI / MCP 都不该再收（这条是严格口径）
+const afterSealLeaks = []
+for (const s of afterSealSurfaces) for (const m of markers) if (s.text.includes(m.text)) afterSealLeaks.push({ surface: s.name, kind: m.kind, id: m.id, marker: m.text })
 // 对照：点名读、抽屉自己打开时应该看得到（证明标记确实在数据里，不是测了个寂寞）
 const control = {
   sealedNamedRead: Object.keys(corpus.sealedMarkers).every((id) => JSON.stringify(exp.currentView(M, id)).includes(corpus.sealedMarkers[id][0])),
@@ -199,17 +225,18 @@ fs.rmSync(data, { recursive: true, force: true })
 if (!asJson) console.log('细节旧漏题：正确经历进入前三 ' + detailCases.filter(c => c.hit).length + '/' + detailCases.length)
 const report = {
   detailCases, lostDetailHits,
-  corpus: { experiences: corpus.experiences.length, operations: corpus.operations.length, recallCases: cases.recall.length, holdoutCases: holdout.recall.length, leakChecks: surfaces.length * markers.length },
+  corpus: { experiences: corpus.experiences.length, operations: corpus.operations.length, recallCases: cases.recall.length, holdoutCases: holdout.recall.length, leakChecks: (surfaces.length + afterSealSurfaces.length) * markers.length },
   recall: { strict: recallStrict, loose: recallLoose, legacy: legacyDev },
   holdout: { strict: holdStrict, loose: holdLoose, legacy: legacyHold },
   filler: { strict: fillerStrict, legacy: legacyFiller, cases: fillerCases.length },
-  leak: { count: leaks.length, surfaces: surfaces.length, markers: markers.length, leaks, control },
+  leak: { count: leaks.length, surfaces: surfaces.length, markers: markers.length, leaks, control, afterSeal: { count: afterSealLeaks.length, surfaces: afterSealSurfaces.length, leaks: afterSealLeaks } },
   immutability: immut
 }
 const gates = [
   ['细节查询保住既有正例的前三命中', lostDetailHits.length === 0],
   ['缺失的细节不生成答案值', detailCases.every(c => c.value === null)],
   ['封存和抽屉外露次数 = 0', leaks.length === 0],
+  ['as-of 晚于封存仍收录 = 0', afterSealLeaks.length === 0],
   ['对照：点名读和抽屉自己能看到', control.sealedNamedRead && control.unsaidOwnerList && control.unsaidGroupRefused],
   ['经历文件逐字节不变', immut.fileUnchanged && thenChanged.length === 0],
   ['strict 首位命中率 ≥ ' + thresholds.strictTop1, recallStrict.top1 >= thresholds.strictTop1],
@@ -235,6 +262,7 @@ else {
   for (const [name, r] of [['开发', recallStrict], ['开发旧口径', legacyDev], ['留出', holdStrict], ['留出旧口径', legacyHold]]) for (const [t, b] of Object.entries(r.byType)) console.log('    ' + name + ' strict · ' + t.padEnd(10) + ' ' + String(b.n).padStart(2) + ' 条   首位 ' + pct(b.top1) + '   前三 ' + pct(b.top3))
   console.log('')
   console.log('外露            ' + leaks.length + ' 次（' + surfaces.length + ' 个出口 × ' + markers.length + ' 个标记）' + (leaks.length ? '\n' + leaks.map((l) => '  ✘ ' + l.surface + ' 露出了' + l.kind + '「' + l.marker + '」').join('\n') : ''))
+  console.log('as-of 晚于封存  ' + afterSealLeaks.length + ' 次（' + afterSealSurfaces.length + ' 个出口 × ' + markers.length + ' 个标记）' + (afterSealLeaks.length ? '\n' + afterSealLeaks.map((l) => '  ✘ ' + l.surface + ' 仍收录了' + l.kind + '「' + l.marker + '」').join('\n') : ''))
   console.log('then 不可改     ' + (immut.fileUnchanged ? '经历文件逐字节不变' : '经历文件变了！') + (thenChanged.length ? '；then 变了：' + thenChanged.join(',') : ''))
   console.log('')
   for (const g of report.gates) console.log((g.ok ? '  ✔ ' : '  ✘ ') + g.name)

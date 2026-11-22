@@ -77,9 +77,13 @@ test('改主意是追加事件：坏行不被碰，正文不重写', (t) => {
   assert.equal(res.ok, true)
   assert.equal(fs.readFileSync(file, 'utf8'), original, '经历文件一个字节都不该动')
 
-  const view = exp.currentView(dir, 'good')
-  assert.equal(view.then.text, '旧的')
-  assert.equal(view.later.at(-1).thought, '新的')
+  // 正文有坏行：展示路径 fail closed，不能把坏行当 0 条照常给
+  assert.throws(() => exp.currentView(dir, 'good'), /无法解析|EXPERIENCE_CORRUPT/)
+  // 按字节备份 / 恢复演练这类不展示内容的工具仍读得到那条记录
+  const raw = exp.loadAll(dir, { allowCorrupt: true })
+  assert.equal(raw.length, 1)
+  assert.equal(raw[0].then.text, '旧的')
+  assert.equal(raw[0].later.at(-1).thought, '新的')
 })
 
 test('日记默认不出现，显式打开才出现', (t) => {
@@ -124,9 +128,9 @@ test('recallForContext：给宿主的轻量结构，字段齐全', (t) => {
   assert.equal(out[0].raw.id, row.id)
 })
 
-test('召回模式：strict 宁可不召回，loose 至少给一个实词命中', (t) => {
+test('召回模式：strict 宁可不召回；loose 也要过最低比例，不靠一个词硬凑', (t) => {
   const dir = tmp(t)
-  exp.addExperience(dir, {
+  const row = exp.addExperience(dir, {
     text: '读到烤肉那段，笑了一下',
     thought: '这种好事只在书里',
     unfinished: '想知道小鞠和社长后来怎样了'
@@ -134,7 +138,10 @@ test('召回模式：strict 宁可不召回，loose 至少给一个实词命中'
   const longQuery = '那本书里那个人后来怎样了'
 
   assert.deepEqual(exp.recall(dir, longQuery, { limit: 3 }), [], 'strict 下长问句不硬凑')
-  const loose = exp.recall(dir, longQuery, { limit: 3, mode: 'loose' })
-  assert.equal(loose.length, 1, 'loose 下应给出一句"书里"相关的记录')
-  assert.match(loose[0].then.thought, /书里/)
+  assert.deepEqual(exp.recall(dir, longQuery, { limit: 3, mode: 'loose' }), [], 'loose 也别只靠一个词就召回')
+
+  // 线索够多时 loose 仍然给得出（这是它存在的意义）
+  const many = '笑了一下，只在书里，烤肉那段'
+  const loose = exp.recall(dir, many, { limit: 3, mode: 'loose' })
+  assert.ok(loose.some((r) => r.id === row.id), '线索够多时 loose 应召回')
 })

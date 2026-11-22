@@ -85,10 +85,15 @@ export function revert(dataDir, version, reason = '') {
   try {
     const key = String(version)
     // 只接受 history.jsonl 里真实出现过的快照名：不把调用方给的字符串直接拼进路径
-    const known = history(dataDir, 100000).some((h) => String(h.snapshot) === key)
+    const known = history(dataDir, 100000).find((h) => String(h.snapshot) === key)
     if (!known) return { ok: false, error: 'Version not found.（找不到这个版本。）' }
     const d = base(dataDir)
     const body = fs.readFileSync(path.join(d, VERSIONS, key + '.md'), 'utf8')
+    // 快照被改过就不回退：history 里记着写下那一刻的 hash，对不上说明文件已经不是当初那份。
+    // 只比内容的话，改过的快照会被 revert 原样写回去，等于把篡改洗成新版本。
+    if (known.hash && sha1(clean(body)) !== known.hash) {
+      return { ok: false, error: 'Snapshot does not match the hash recorded in history; it may have been changed. Refusing to revert.（快照和 history 里记的 hash 对不上，可能被改过；拒绝回退。）' }
+    }
     return save(dataDir, body, reason || ('回退到 ' + version))
   } catch { return { ok: false, error: 'Version not found.（找不到这个版本。）' } }
 }
@@ -109,15 +114,27 @@ export function render(basePrompt, dataDir, { marker = '\n\n<!-- 她自己的补
   }
 }
 
-// 篡改检测：生效文件应该和最新版本文件一致
+// 篡改检测：生效文件和最新快照要一致，而且要跟 history 里记的 hash 对得上。
+// 只比「生效文件 vs 快照内容」不够：把两处改成同一份伪造内容就能蒙混过去；
+// hash 是写入那一刻的指纹，改过快照/生效文件都会对不上。
 export function verify(dataDir) {
   const active = load(dataDir)
   const h = history(dataDir, 1)[0]
   if (!h) return { ok: active === '', note: active ? '有生效文件但没有历史版本。' : '还没有写过。' }
+  let found = true
   let versionBody = ''
-  try { versionBody = clean(fs.readFileSync(path.join(base(dataDir), VERSIONS, String(h.snapshot) + '.md'), 'utf8')) } catch { }
-  const ok = active === versionBody
-  return { ok, activeHash: sha1(active), versionHash: sha1(versionBody), version: h.snapshot }
+  try { versionBody = clean(fs.readFileSync(path.join(base(dataDir), VERSIONS, String(h.snapshot) + '.md'), 'utf8')) } catch { found = false }
+  const activeHash = sha1(active)
+  const versionHash = sha1(versionBody)
+  const recordedHash = typeof h.hash === 'string' ? h.hash : ''
+  const contentOk = found && active === versionBody
+  // 没有 hash 的老记录（0.21 之前）只能退回内容比对，并在 note 里说清楚
+  const ok = recordedHash ? found && activeHash === recordedHash && versionHash === recordedHash : contentOk
+  let note
+  if (!found) note = '最新版本文件不见了。'
+  else if (recordedHash && !ok) note = '快照或生效文件和 history 里记的 hash 对不上：被改过。'
+  else if (!recordedHash) note = '这条历史没有记 hash，只能比对内容。'
+  return { ok, activeHash, versionHash, version: h.snapshot, ...(note ? { note } : {}) }
 }
 
 export const internals = { MAX_CHARS, MAX_APPEND_TOTAL, VERSIONS, ACTIVE, sha1 }

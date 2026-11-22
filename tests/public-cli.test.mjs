@@ -48,13 +48,23 @@ for (const script of CLIS) {
     fs.appendFileSync(book, '{"unfinished":')
     const original = fs.readFileSync(book)
     run(['write', '--text', '新的一页'])
-    assert.equal(run(['read']).items.length, 4)
     assert.deepEqual(fs.readFileSync(book).subarray(0, original.length), original, '坏行原样保留')
+
+    // 坏行不静默：展示路径 fail closed，不能把 4 条当成"就这些"
+    const blocked = runRaw(['read'])
+    assert.equal(blocked.status, 1)
+    const blockedJson = JSON.parse(blocked.stdout)
+    assert.equal(blockedJson.ok, false)
+    assert.match(blockedJson.error, /无法解析/)
 
     const before = fs.readFileSync(book)
     const again = run(['revise', '--id', row.id, '--thought', '再想想'])
     assert.equal(again.ok, true)
     assert.deepEqual(fs.readFileSync(book), before, '改主意不碰经历文件（哪怕有坏行）')
+
+    // 修好坏行（人来做）之后，后记按顺序都在
+    const lines = fs.readFileSync(book, 'utf8').split('\n').filter((line) => line.trim())
+    fs.writeFileSync(book, lines.filter((line) => { try { JSON.parse(line); return true } catch { return false } }).join('\n') + '\n', 'utf8')
     const latest = run(['read']).items.find(item => item.id === row.id)
     assert.deepEqual(latest.later, ['她在等船', '再想想'])
   })

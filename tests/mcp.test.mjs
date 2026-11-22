@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import { safeRemove, tmpDir } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -114,6 +114,28 @@ test('MCP：想通了醒来就不再提；封存后想起、翻读、书里都�
   assert.ok((await c.call('memory_read', {})).data.items.some((x) => x.id === b.id))
 })
 
+test('MCP：翻回那天，那时还没封存的照给，sealedHidden 只数那天封存的', async (t) => {
+  const data = tmp(t)
+  const mem = path.join(data, 'plugin-data', 'biomimetic-memory')
+  fs.mkdirSync(mem, { recursive: true })
+  const day = new Date(Date.now() - 86400000).toLocaleDateString('sv-SE')
+  const at = new Date(day + 'T12:00:00').toISOString()
+  fs.writeFileSync(path.join(mem, 'self-experience.jsonl'), JSON.stringify({ id: 'exp_old', at, day, weight: 'normal', then: { text: '那天写下的，还没想封存', thought: '', feeling: [] }, later: [] }) + '\n', 'utf8')
+
+  const c = await connect(t, ENTRIES[0], ['--data', data])
+  assert.equal((await c.call('memory_seal', { id: 'exp_old', sealed: true })).data.ok, true)
+
+  const now = (await c.call('memory_read', {})).data
+  assert.deepEqual(now.items.filter((r) => r.id === 'exp_old'), [], '现在封存了：默认不列')
+  assert.equal(now.sealedHidden, 1)
+
+  const then = (await c.call('memory_read', { asOf: day })).data
+  const row = then.items.find((r) => r.id === 'exp_old')
+  assert.ok(row, '翻回那天它还没封存，照给')
+  assert.equal(row.sealed.afterAsOf, true, '标明是后来才封存的')
+  assert.equal(then.sealedHidden, undefined, 'sealedHidden 只计那一天封存的，不报现在的条数')
+})
+
 test('MCP：联想、章节、回顾', async (t) => {
   const data = tmp(t)
   const c = await connect(t, ENTRIES[0], ['--data', data])
@@ -163,6 +185,28 @@ test('MCP：--readonly 只给读的工具，醒来只看不占用', async (t) =>
   const t2 = await c.request('tools/call', { name: 'memory_write', arguments: { text: 'x' } })
   assert.equal(t2.error.code, -32602)
   assert.match(t2.error.message, /^No such tool: memory_write（没有这个工具：memory_write）$/)
+})
+
+test('MCP：--readonly 裸写是显式错误，不会静默放开写工具', async (t) => {
+  const data = tmp(t)
+  const run = (args) => spawnSync(process.execPath, [path.join(root, ENTRIES[0]), '--data', data, ...args], { encoding: 'utf8', timeout: 30000 })
+  // 裸写：以前这里会静默变成 false 档，等于给了写权限
+  const bare = run(['--readonly'])
+  assert.notEqual(bare.status, 0, '裸写 --readonly 必须直接报错')
+  assert.match(bare.stderr + bare.stdout, /--readonly true/, '要告诉人正确写法是 --readonly true')
+  // 写错值也一样拒绝，不猜
+  const typo = run(['--readonly=maybe'])
+  assert.notEqual(typo.status, 0)
+  assert.match(typo.stderr + typo.stdout, /only accepts true or false/)
+  // 仓库里的入口也走同一个 parseArgs，不能从另一条路悄悄绕过去
+  const wrapped = spawnSync(process.execPath, [path.join(root, ENTRIES[1]), '--data', data, '--readonly'], { encoding: 'utf8', timeout: 30000 })
+  assert.notEqual(wrapped.status, 0, 'adapters 入口同样拒绝裸写')
+  assert.match(wrapped.stderr + wrapped.stdout, /--readonly true/)
+
+  // 显式 false 照旧可用，没误伤
+  const c = await connect(t, ENTRIES[0], ['--data', data, '--readonly=false'])
+  const names = (await c.request('tools/list')).result.tools.map((x) => x.name)
+  assert.ok(names.includes('memory_write'), '--readonly=false 还是有写工具')
 })
 
 test('MCP：坏输入都有明确答复，进程不崩', async (t) => {

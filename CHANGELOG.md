@@ -6,7 +6,19 @@
 
 ### Added
 
-- `packages/emotion-intake` 以 `whale-emotion-intake@0.1.0` 形式准备发布：纯函数情绪候选模块、十行示例、接入指南；0.x 期间 API 不保证稳定。
+- `packages/emotion-intake` 以 `whale-emotion-intake@0.1.0` 形式发布：纯函数情绪候选模块、十行示例、接入指南；0.x 期间 API 不保证稳定。
+
+### Fixed
+
+- 经历文件坏行不再静默跳过：`loadAll` 默认 fail-closed（`EXPERIENCE_CORRUPT`），`doctor` 报 `ok:false`，写入路径仍只追加；事件日志读失败不再当成空数组（只有 `ENOENT` 算空）。
+- 召回阈值：孤立单字命中不再给满分；拉丁词按整词匹配（`art` 不命中 `started`）；strict 对缺失的孤立关键词加罚；loose 保留 34% 最低覆盖率；`recallForContext` 默认改走 strict。
+- 导入断电窗口：`<memDir>.import-journal.json` + `recoverImport()`，崩在两次 rename 之间可自动恢复，不再需要人工认领 `pre-import-*`。
+- `fact-store.saveFacts` 加锁 + `writeFileAtomic`（tmp/fsync/rename），并发写不丢事实；`file-lock` 用 holder 心跳与 pid 存活校验，活持有者不被抢锁。
+- 隐私门：`isPrivateKey` 排除 `private:group_123` 这类套壳；`scope-key` 成为唯一私聊判定并被运行时调用；`createAudience` 缺 `ownerId` 时 fail-closed。
+- `book` / `read` / MCP 的 `--as-of`：asOf 早于封存时内容可见并标「后来封存」，不再泄漏「现在封存了几件」。
+- `self-prompt.verify` 对照 history hash 校验快照与生效文件；被篡改的快照拒绝 `revert`。
+- MCP 的 `--readonly` / `--owner` 裸写不再静默变 false，直接报错并提示写 `true`。
+- `index.d.ts` 补齐 7 个导出并加 js↔d.ts↔运行时对账测试；CI 增加 `whale-eval --check`，发布前跑 `npm run check` 与 `npm run types`。
 
 ## [0.21.1] - 2026-11-22
 

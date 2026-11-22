@@ -85,6 +85,9 @@ export const LIMITS: Record<string, number>
 
 export function loadAll(dir: string, opts?: { asOf?: AsOf; allowSealCorrupt?: boolean }): Experience[]
 
+/** 经历文件里解析不了的行数：展示路径遇到坏行会 fail closed，这个用于诊断和"先备份再修复" */
+export function badLines(dir: string): number
+
 export function addExperience(dir: string, opts: {
   text: string
   scene?: string

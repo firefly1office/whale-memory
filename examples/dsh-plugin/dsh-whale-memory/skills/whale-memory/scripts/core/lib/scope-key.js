@@ -6,6 +6,9 @@
  *   - 人设级查询 = 人设级记录 + 同会话的会话级记录
  *   - 会话级查询 = 只认会话级记录（不反向并入人设记录，避免把某人的记忆串给所有人）
  *
+ * 另外，这里也放"这个会话是不是一对一的私聊"这一条判断：
+ * 醒来块、注入、未说出口抽屉、跨窗口可见性都问同一个实现，别让每个出口各写一份正则。
+ *
  * 纯函数，宿主无关。
  */
 
@@ -19,6 +22,37 @@ export function baseChatKey(chatKey) {
 /** 这个键是不是人设级。 */
 export function isPersonaScoped(chatKey) {
   return PERSONA_SUFFIX.test(String(chatKey || '').trim());
+}
+
+// 一对一会话的写法：private_10001 / private:10001 / local_owner / local:owner。
+// 分隔符后面必须有东西：光一个 `private:` 认不出是谁，不给。
+const PRIVATE_PREFIX = /^(?:private|local)[:_](.+)$/i;
+
+// 群 / 公共场景的标记。前后都要是边界（键首、分隔符、数字、结尾），
+// 所以 `private_groupie_42` 这种账号名不算群；`group_1`、`group:1`、`qq:group:1`、
+// `private:group_123`、`local_group_1` 都算。中文"群"当整体标记看。
+const GROUP_MARK = /(?:^|[:_\-#.@])(?:groupchat|groupdm|group|guild|channel|chatroom|conference)(?=$|[:_\-#.@0-9])/i;
+const GROUP_CJK = /群/;
+
+/** 这个键是不是群 / 公共场景（group_1、qq:group:1、private:group_123、群聊……）。 */
+export function isGroupScope(chatKey) {
+  const base = baseChatKey(chatKey);
+  if (!base) return false;
+  return GROUP_MARK.test(base) || GROUP_CJK.test(base);
+}
+
+/**
+ * 这个键是不是认得出来的一对一私聊。
+ *
+ * 只认 `private_` / `private:` / `local_` / `local:` 开头；带群标记的（`private:group_123`、
+ * `local_group_1`……）和认不出来的写法（`group_1`、`qq:group:1`、空键）一律 false。
+ * 这是"宁可不给"的方向：醒来块、注入、抽屉都靠它，错放行一次就是把私话带进群里。
+ */
+export function isPrivateScope(chatKey) {
+  const base = baseChatKey(chatKey);
+  if (!base) return false;
+  if (!PRIVATE_PREFIX.test(base)) return false;
+  return !isGroupScope(base);
 }
 
 /**

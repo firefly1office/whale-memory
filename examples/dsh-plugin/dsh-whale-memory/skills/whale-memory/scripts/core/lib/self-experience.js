@@ -14,22 +14,72 @@ import { parseAsOf, before, dayOf } from './as-of.js'
 const FILE = 'self-experience.jsonl'
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
 
-function readAll(dir, { rewriting = false } = {}) {
+// 坏行不再静默跳过：返回解析失败的行数，展示路径（strict）遇到坏行直接拒绝。
+// 写入路径用非 strict：追加一条新记录不会碰坏行，坏行原样留在文件里等人工修复。
+function readAll(dir, { strict = false } = {}) {
   let raw
   try {
     raw = fs.readFileSync(path.join(dir, FILE), 'utf8')
   } catch (error) {
-    if (error.code === 'ENOENT') return []
-    throw error
+    if (error.code === 'ENOENT') return { rows: [], bad: 0 }
+    // 只有"还没有这个文件"能当空；权限、是目录、坏盘必须报出来，不能当成 0 条
+    throw experienceUnreadable(error)
   }
   const rows = []
+  let bad = 0
   for (const line of raw.split('\n').filter(line => line.trim())) {
     try { rows.push(JSON.parse(line)) }
-    catch {
-      if (rewriting) throw new Error('The experiences file contains corrupted records; back it up and repair it before making changes.（经历文件含损坏记录，请备份并修复后再修改。）')
-    }
+    catch { bad += 1 }
   }
-  return rows
+  if (strict && bad > 0) throw experienceCorrupt(bad)
+  return { rows, bad }
+}
+
+function experienceCorrupt(bad) {
+  const error = new Error('经历文件有 ' + bad + ' 行无法解析：这里少了她写下的记录，不能当成空的照常展示（先备份再修复）。')
+  error.code = 'EXPERIENCE_CORRUPT'
+  error.bad = bad
+  return error
+}
+
+function experienceUnreadable(cause) {
+  const error = new Error('经历文件读不出来（' + FILE + '）：' + String(cause && cause.message ? cause.message : cause))
+  error.code = 'EXPERIENCE_UNREADABLE'
+  error.cause = cause
+  return error
+}
+
+// 坏行计数（体检 / 工具用）：解析失败的行数。读文件本身失败仍然抛，不当成"0 行坏行"
+export function badLines(dir) {
+  return readAll(dir).bad
+}
+
+// 事件文件：只有"还没有这个文件"能当空。读不出来（权限、是目录、坏盘）必须报出来，
+// 否则正文可读、事件读不了时，这里会当成"她没想起过、也没后记、没结过案"，替她编一段空白。
+function eventsUnreadable(file, cause) {
+  const error = new Error('事件日志读不出来（' + path.basename(file) + '）：' + String(cause && cause.message ? cause.message : cause))
+  error.code = 'EVENTS_UNREADABLE'
+  error.cause = cause
+  return error
+}
+
+function readEvents(dir, eventsFile, read, onError = null) {
+  const file = eventsFile(dir)
+  try {
+    const st = fs.statSync(file)
+    if (!st.isFile()) throw Object.assign(new Error('not a regular file'), { code: 'EISDIR' })
+    const fd = fs.openSync(file, 'r')
+    fs.closeSync(fd)
+  } catch (error) {
+    // 还没有这组事件：当空是如实的
+    if (error.code === 'ENOENT') return read()
+    if (onError) return onError(file, error)
+    throw eventsUnreadable(file, error)
+  }
+  try { return read() } catch (error) {
+    if (onError) return onError(file, error)
+    throw eventsUnreadable(file, error)
+  }
 }
 
 // 字段上限：写的时候超了就报错，不静默截断
@@ -100,18 +150,32 @@ function normalize(r) {
 
 // 读出经历并认领旧 id：一个旧 id 只对应一条旧记录、也没有别的记录显式用着它，才认领；
 // 否则谁也不给（事件原样留在文件里），由 pendingLegacyEvents 报告
-function identify(dir) {
-  const rows = readAll(dir).map(normalize).filter((r) => r && r.then && r.then.text)
+// strict：展示路径用，坏行直接抛（见 readAll）
+function identify(dir, { strict = false } = {}) {
+  const raw = readAll(dir, { strict })
+  const rows = raw.rows.map(normalize).filter((r) => r && r.then && r.then.text)
   const explicit = new Set(rows.filter((r) => !r.formerId).map((r) => r.id))
   const owners = new Map()
   for (const r of rows) {
-    if (r.formerId) owners.set(r.formerId, [...(owners.get(r.formerId) || []), r.id])
+    if (!r.formerId) continue
+    // push 而不是 [...旧数组, id]：四万条同一分钟的旧记录共用一个旧 id 时，后者是 O(n²)
+    const list = owners.get(r.formerId)
+    if (list) list.push(r.id)
+    else owners.set(r.formerId, [r.id])
+  }
+  // 同一个 id 在文件里出现两次（导入合并、手改都可能）：只认最先写下的那条，
+  // 后面的标 duplicateOf，事件不再往它身上回填——否则一次「想起」会挂在两条上
+  const canonical = new Map()
+  for (const r of rows) {
+    const first = canonical.get(r.id)
+    if (first) { r.duplicateOf = first.id; continue }
+    canonical.set(r.id, r)
   }
   for (const r of rows) {
     if (r.formerId && (owners.get(r.formerId).length !== 1 || explicit.has(r.formerId))) r.formerId = ''
     if (!r.formerId) delete r.formerId
   }
-  return { rows, owners, explicit }
+  return { rows, owners, explicit, bad: raw.bad }
 }
 
 // 出处的一句话摘要：只用来指路，全文用 read / currentView 看
@@ -122,23 +186,28 @@ const brief = (r) => {
 
 // asOf：翻回那天的自己。只保留那一刻之前（含）写下的经历、后记、想起和选择；
 // 那之后发生的一律看不见。不传 asOf 就是现在的样子
-export function loadAll(dir, { asOf = null, allowSealCorrupt = false } = {}) {
+//
+// 坏行（self-experience.jsonl 里有解析不了的行）默认 fail closed：返回的部分经历会
+// 把"少了一条"装成"就这些"，召回/书/体检都会当真。要按字节备份、恢复演练、计数这种
+// 不展示内容的工具，传 allowCorrupt（导出/恢复那条路走 allowSealCorrupt，含义相同）。
+export function loadAll(dir, { asOf = null, allowSealCorrupt = false, allowCorrupt = false } = {}) {
   const until = parseAsOf(asOf)
-  const { rows: all } = identify(dir)
+  const rawMode = Boolean(allowSealCorrupt || allowCorrupt)
+  const { rows: all } = identify(dir, { strict: !rawMode })
   const rows = until === null ? all : all.filter((r) => before(r, until))
   if (!rows.length) return rows
 
-  // 想起次数：有事件文件就以事件为准；没有事件时才退回旧字段
-  let counts = new Map()
-  try { counts = recallEvents.countByExp(dir, { until }) } catch { /* 事件文件坏了也不影响读经历 */ }
+  // 想起次数：有事件文件就以事件为准；没有事件时才退回旧字段。
+  // 读不出来必须报出来（readEvents）：否则会当成"她从没想起过"。
+  // rawMode（按字节备份/恢复/计数）不看事件内容，读不出来也不该拦住备份。
+  const onEventError = rawMode ? () => new Map() : null
+  const counts = readEvents(dir, recallEvents.eventsFile, () => recallEvents.countByExp(dir, { until }), onEventError)
 
   // 改主意：旧 later 数组 + later-events 事件，按时间合并
-  let laterMap = new Map()
-  try { laterMap = laterEvents.groupByExp(dir, { until }) } catch { }
+  const laterMap = readEvents(dir, laterEvents.eventsFile, () => laterEvents.groupByExp(dir, { until }), onEventError)
 
   // 没弄完的事后来怎么样了：想通 / 暂放 / 再接着想
-  let unfinishedMap = new Map()
-  try { unfinishedMap = unfinishedEvents.latestByExp(dir, { until }) } catch { }
+  const unfinishedMap = readEvents(dir, unfinishedEvents.eventsFile, () => unfinishedEvents.latestByExp(dir, { until }), onEventError)
 
   // 她选择封存的：不再被主动想起，但还在。
   // 读不出来就抛出去，不能当成"什么都没封存"——否则正文可读、日志读不了时，
@@ -154,7 +223,9 @@ export function loadAll(dir, { asOf = null, allowSealCorrupt = false } = {}) {
 
   const viewed = rows.map((r) => {
     const keys = r.formerId ? [r.id, r.formerId] : [r.id]
-    const extra = keys.flatMap((k) => laterMap.get(k) || [])
+    // 同一个 id 出现两次时，事件只回填到最先写下的那条（duplicateOf）：一次想起不该挂两条
+    const duplicate = Boolean(r.duplicateOf)
+    const extra = duplicate ? [] : keys.flatMap((k) => laterMap.get(k) || [])
     const merged = [...(r.later || []).filter((l) => before(l, until)), ...extra]
       .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')))
     const next = { ...r, later: merged }
@@ -165,9 +236,11 @@ export function loadAll(dir, { asOf = null, allowSealCorrupt = false } = {}) {
       delete next.lastRecalledAt
     }
     let state = null
-    for (const k of keys) {
-      const st = unfinishedMap.get(k)
-      if (st) state = st
+    if (!duplicate) {
+      for (const k of keys) {
+        const st = unfinishedMap.get(k)
+        if (st) state = st
+      }
     }
     if (state && next.then && next.then.unfinished) next.unfinishedState = state
     for (const k of keys) {
@@ -182,11 +255,13 @@ export function loadAll(dir, { asOf = null, allowSealCorrupt = false } = {}) {
     }
     let count = 0
     let lastAt = ''
-    for (const k of keys) {
-      const c = counts.get(k)
-      if (!c) continue
-      count += c.count
-      if (c.lastAt > lastAt) lastAt = c.lastAt
+    if (!duplicate) {
+      for (const k of keys) {
+        const c = counts.get(k)
+        if (!c) continue
+        count += c.count
+        if (c.lastAt > lastAt) lastAt = c.lastAt
+      }
     }
     if (count) {
       next.recalls = count
@@ -199,7 +274,12 @@ export function loadAll(dir, { asOf = null, allowSealCorrupt = false } = {}) {
   // 封存了的经历不露摘要：别的回想里只说"一件你封存了的事"，不借着引用把它又提起来
   const pointer = (r) => r.sealed ? { id: r.id, day: r.day, sealed: true } : brief(r)
   const byId = new Map()
-  for (const r of viewed) { byId.set(r.id, r); if (r.formerId) byId.set(r.formerId, r) }
+  // 重复 id 不覆盖先写下的那条：指路一律指向它
+  for (const r of viewed) {
+    if (r.duplicateOf) continue
+    byId.set(r.id, r)
+    if (r.formerId) byId.set(r.formerId, r)
+  }
   for (const r of viewed) {
     const refs = (r.then && Array.isArray(r.then.refs)) ? r.then.refs : []
     if (!refs.length) continue
@@ -212,13 +292,11 @@ export function loadAll(dir, { asOf = null, allowSealCorrupt = false } = {}) {
   }
 
   // 事后联想（两头都看得见）与人生章节（按 day 落进她起过名字的那段日子）
-  let linkMap = new Map()
-  try { linkMap = linkEvents.linksByExp(dir, { until }) } catch { }
-  let chapterList = []
-  try { chapterList = chapterEvents.chapters(dir, { until }) } catch { }
+  const linkMap = readEvents(dir, linkEvents.eventsFile, () => linkEvents.linksByExp(dir, { until }), onEventError)
+  const chapterList = readEvents(dir, chapterEvents.eventsFile, () => chapterEvents.chapters(dir, { until }), rawMode ? () => [] : null)
   for (const r of viewed) {
     const keys = r.formerId ? [r.id, r.formerId] : [r.id]
-    const links = keys.flatMap((k) => linkMap.get(k) || [])
+    const links = !r.duplicateOf && keys.flatMap((k) => linkMap.get(k) || [])
       .map((l) => {
         const other = byId.get(l.other)
         if (!other || other === r) return null
@@ -405,7 +483,7 @@ export function setUnfinishedState(dir, { id, choice, note = '' } = {}) {
 
 // 单条：loadAll 会合并事件，这里绕开全量合并，只给存在性/未完判断用
 function rowsById(dir, id) {
-  const rows = readAll(dir).map(normalize).filter((r) => r && r.then && r.then.text)
+  const rows = readAll(dir).rows.map(normalize).filter((r) => r && r.then && r.then.text)
   return rows.find((r) => r.id === id) || rows.find((r) => r.formerId === id) || null
 }
 
@@ -425,8 +503,9 @@ export function currentView(dir, id, { asOf = null } = {}) {
 
 // 相关度 × 重要度：重要的先被想起
 // 阈值比较的是「原始重叠数」，重要度只影响排序，不影响过线门槛；门槛口径见 query-match.js
-// mode='strict'（默认）：长查询要求 ≥60% 命中，宁可不召回也不硬凑
-// mode='loose'：只要求至少一个实词命中，适合"想起来就该出现在眼前"的日常召回，宿主自行承担误召
+// mode='strict'（默认）：至少对上一个词，并且查询的意思至少 70% 被接住，宁可不召回也不硬凑
+// mode='loose'：比 strict 松，但最低比例还在（长查询仍要够一定比例的词命中），
+//               适合"想起来就该出现在眼前"的日常召回，宿主自行承担误召
 // mark=false（默认）：只读；mark=true 追加一条 recall 事件（不重写经历文件）
 // asOf：在那天的自己里找（只读）；翻旧日子不算"想起"，所以不能和 mark 一起用
 // 她封存了的经历不会被召回；includeSealed=true 只给"她自己要翻"这种明确场景用
@@ -460,14 +539,15 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, mi
       take(hits, 'later')
     }
 
-    const all = normalizeText([
+    // 记录自身的规模：长记录天然更容易碰巧命中，排序时按 √长度 归一化
+    // cover 用原文拼起来的这段算（不要先归一化：拉丁词要按整词比，抹掉空格就成了一整个词）
+    const fieldsText = [
       r.then.text, r.then.thought, (r.then.feeling || []).join(' '),
       r.then.quote ? r.then.quote.text : '', r.then.quote ? r.then.quote.source : '',
       (r.later || []).map(laterText).join(' ')
-    ].join(' '))
-    // 记录自身的规模：长记录天然更容易碰巧命中，排序时按 √长度 归一化
-    const size = Math.max(1, all.length - 1)
-    return { n: matched.size, size, matchedIn: fields, matchedLater, cover: coverage(units, all) }
+    ].join(' ')
+    const size = Math.max(1, normalizeText(fieldsText).length - 1)
+    return { n: matched.size, size, matchedIn: fields, matchedLater, cover: coverage(units, fieldsText) }
   }
   const weightOf = (r) => (r.weight === 'important' ? 3 : r.weight === 'minor' ? 0.5 : 1)
   const picked = rows.map((r) => {
@@ -475,7 +555,8 @@ export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, mi
     const legacy = gate === 'legacy'
     return { r: { ...r, matchedIn, matchedLater }, n, cover, s: (n / Math.sqrt(size)) * weightOf(r) * (legacy ? 1 : 0.5 + cover) }
   })
-    // strict（0.17 起）：至少对上一个词，并且查询的意思至少 MIN_COVER 在这段记忆里找得到；loose：对上 minOverlap 个词
+    // strict（0.17 起）：至少对上一个词，并且查询的意思至少 MIN_COVER 在这段记忆里找得到；
+    // loose：要够 minOverlap 个词，并且长查询还要够最低比例（requiredOverlap 里算）
     .filter((x) => (!q ? true : mode === 'loose' || gate === 'legacy' ? x.n >= required : x.n >= minOverlap && x.cover >= MIN_COVER))
     .sort((a, b) => b.s - a.s || String(b.r.at).localeCompare(String(a.r.at)))
     .slice(0, limit).map((x) => x.r)
@@ -621,8 +702,9 @@ export function renderTwoPart(entry, { now = new Date(), lang = 'zh' } = {}) {
 
 export const internals = { WEIGHTS, FILE }
 // 兼容旧调用：只要一句摘要的地方仍可用
-// 宿主拿用户的原话直接来召回、再自动塞进提示词：用旧口径，升级不改变自动递回的行为
-// （新口径对"垫话 + 话题"更友好，但对"长句里带一个错的前提"仍可能放进来，见 docs/eval.md）
-export function recallForContext(dir, query, { max = 1, gate = 'legacy' } = {}) {
+// 宿主拿用户的原话直接来召回、再自动塞进提示词：默认走 strict 的新口径（cover）。
+// 旧口径（legacy）在同批用例上编造率 27.8%（见 docs/eval.md），自动递回不能默认用它；
+// 确实要保持 0.16 行为的宿主显式传 gate: 'legacy'。
+export function recallForContext(dir, query, { max = 1, gate = 'cover' } = {}) {
   return recall(dir, query, { limit: max, gate }).map((r) => ({ id: r.id, day: r.day, text: r.then.text, thought: r.then.thought, weight: r.weight, raw: r }))
 }

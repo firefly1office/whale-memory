@@ -25,6 +25,13 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
+      # 发布前先过硬闸：语法、测试、封存外露 / then 不可变、类型声明；不过就不发
+      - name: 发布前自检（测试 / check）
+        run: npm run check
+
+      - name: 发布前类型冒烟
+        run: npm run types
+
       - name: 版本与包名自检
         working-directory: packages/core
         run: |
@@ -45,6 +52,13 @@ jobs:
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+
+      # 发布前先过硬闸：语法、测试、封存外露 / then 不可变、类型声明；不过就不发
+      - name: 发布前自检（测试 / check）
+        run: npm run check
+
+      - name: 发布前类型冒烟
+        run: npm run types
 
       - name: 版本与包名自检
         working-directory: packages/emotion-intake

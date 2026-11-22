@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { CROSS_ROOM_RULE, createAudience, isOwnerRoom, redactSensitive, roomOf } from '../packages/core/lib/conversation-privacy.js'
+import { isPrivateScope } from '../packages/core/lib/scope-key.js'
 
 const OWNER = '10001'
 const aud = createAudience({ ownerId: OWNER })
@@ -50,6 +51,49 @@ test('同一个房间只认同一套槽位', () => {
 test('isActive 可以再收紧（例如人设槽位失效）', () => {
   const strict = createAudience({ ownerId: OWNER, isActive: () => false })
   assert.equal(strict.permits(FRIEND, GROUP), false)
+})
+
+test('缺 ownerId 时 fail closed：谁的记忆都不跨窗口递', () => {
+  for (const aud of [createAudience(), createAudience({}), createAudience({ ownerId: '' }), createAudience({ ownerId: '   ' }), createAudience({ ownerId: null })]) {
+    assert.equal(aud.permits(OWNER_DM, GROUP), false, '主人私聊不能默认漏给群')
+    assert.equal(aud.permits(LOCAL, GROUP), false)
+    assert.equal(aud.permits(OWNER_DM, FRIEND), false)
+    assert.equal(aud.permits(GROUP, FRIEND), false)
+    assert.equal(aud.permits(FRIEND, GROUP), false)
+    assert.equal(aud.permits(GROUP, GROUP_B), false)
+    assert.equal(aud.permits(OWNER_DM, OWNER_DM), false, '认不出主人是谁，连同一个房间也不放行')
+  }
+})
+
+test('私聊两种分隔符都认；主人窗口跟着 ownerId 走', () => {
+  assert.equal(roomOf('private:10001').private, true)
+  assert.equal(roomOf('private:10001').base, 'private:10001')
+  assert.equal(isOwnerRoom('private:10001', OWNER), true)
+  assert.equal(isOwnerRoom('private_10001', OWNER), true)
+  assert.equal(isOwnerRoom('private:10001', ''), false, '缺 ownerId 时谁都不算主人')
+  assert.equal(createAudience({ ownerId: OWNER }).permits('private:10001', GROUP), false, '主人私聊不漏给群')
+  assert.equal(createAudience({ ownerId: OWNER }).permits('private:10001', 'private:20002'), true)
+  // 账号 ID 不一定是纯数字：认得出是私聊，就按同一个 ownerId 比
+  assert.equal(isOwnerRoom('private:fixture-owner', 'fixture-owner'), true)
+  assert.equal(isOwnerRoom('private:fixture-owner', OWNER), false)
+})
+
+test('带群标记的"私聊"不是私聊房间，也不算主人窗口', () => {
+  for (const key of ['private:group_123', 'private_group_123', 'local_group_1', 'local:group:1']) {
+    assert.equal(roomOf(key), null, key)
+    assert.equal(isOwnerRoom(key, OWNER), false, key)
+    assert.equal(createAudience({ ownerId: OWNER }).permits(key, GROUP), false, key)
+  }
+})
+
+test('两个模块对同一批键的判断一致（私聊判定只有 scope-key 一份实现）', () => {
+  const keys = ['private_10001', 'private:10001', 'private_10001#p_ab12', 'local:owner', 'local_owner',
+    'private:group_123', 'private_group_123', 'local_group_1', 'group_123', 'group:123', 'qq:group:1', '', '随便什么']
+  for (const key of keys) {
+    const room = roomOf(key)
+    const privateRoom = Boolean(room && (room.private || room.local))
+    assert.equal(privateRoom, isPrivateScope(key), key)
+  }
 })
 
 test('脱敏：数字、链接、邮箱、密钥、长串', () => {

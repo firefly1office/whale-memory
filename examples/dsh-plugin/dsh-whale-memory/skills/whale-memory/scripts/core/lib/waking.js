@@ -2,6 +2,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import * as exp from './self-experience.js'
+import { isPrivateScope } from './scope-key.js'
 
 function readJsonl(file) {
   try {
@@ -12,9 +13,10 @@ function readJsonl(file) {
 function dayStr(d = new Date()) { return d.toLocaleDateString('sv-SE') }
 
 // 只认得出一对一的会话键（private_* / private:* / local_* / local:*）；认不出的一律当成可能有别人在，宁可不给
-const PRIVATE_KEY = /^(private|local)[:_]/i
+// 判断本身在 scope-key.js：带群标记的写法（private:group_123、local_group_1……）也不算私聊，
+// 醒来块、注入、未说出口抽屉问的是同一个实现。
 function mayShow(key, allowGroup) {
-  return Boolean(key) && (allowGroup || PRIVATE_KEY.test(key))
+  return Boolean(key) && (allowGroup || isPrivateScope(key))
 }
 
 // 给宿主用的同一个判断：注入记忆前先问它，别自己写"不是群就行"

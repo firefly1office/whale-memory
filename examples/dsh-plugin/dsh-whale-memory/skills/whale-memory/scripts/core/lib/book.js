@@ -8,6 +8,8 @@ import { parseAsOf, dayOf } from './as-of.js'
 const range = (c) => c.from + ' ~ ' + (c.to || '至今')
 const laterDay = (l) => l.day || String(l.at || '').slice(0, 10)
 const ptr = (x) => x.missing ? '（' + x.id + '，找不到了）' : x.sealed ? '（一件封存了的事）' : x.day + '「' + x.text + '」'
+// 只有 id 和日子的指引（封存过的那一头）：翻回那天要当成看得见时，用它把摘要补回来
+const brief = (text) => { const s = [...String(text || '')]; return s.length > 24 ? s.slice(0, 24).join('') + '…' : s.join('') }
 
 function entry(r) {
   const t = r.then
@@ -33,7 +35,7 @@ function entry(r) {
     const word = { done: '想通了', shelved: '先放下了', reopen: '又接着想' }[st.choice] || st.choice
     out.push('- 「' + t.unfinished + '」' + word + '（' + st.day + '）', '')
   }
-  if (Array.isArray(r.links) && r.links.length) out.push('- 后来连在一起的：' + r.links.map((l) => l.sealed ? ptr(l) : ptr(l) + '——' + l.reason).join('；'), '')
+  if (Array.isArray(r.links) && r.links.length) out.push('- 后来连在一起的：' + r.links.map((l) => l.sealed ? ptr(l) : ptr(l) + (l.reason ? '——' + l.reason : '')).join('；'), '')
   if (r.sealed) out.push('- （这件事她' + (r.sealed.afterAsOf ? '后来' : '') + '封存了：' + r.sealed.day + '）', '')
   return out
 }
@@ -43,8 +45,35 @@ export function renderBook(dir, { asOf = null, includeSealed = false, title = '�
   // 封存状态不确定时抛错，不返回空书：导出是显式动作，不能拿空文件覆盖上一次成功的书。
   // 自动展示（醒来块等）各自兜住错误、保持空白。
   const rows = loadAll(dir, { asOf })
-  const visible = rows.filter((r) => includeSealed || !r.sealed).sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')))
-  const hidden = rows.length - visible.length
+  // 翻回那天（asOf）的书：只按那天的封存状态过滤。那时还没封存、现在封存了的（sealed.afterAsOf）
+  // 在那时是看得见的——照收进正文，只在那一条下面标「后来封存了」；
+  // 也不说"现在封存了几件"（计数只说那一天封存着的件数），免得历史导出泄漏现在的封存状态。
+  const asOfView = until !== null
+  const sealedLater = (r) => Boolean(r && r.sealed && r.sealed.afterAsOf)
+  // 这条在这本书的那个时刻是封存着的吗？翻回那天时，后来才封存的不算。
+  const sealedThen = (r) => Boolean(r && r.sealed) && !(asOfView && r.sealed.afterAsOf)
+  const byId = new Map()
+  for (const r of rows) { byId.set(r.id, r); if (r.formerId) byId.set(r.formerId, r) }
+  // 别的条目指过来的"（一件封存了的事）"：另一头在那时还没封存，就写摘要——
+  // 别让联想把当时看得见的正文吞成一句占位（那一条自己仍会标"后来封存"）。
+  const visibleThen = (pointer) => {
+    if (!pointer || !pointer.sealed) return pointer
+    const hit = byId.get(pointer.id)
+    if (!sealedLater(hit)) return pointer
+    return { id: hit.id, day: hit.day, text: brief(hit.then && hit.then.text) }
+  }
+  const bookRows = asOfView
+    ? rows.map((r) => {
+      const next = { ...r }
+      if (Array.isArray(next.refsInfo)) next.refsInfo = next.refsInfo.map(visibleThen)
+      if (Array.isArray(next.links)) next.links = next.links.map(visibleThen)
+      return next
+    })
+    : rows
+  const visible = bookRows.filter((r) => includeSealed || !sealedThen(r)).sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')))
+  // 计的是"这本书里那个时刻"封存着的件数：现在的书就是现在的，翻回那天就是那天的；
+  // 那时还没封存的不算进去（它已经照常收进书里了），所以 asOf 早于封存时这一句不出现。
+  const hidden = includeSealed ? 0 : bookRows.filter(sealedThen).length
   const chapters = chapterEvents.chapters(dir, { until })
 
   // 分节：章节会嵌套（"那个秋天"里有"拿到钥匙的那周"），每条放进它落入的最具体的那段——开始得最晚的那个；

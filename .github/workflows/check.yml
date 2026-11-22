@@ -33,6 +33,9 @@ jobs:
         run: node tools/privacy-canary.mjs
       - name: recall eval
         run: node tools/eval-recall.mjs
+      # 两道硬闸：封存/抽屉不许外露、then 逐字节不可变；跑的是与 npm run check 同一条命令
+      - name: whale-eval gates (seal leaks / then immutability)
+        run: node tools/whale-eval.mjs --check
       - name: type declarations
         if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
         run: npm run types

@@ -2,6 +2,10 @@
 import { selfExperience, evidencePolicy, evidenceFromExperience, selfPrompt, waking, unfinishedEvents, sealEvents, recap, linkEvents, chapterEvents, book, unsaid, archive } from '../packages/core/index.js'
 
 import { recallDetail, timeSense, relativeWindow, personCard } from '../packages/core/index.js'
+// 包入口上其余的模块：每个都要 import 一次，缺任何一个导出都会让这条冒烟测编译失败
+import { scopeKey, conversationPrivacy, factCard, factStore, factJudge, changed, injection } from '../packages/core/index.js'
+// file-lock 只在子路径导出（包入口没有），单独按相对路径验声明
+import { writeFileAtomic } from '../packages/core/lib/file-lock.js'
 const detail = recallDetail('/tmp/whale', '围巾是什么颜色')
 const excerpt: string | undefined = detail.candidates[0]?.evidence[0]?.text
 console.log(detail.status, excerpt)
@@ -68,3 +72,36 @@ console.log(when, from, card)
 const strictSealed = sealEvents.sealedByExp('/tmp/whale', { strict: true }).get(made.id)?.day
 const strictAsOf = sealEvents.sealedByExp('/tmp/whale', { until: Date.now(), strict: false }).size
 console.log(strictSealed, strictAsOf)
+
+// 0.21.2：包入口漏掉的 7 个导出，逐个 import + 最小调用（之前 .d.ts 少了它们，这条冒烟测也没 import，抓不到）
+const scopeKeys: string[] = scopeKey.scopeKeysFor('local:owner#p_default')
+const inScope: boolean = scopeKey.recordInScope('local:owner', 'local:owner#p_default')
+const scoped: boolean = scopeKey.isPersonaScoped('local:owner#p_default')
+const groupScope: boolean = scopeKey.isGroupScope('group_1')
+const privateScope: boolean = scopeKey.isPrivateScope('local:owner')
+const room = conversationPrivacy.roomOf('local:owner')
+const audience = conversationPrivacy.createAudience({ ownerId: 'owner' })
+const permits: boolean = audience.permits('local:owner', 'local:owner')
+const masked: string = conversationPrivacy.redactSensitive('邮箱 owner@example.com')
+const extracted = factCard.extractFacts('我养了一只猫叫小满')
+const mergedFacts = factCard.mergeFacts(extracted)
+const factLine: string = factCard.renderFact({ kind: 'like', value: '猫' })
+const storedFacts = factStore.loadFacts('/tmp/whale')
+const savedFacts = factStore.saveFacts('/tmp/whale', [{ kind: 'like', value: '猫' }])
+const relevantFacts = factStore.relevantFacts(storedFacts, '猫')
+const factsLine: string = factStore.renderFactsLine(relevantFacts)
+const factKinds: string[] = factJudge.FACT_KINDS
+const judged = factJudge.judgeFacts({ messages: [{ ref: 'm1', text: '我住在海边' }], chatCompletion: () => '' })
+const changedItems = changed.changedSince('/tmp/whale', { days: 7 })
+const changedText: string = changed.renderChanged(changedItems, { lang: 'zh' })
+const surface = injection.surface('/tmp/whale', { chatKey: 'local:owner', text: '围巾' })
+const inject = injection.shouldInject({ chatKey: 'local:owner', text: '围巾' })
+console.log(scopeKeys.length, inScope, scoped, groupScope, privateScope, room?.key, permits, masked.length, mergedFacts.length, factLine, savedFacts.added, factsLine, factKinds.length, judged, changedText, surface.block, inject.ok, injection.INJECTION_RULES.length)
+
+// 0.21.3：逐模块 d.ts 补齐的导出（运行时早就导出，类型声明里以前漏了）
+const recovery = archive.recoverImport('/tmp/whale')
+const journalPath: string = archive.importJournalPath('/tmp/whale')
+const brokenLines: number = selfExperience.badLines('/tmp/whale')
+const closed = unfinishedEvents.decide('/tmp/whale', { id: made.id, choice: 'shelved' })
+const atomicPath: string = writeFileAtomic('/tmp/whale/atomic.txt', 'ok')
+console.log(recovery.action, recovery.recovered, journalPath.length, brokenLines, closed.noop, closed.row?.choice, atomicPath.length)

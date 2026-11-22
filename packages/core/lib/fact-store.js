@@ -8,11 +8,29 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { withFileLock, writeFileAtomic } from './file-lock.js';
 
 const FILE = 'fact-cards.jsonl';
 
 function fileOf(dir) {
   return path.join(String(dir || ''), FILE);
+}
+
+// 上次写到一半崩掉留下的临时文件：拿到锁以后清掉（锁保证没有别的写者在用）。
+function cleanupTemps(file) {
+  const dir = path.dirname(file);
+  const prefix = path.basename(file) + '.tmp-';
+  let names = [];
+  try { names = fs.readdirSync(dir); } catch { return; }
+  for (const name of names) {
+    if (!name.startsWith(prefix)) continue;
+    try { fs.rmSync(path.join(dir, name), { force: true }); } catch { /* 下一轮再清 */ }
+  }
+}
+
+function serializeFacts(rows) {
+  const lines = rows.map((f) => JSON.stringify(f)).join('\n');
+  return lines ? `${lines}\n` : '';
 }
 
 /** 读全部事实卡；文件不存在返回空数组。 */
@@ -34,10 +52,29 @@ export function loadFacts(dir) {
 /**
  * 合并写入：同 kind + value + 主体 只留一条，更新时间和次数，不重复堆积。
  * 主体必须进合并键：Alice 喜欢咖啡和 Bob 喜欢咖啡是两条事实，不能合成一个人。
+ *
+ * 并发安全：整段「重读 → 合并 → 写回」都在 file-lock 里，写回走临时文件 + fsync + rename；
+ * 并发写不会互相覆盖，写到一半崩掉也不会把正式文件写成半截。
  * @returns {{added:number, updated:number}}
  */
 export function saveFacts(dir, facts) {
-  const existing = loadFacts(dir);
+  const dirPath = String(dir || '');
+  const incoming = Array.isArray(facts) ? facts : [];
+  if (!dirPath) {
+    const merged = mergeFacts([], incoming);
+    return { added: merged.added, updated: merged.updated };
+  }
+  fs.mkdirSync(dirPath, { recursive: true });
+  const file = fileOf(dirPath);
+  return withFileLock(file + '.lock', () => {
+    const merged = mergeFacts(loadFacts(dirPath), incoming);
+    cleanupTemps(file);
+    writeFileAtomic(file, serializeFacts(merged.rows));
+    return { added: merged.added, updated: merged.updated };
+  });
+}
+
+function mergeFacts(existing, facts) {
   const keyOf = (f) => `${f.kind}|${String(f.subject || '').trim()}|${f.value}`;
   const byKey = new Map(existing.map((f) => [keyOf(f), f]));
   let added = 0;
@@ -76,13 +113,7 @@ export function saveFacts(dir, facts) {
     }
     updated += 1;
   }
-  const dirPath = String(dir || '');
-  if (dirPath) {
-    fs.mkdirSync(dirPath, { recursive: true });
-    const lines = [...byKey.values()].map((f) => JSON.stringify(f)).join('\n');
-    fs.writeFileSync(fileOf(dir), lines ? `${lines}\n` : '', 'utf8');
-  }
-  return { added, updated };
+  return { rows: [...byKey.values()], added, updated };
 }
 
 /** 这个值能不能安全地说出来：短、是名词短语、不含动词和否定。 */

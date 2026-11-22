@@ -33,9 +33,22 @@ const OWNER_KEY = 'local:owner'
 
 export function parseArgs(argv) {
   const get = (k) => { const i = argv.indexOf('--' + k); if (i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--')) return argv[i + 1]; const eq = argv.find((a) => a.startsWith('--' + k + '=')); return eq ? eq.slice(k.length + 3) : '' }
+  const given = (k) => argv.includes('--' + k) || argv.some((a) => a.startsWith('--' + k + '='))
+  // 布尔开关必须写清 true / false。裸写 --readonly 以前会被当成「没开」，等于把写工具静默放开；
+  // 现在直接报错，并把正确写法说出来。
+  const bool = (k) => {
+    const raw = get(k)
+    if (!raw) {
+      if (!given(k)) return false
+      throw new Error('--' + k + ' needs an explicit value: write --' + k + ' true or --' + k + ' false（--' + k + ' 要写清楚：写成 --' + k + ' true 或 --' + k + ' false）')
+    }
+    if (raw === 'true') return true
+    if (raw === 'false') return false
+    throw new Error('--' + k + ' only accepts true or false, got: ' + raw + '（--' + k + ' 只接受 true 或 false）')
+  }
   const data = path.resolve(get('data') || process.env.WHALE_DATA_DIR || path.join(process.cwd(), 'data'))
   const lang = (get('lang') || process.env.WHALE_LANG || (/^zh/i.test(String(process.env.LC_ALL || process.env.LANG || Intl.DateTimeFormat().resolvedOptions().locale || '')) ? 'zh' : 'en')) === 'zh' ? 'zh' : 'en'
-  return { data, mem: path.join(data, 'plugin-data', 'biomimetic-memory'), owner: get('owner') === 'true', readonly: get('readonly') === 'true', lang }
+  return { data, mem: path.join(data, 'plugin-data', 'biomimetic-memory'), owner: bool('owner'), readonly: bool('readonly'), lang }
 }
 
 // ── 工具 ────────────────────────────────────────────────────────────────
@@ -81,7 +94,10 @@ export function buildTools(cfg) {
         const asOf = a.asOf || null
         const only = String(a.id || '')
         const all = exp.loadAll(M, { asOf })
-        const picked = only ? all.filter((r) => r.id === only || r.formerId === only) : all.filter((r) => !r.sealed)
+        // 翻回那天：那时还没封存、后来才封存的（afterAsOf）在当时是看得见的，照常列出并带封存标记；
+        // 只有「那一天就已经封存着的」才算藏起来，sealedHidden 也只数这些。
+        const sealedThen = (r) => Boolean(r.sealed) && !(asOf && r.sealed.afterAsOf)
+        const picked = only ? all.filter((r) => r.id === only || r.formerId === only) : all.filter((r) => !sealedThen(r))
         const n = limitOf(a.limit, 8)
         const rows = n === 0 ? [] : picked.slice(-n)
         const res = {
@@ -94,7 +110,7 @@ export function buildTools(cfg) {
             ...(r.sealed ? { sealed: r.sealed } : {}), ...(only ? { view: exp.renderTwoPart(r, { lang: cfg.lang }) } : {})
           }))
         }
-        if (!only) { const hidden = all.filter((r) => r.sealed).length; if (hidden) res.sealedHidden = hidden }
+        if (!only) { const hidden = all.filter(sealedThen).length; if (hidden) res.sealedHidden = hidden }
         if (only && !rows.length) res.note = asOf ? '截至 ' + asOf + ' 还没有这条经历。' : '找不到这条经历：' + only
         return res
       }
@@ -271,7 +287,14 @@ export function serve(cfg, input = process.stdin, output = process.stdout) {
 
 const isMain = process.argv[1] && fs.realpathSync(path.resolve(process.argv[1])) === fs.realpathSync(fileURLToPath(import.meta.url))
 if (isMain) {
-  const cfg = parseArgs(process.argv.slice(2))
+  let cfg
+  try {
+    cfg = parseArgs(process.argv.slice(2))
+  } catch (e) {
+    // 参数不对就别启动：宁可什么都不给，也不能拿错档位悄悄跑起来
+    process.stderr.write('whale-memory-mcp: ' + String(e && e.message ? e.message : e) + '\n')
+    process.exit(2)
+  }
   process.stderr.write('whale-memory-mcp ' + VERSION + '：数据 ' + cfg.data + (cfg.owner ? '，抽屉已打开' : '') + (cfg.readonly ? '，只读' : '') + '\n')
   serve(cfg)
 }

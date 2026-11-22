@@ -5,6 +5,7 @@ import { safeRemove, tmpDir } from './_safety.mjs'
 import os from 'node:os'
 import path from 'node:path'
 import { computeMetrics } from '../tools/metrics.mjs'
+import { badLines } from '../packages/core/lib/self-experience.js'
 
 function fixture(t) {
   const dir = tmpDir('whale-metrics-')
@@ -42,11 +43,12 @@ test('指标：改主意率、想起率、原文锚都算得对', (t) => {
   assert.match(m.caveat, /不是召回准确率/)
 })
 
-test('指标：坏行计数不爆炸', (t) => {
+test('指标：坏行时 fail closed，不把"少了一条"当指标算', (t) => {
   const dir = fixture(t)
-  const file = path.join(dir, 'plugin-data', 'biomimetic-memory', 'self-experience.jsonl')
-  fs.appendFileSync(file, '{"broken":\n', 'utf8')
-  const m = computeMetrics(dir)
-  assert.equal(m.integrity.badExperienceLines, 1)
-  assert.equal(m.experiences.total, 3)
+  const mem = path.join(dir, 'plugin-data', 'biomimetic-memory')
+  fs.appendFileSync(path.join(mem, 'self-experience.jsonl'), '{"broken":\n', 'utf8')
+  // 指标走 loadAll 的合并视图：坏行时不能给出"就这些"的数字（先备份修复再算）
+  assert.throws(() => computeMetrics(dir), /无法解析/)
+  // 坏行本身仍然查得到（体检 / 工具用）
+  assert.equal(badLines(mem), 1)
 })

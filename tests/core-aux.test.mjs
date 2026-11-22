@@ -161,6 +161,44 @@ test('提示词护栏：篡改能被发现', (t) => {
   void saved
 })
 
+test('提示词护栏：生效文件和快照被改成同一份，verify 仍按 history 的 hash 抓出来', (t) => {
+  const dataDir = tmp(t)
+  const saved = prompt.save(dataDir, '说话短一点')
+  const dir = memDir(dataDir) + path.sep + 'prompt-overlay'
+  // 两处内容互相一致：只比内容的 verify 会放过去，但和写入时记下的 hash 对不上
+  fs.writeFileSync(path.join(dir, 'prompt-overlay.md'), '被改过了', 'utf8')
+  fs.writeFileSync(path.join(dir, 'versions', saved.version + '.md'), '被改过了', 'utf8')
+
+  const v = prompt.verify(dataDir)
+  assert.equal(v.ok, false, '内容一致不代表没被篡改')
+  assert.match(v.note, /hash/)
+  const latest = prompt.history(dataDir, 1)[0]
+  assert.equal(latest.hash, saved.hash, 'history 里留的是当初写下的 hash')
+  assert.notEqual(v.versionHash, latest.hash, '快照现在的 hash 和当初对不上')
+})
+
+test('提示词护栏：快照被改过时 revert 拒绝回退，不把篡改洗成新版本', (t) => {
+  const dataDir = tmp(t)
+  const saved = prompt.save(dataDir, '第一版')
+  const dir = memDir(dataDir) + path.sep + 'prompt-overlay'
+  fs.writeFileSync(path.join(dir, 'versions', saved.version + '.md'), '被换成了别的话', 'utf8')
+
+  const rev = prompt.revert(dataDir, saved.version)
+  assert.equal(rev.ok, false)
+  assert.match(rev.error, /hash/)
+  assert.equal(prompt.load(dataDir), '第一版', '拒绝回退时生效文件一个字都不动')
+})
+
+test('提示词护栏：没被改过的快照照常回退，verify 仍然通过', (t) => {
+  const dataDir = tmp(t)
+  const first = prompt.save(dataDir, '第一版')
+  prompt.save(dataDir, '第二版')
+  const rev = prompt.revert(dataDir, first.version)
+  assert.equal(rev.ok, true)
+  assert.equal(prompt.load(dataDir), '第一版')
+  assert.equal(prompt.verify(dataDir).ok, true, '正常回退产生的新版本自身是自洽的')
+})
+
 test('提示词护栏：锁住时写入报错而不是覆盖', (t) => {
   const dataDir = tmp(t)
   prompt.save(dataDir, '第一版')

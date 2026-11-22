@@ -6,43 +6,67 @@
  * "本人不在场时不替他公开"的模糊地带。这里把这条判断题写成一个纯函数，
  * 让宿主自己填策略，而不是把默认值藏进实现里。
  *
+ * 会话键的解析和"这是不是一对一的私聊"都交给 scope-key.js：
+ * 两边必须认同一套写法，否则一个入口放行、另一个入口拒绝。
+ *
  * 纯函数，无 IO。
  */
-import { baseChatKey } from './scope-key.js';
+import { baseChatKey, isGroupScope, isPrivateScope } from './scope-key.js';
+
+// 认得出来的房间写法：群 / 私聊都接受 `_` 和 `:` 两种分隔符；
+// 本机主人窗口是 local:owner / local_owner。私聊的另一半是账号 ID，不限定是纯数字。
+const GROUP_BASE = /^group[:_]\d+$/i;
+const PRIVATE_BASE = /^private[:_](.+)$/i;
+const LOCAL_BASE = /^local[:_]owner$/i;
 
 /** 解析会话键：group_123 / private_9 / local:owner，可带 #p_xxx 人设后缀。 */
 export function roomOf(chatKey) {
   const raw = String(chatKey || '').trim();
   if (!raw) return null;
-  const key = raw.replace(/:/, ':');
-  const m = /^(group_\d+|private_\d+|local:owner)(?:#(p_[A-Za-z0-9]{1,16}))?$/.exec(key);
-  if (!m) return null;
+  const base = baseChatKey(raw);
+  if (!base) return null;
+  const slot = base === raw ? '' : raw.slice(base.length + 1);
+  const local = LOCAL_BASE.test(base);
+  // 带群标记的（private:group_123、local_group_1……）私聊写法不算私聊房间：
+  // 宁可认不出，也不要把"外面套了 private"的群当成一对一。
+  const priv = !local && PRIVATE_BASE.test(base) && isPrivateScope(base);
+  const group = !local && !priv && GROUP_BASE.test(base) && isGroupScope(base);
+  if (!local && !priv && !group) return null;
   return {
-    base: m[1],
-    slot: m[2] || '',
-    key,
-    group: m[1].startsWith('group_'),
-    private: m[1].startsWith('private_'),
-    local: m[1] === 'local:owner'
+    base,
+    slot,
+    key: raw,
+    group,
+    private: priv,
+    local
   };
 }
 
-/** 这个会话是不是"主人自己的窗口"。 */
+/** 这个会话是不是"主人自己的窗口"。缺 ownerId 时谁都不算主人。 */
 export function isOwnerRoom(chatKey, ownerId) {
   const room = roomOf(chatKey);
   if (!room) return false;
-  return room.local || (room.private && room.base === `private_${ownerId}`);
+  if (room.local) return true;
+  const owner = String(ownerId ?? '').trim();
+  if (!owner) return false;
+  const m = PRIVATE_BASE.exec(room.base);
+  return Boolean(room.private && m && m[1] === owner);
 }
 
 /**
  * 建一个可见性判定器。
  *
+ * 没有 ownerId 时一律不放行（fail closed）：认不出哪间是主人的私聊，
+ * 就没法判断"这个人不在场时能不能替他说"，宁可什么都不给。
+ *
  * @param {object} policy
- * @param {string} policy.ownerId 主人的账号 ID
+ * @param {string} policy.ownerId 主人的账号 ID；缺省时判定器拒绝一切
  * @param {(sourceKey:string, sourceBase:string)=>boolean} [policy.isActive] 额外的活跃性判断（例如人设槽位是否匹配）
  * @returns {{permits:(sourceKey:string, destKey:string)=>boolean}}
  */
 export function createAudience({ ownerId = '', isActive = () => true } = {}) {
+  const owner = String(ownerId ?? '').trim();
+  if (!owner) return { permits: () => false };
   const cache = new Map();
   function permits(sourceKey, destKey) {
     const cacheKey = `${sourceKey}\u0000${destKey}`;
@@ -54,7 +78,7 @@ export function createAudience({ ownerId = '', isActive = () => true } = {}) {
       if (source.base === dest.base) {
         // 同一个房间内：只有完全同一套槽位才算"这里本来就看得到"
         allowed = source.key === dest.key;
-      } else if (!(dest.group && isOwnerRoom(sourceKey, ownerId))) {
+      } else if (!(dest.group && isOwnerRoom(sourceKey, owner))) {
         // 跨房间：主人私聊 / 本机主人不流向群；其余按 isActive 判断
         allowed = isActive(source.key, source.base);
       }

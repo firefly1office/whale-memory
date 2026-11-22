@@ -204,7 +204,7 @@ for (const script of CLIS) {
   })
 }
 
-test('封存（0.17）：翻回封存之前导出的书、回顾，也不收她现在封存着的', async (t) => {
+test('她的书（as-of）：只按那天的封存状态过滤；那时还没封存的不藏，也不报现在封存了几件', async (t) => {
   const { renderBook } = await import('../packages/core/lib/book.js')
   const dir = tmp(t)
   put(dir, 'self-experience.jsonl', [
@@ -213,9 +213,20 @@ test('封存（0.17）：翻回封存之前导出的书、回顾，也不收她�
   ])
   put(dir, 'seal-events.jsonl', [{ id: 'exp_hurt', at: '2026-11-12T12:00:00.000Z', day: '2026-11-12', action: 'seal', note: '' }])
   const asOf = '2026-11-11T20:00:00.000Z'
+  // asOf 早于封存：那天的她还没封存，书里照收并标「后来封存了」；不报"现在封存了几件"
   const md = renderBook(dir, { asOf })
-  assert.doesNotMatch(md, /批评/)
+  assert.match(md, /批评/)
   assert.match(md, /灯塔/)
-  assert.match(md, /有 1 件她封存了的事没有收进来/)
+  assert.match(md, /这件事她后来封存了：2026-11-12/)
+  assert.doesNotMatch(md, /有 \d+ 件她封存了的事没有收进来/)
+  // asOf 晚于封存：那天是封存着的，书里不收，计数说的是那一天的事
+  const afterSeal = renderBook(dir, { asOf: '2026-11-13T20:00:00.000Z' })
+  assert.doesNotMatch(afterSeal, /批评/)
+  assert.match(afterSeal, /有 1 件她封存了的事没有收进来/)
+  // 现在的书照旧：不收，照旧计数
+  const nowBook = renderBook(dir)
+  assert.doesNotMatch(nowBook, /批评/)
+  assert.match(nowBook, /有 1 件她封存了的事没有收进来/)
+  // 回顾（她自己现在翻旧账）仍是 0.17 的口径：她封存的，翻回那天也不给
   assert.doesNotMatch(renderRecap(recap(dir, { days: 7, asOf, now: new Date('2026-11-11T20:00:00.000Z') })), /批评/)
 })
