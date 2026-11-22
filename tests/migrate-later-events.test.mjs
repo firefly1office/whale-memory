@@ -15,10 +15,12 @@ import { loadAll } from '../packages/core/lib/self-experience.js'
 import { changedSince } from '../packages/core/lib/changed.js'
 import { tmpDir } from './_safety.mjs'
 
-// 回执绑定源文件摘要：测试里按当前经历文件算
+// 回执绑定源文件与事件文件两个摘要：测试里按当前文件算
 function writeReceipt(dir, events) {
-  const hash = createHash('sha256').update(fs.readFileSync(path.join(dir, 'self-experience.jsonl'))).digest('hex')
-  fs.writeFileSync(path.join(dir, 'later-events-migration-receipt.json'), JSON.stringify({ version: 2, sourceHash: hash, events }) + '\n', 'utf8')
+  const sha = (p) => (fs.existsSync(p) ? createHash('sha256').update(fs.readFileSync(p)).digest('hex') : '')
+  const sourceHash = sha(path.join(dir, 'self-experience.jsonl'))
+  const eventsHash = sha(path.join(dir, 'later-events.jsonl'))
+  fs.writeFileSync(path.join(dir, 'later-events-migration-receipt.json'), JSON.stringify({ version: 2, sourceHash, eventsHash, events }) + '\n', 'utf8')
 }
 
 function seed(rows) {
@@ -289,4 +291,29 @@ test('formerId 撞上另一条的当前 id：按读取端规则忽略别名，�
   assert.equal(a.later.length, 1)
   assert.equal(bRow.later.length, 1, 'B 自己的后记照常迁移')
   assert.equal(bRow.formerId || '', '', '撞上显式 id 的别名会被读取端清掉')
+})
+
+
+test('缺少 eventsHash 的旧回执不抵扣', () => {
+  const later = { at: '2026-11-02T00:00:00.000Z', day: '2026-11-02', thought: '同一条' }
+  const rows = [{ id: 'exp_oldreceipt', day: '2026-11-01', then: { text: 'A', thought: '旧' }, later: [{ ...later }] }]
+  const { dataDir, dir } = seed(rows)
+  fs.writeFileSync(eventsFile(dir), JSON.stringify({ id: 'exp_oldreceipt', ...later, reason: '' }) + '\n', 'utf8')
+  const sourceHash = createHash('sha256').update(fs.readFileSync(path.join(dir, 'self-experience.jsonl'))).digest('hex')
+  fs.writeFileSync(path.join(dir, 'later-events-migration-receipt.json'), JSON.stringify({ version: 1, sourceHash, events: [{ id: 'exp_oldreceipt', ...later }] }) + '\n', 'utf8')
+
+  const out = migrate({ dataDir, apply: true })
+  assert.equal(out.ok, true, JSON.stringify(out))
+  assert.equal(out.eventsMatched, 0, '旧回执不能抵扣')
+  assert.equal(loadAll(dir).find((r) => r.id === 'exp_oldreceipt').later.length, 2)
+})
+
+test('id 首尾有空白：写盘前拒绝', () => {
+  const rows = [{ id: ' X ', day: '2026-11-01', then: { text: 'A', thought: '旧' }, later: [{ at: '2026-11-02T00:00:00.000Z', thought: '新' }] }]
+  const { dataDir, dir } = seed(rows)
+  const before = fs.readFileSync(path.join(dir, 'self-experience.jsonl'))
+  const out = migrate({ dataDir, apply: true })
+  assert.equal(out.ok, false)
+  assert.match(out.error, /没有 id/)
+  assert.equal(fs.readFileSync(path.join(dir, 'self-experience.jsonl')).compare(before), 0)
 })

@@ -48,6 +48,7 @@ export function plan({ dataDir }) {
     // 没有 id 的行不能迁移：事件必须能挂回某条经历，否则校验必然失败。
     // 在写盘之前就把它们挑出来，避免"写了一半再回滚"。
     if (!id) { invalid.push({ day: String(r.day || ''), laterCount: list.length }); continue }
+    if (String(r.id) !== id) { invalid.push({ id: String(r.id), reason: 'id 首尾有空白，先修好再迁移' }); continue }
     // 行内后记缺 at 时迁移会借用经历时间：asOf 会提前看到它。
     // 时间未知就整行保留在原文件里，行为不变。
     if (list.some((l) => l && l.thought && !l.at)) { skipped.push({ id, reason: '行内后记缺 at，保留原样' }); continue }
@@ -164,7 +165,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     fileCounts.set(k, (fileCounts.get(k) || 0) + 1)
   }
   const receiptValid = Boolean(receipt && receipt.sourceHash === sourceHash
-    && (!receipt.eventsHash || receipt.eventsHash === hashOf(ev)))
+    && receipt.eventsHash && receipt.eventsHash === hashOf(ev))
   const receiptCounts = new Map()
   for (const e of (receiptValid && Array.isArray(receipt.events) ? receipt.events : [])) {
     if (!e || !e.id) continue
@@ -230,6 +231,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
 
   try {
     return withFileLock(ev + '.lock', () => {
+      try {
       const beforeWrite = fs.existsSync(ev) ? fs.readFileSync(ev, 'utf8') : ''
       if (fs.readFileSync(file, 'utf8') !== experiencesText) {
         const err = new Error('经历文件在迁移期间被追加/修改（可能有并发写入），已停止')
@@ -316,9 +318,19 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
       }
 
       return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: fresh.length, eventsMatched: matched, skipped, backup, eventsBackup }
+      } catch (error) {
+        // 持锁期间回滚已替换的文件：锁一旦放开，宿主可能立刻追加，旧备份会覆盖它。
+        if (wroteEvents || wroteExperiences) {
+          error.restored = restoreBoth({ events: wroteEvents, experiences: wroteExperiences })
+        }
+        throw error
+      }
     })
   } catch (error) {
     // 没有写过任何正式文件时不回滚：回滚用的是旧备份，会覆盖并发写者刚追加的内容。
+    if (error && error.restored) {
+      return { ok: false, error: String(error.message || error), missing: error.missing, restored: error.restored, backup, eventsBackup }
+    }
     const wroteEventsNow = wroteEvents
     const wroteExperiencesNow = wroteExperiences
     if (!wroteEventsNow && !wroteExperiencesNow) {
