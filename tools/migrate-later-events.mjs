@@ -116,15 +116,26 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
       if (r && r.id && r.thought) existingEvents.push(r)
     } catch { /* 已有坏行原样保留，不参与抵扣 */ }
   }
+  // 旧后记可能挂在 formerId 上；读取时两条 id 会合并到同一条经历。
+  // 抵扣与校验都按"当前 id"归并，否则合法旧 id 会被误判成缺一条。
+  const ownerOf = new Map()
+  for (const r of rows) {
+    const id = String(r.id || '')
+    if (!id) continue
+    ownerOf.set(id, id)
+    if (r.formerId) ownerOf.set(String(r.formerId), id)
+  }
+  const ownerKey = (id) => ownerOf.get(String(id)) || String(id)
+
   const available = new Map()
   for (const e of existingEvents) {
-    const k = e.id + '|' + sigOf(e)
+    const k = ownerKey(e.id) + '|' + sigOf(e)
     available.set(k, (available.get(k) || 0) + 1)
   }
   const fresh = []
   let matched = 0
   for (const e of events) {
-    const k = e.id + '|' + sigOf(e)
+    const k = ownerKey(e.id) + '|' + sigOf(e)
     const left = available.get(k) || 0
     if (left > 0) { available.set(k, left - 1); matched += 1; continue }
     fresh.push(e)
@@ -143,11 +154,55 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     return restored
   }
 
+  // 迁移后的预期视图：已有事件全留；行内后记里，凡已有相同事件的那条算"上次已复制"，不再留；
+// 其余按原顺序插入。同一时间戳时行内后记在事件之前（与迁移前一致）。
+  const viewAfter = new Map()
+  for (const r of rows) {
+    const id = String(r.id || '')
+    if (!id) continue
+    const inline = Array.isArray(r.later) ? r.later.filter(Boolean).map((l) => ({
+      at: String(l.at || r.at || ''),
+      day: String(l.day || r.day || ''),
+      thought: String(l.thought || ''),
+      reason: String(l.reason || ''),
+      feeling: l.feeling
+    })) : []
+    const existingForId = existingEvents.filter((e) => ownerKey(e.id) === id)
+    const counts = new Map()
+    for (const e of existingForId) {
+      const k = sigOf(e)
+      counts.set(k, (counts.get(k) || 0) + 1)
+    }
+    const kept = []
+    for (const l of inline) {
+      const k = sigOf(l)
+      const left = counts.get(k) || 0
+      if (left > 0) { counts.set(k, left - 1); continue }
+      kept.push(l)
+    }
+    const items = [
+      ...existingForId.map((e) => ({ sig: sigOf(e), at: String(e.at || ''), kind: 1, seq: 0 })),
+      ...kept.map((l) => ({ sig: sigOf(l), at: String(l.at || ''), kind: 0, seq: 0 }))
+    ]
+    items.sort((a, b) => (a.at === b.at ? a.kind - b.kind : a.at.localeCompare(b.at)))
+    viewAfter.set(id, items.map((x) => x.sig))
+  }
+
   try {
     if (fresh.length) {
-      const prefix = existing && !existing.endsWith('\n') ? '\n' : ''
+      // 事件文件按时间插入，而不是整批追加：同一时间戳时，行内后记原本在事件之前，
+      // 追加到末尾会把"现在怎么想"从后一条换成前一条。
+      const items = []
+      for (const line of existing.split('\n')) {
+        if (!line.trim()) continue
+        let at = ''
+        try { const r = JSON.parse(line); if (r?.at) at = String(r.at) } catch { /* 坏行保留 */ }
+        items.push({ line, at, kind: 1, seq: items.length })
+      }
+      fresh.forEach((e, i) => items.push({ line: JSON.stringify(e), at: String(e.at || ''), kind: 0, seq: i }))
+      items.sort((a, b) => (a.at === b.at ? (a.kind - b.kind || a.seq - b.seq) : a.at.localeCompare(b.at)))
       const tmp = ev + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
-      fs.writeFileSync(tmp, existing + prefix + fresh.map((e) => JSON.stringify(e)).join('\n') + '\n', 'utf8')
+      fs.writeFileSync(tmp, items.map((x) => x.line).join('\n') + '\n', 'utf8')
       fs.renameSync(tmp, ev)
     }
 
@@ -161,36 +216,22 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     fs.writeFileSync(tmp2, nextRows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
     fs.renameSync(tmp2, file)
 
-    // 等价校验：按 id 比较"完整字段 + 条数"。一条事件只能算一次，
-// 少一条、多一条、day/reason/feeling 任一不同都算不一致。
-    const views = new Map(loadAll(dir, { allowSealCorrupt: true }).map((r) => [r.id, r]))
-    const expected = new Map()
-    const push = (id, sig) => {
-      const list = expected.get(id) || []
-      list.push(sig)
-      expected.set(id, list)
+    // 校验：按当前 id 比较完整字段、条数，以及**顺序**。
+    const after = new Map()
+    for (const r of loadAll(dir, { allowSealCorrupt: true })) {
+      after.set(String(r.id), (r.later || []).map(sigOf))
     }
-    for (const e of existingEvents) push(e.id, sigOf(e))
-    for (const e of fresh) push(e.id, sigOf(e))
-
-    const missing = []
-    for (const [id, want] of expected) {
-      const row = views.get(id)
-      const got = (row?.later || []).map(sigOf)
-      const wantCounts = new Map()
-      for (const s of want) wantCounts.set(s, (wantCounts.get(s) || 0) + 1)
-      for (const s of got) {
-        const left = wantCounts.get(s) || 0
-        if (left > 0) wantCounts.set(s, left - 1)
-        else missing.push({ id, field: '多出一条', sig: s.slice(0, 80) })
-      }
-      for (const [s, left] of wantCounts) {
-        for (let i = 0; i < left; i += 1) missing.push({ id, field: '少一条', sig: s.slice(0, 80) })
+    const diffs = []
+    for (const [id, want] of viewAfter) {
+      const got = after.get(id) || []
+      const n = Math.max(want.length, got.length)
+      for (let i = 0; i < n; i += 1) {
+        if (want[i] !== got[i]) diffs.push({ id, field: '第 ' + (i + 1) + ' 条不同', want: want[i], got: got[i] })
       }
     }
-    if (missing.length) {
+    if (diffs.length) {
       const err = new Error('校验不一致')
-      err.missing = missing
+      err.missing = diffs
       throw err
     }
 

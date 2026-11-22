@@ -70,8 +70,14 @@ export function restoreCheck({ from, data = '' }) {
     // 原数据里本来就有的坏行（插件读的时候会跳过），备份如实带上不算备份坏了；只有比原数据多出来的才算
     let origBad = null
     if (data) { const om = path.join(path.resolve(data), 'plugin-data', 'biomimetic-memory'); if (fs.existsSync(om)) { try { origBad = badLines(om) } catch { origBad = null } } }
-    const badOk = bad === 0 || (origBad !== null && bad <= origBad)
-    check('事件文件没有坏行', badOk, bad === 0 ? '没有坏行' : badOk ? '有 ' + bad + ' 行解析失败，原数据里本来就有 ' + origBad + ' 行（读的时候会跳过），备份如实带上了' : bad + ' 行解析失败' + (origBad !== null ? '（原数据里只有 ' + origBad + ' 行）' : ''))
+    const badOk = bad === 0 || (origBad !== null && bad <= origBad) || (!data && sealBad > 0)
+    check('事件文件没有坏行', badOk, bad === 0
+      ? '没有坏行'
+      : badOk
+        ? (!data && origBad === null
+          ? '有 ' + bad + ' 行解析失败：现场已按字节保全；未提供原数据，展示前须修复封存日志'
+          : '有 ' + bad + ' 行解析失败，原数据里本来就有 ' + origBad + ' 行（读的时候会跳过），备份如实带上了')
+        : bad + ' 行解析失败' + (origBad !== null ? '（原数据里只有 ' + origBad + ' 行）' : ''))
     const missing = rows.flatMap((r) => (r.refsInfo || []).filter((x) => x.missing).map((x) => r.id + '→' + x.id))
     check('出处都在', missing.length === 0, missing.length ? missing.length + ' 处出处指向找不到的经历' : '每条回想引用的经历都在')
 
@@ -131,7 +137,9 @@ export function restoreCheck({ from, data = '' }) {
       ? '可恢复（原数据读取失败，未完成比对）'
       : compared
         ? (report.ok ? '可恢复，且与原数据一致' : '可恢复，但与原数据有差异')
-        : '可恢复（未提供原数据，未做一致性比对）'
+        : (report.notes && report.notes.some((n) => String(n).includes('封存日志'))
+          ? '可恢复（未提供原数据，未做一致性比对；封存日志有坏行，展示前须修复）'
+          : '可恢复（未提供原数据，未做一致性比对）')
   return report
 }
 

@@ -11,6 +11,7 @@ import test from 'node:test'
 import { migrate } from '../tools/migrate-later-events.mjs'
 import { eventsFile } from '../packages/core/lib/later-events.js'
 import { loadAll } from '../packages/core/lib/self-experience.js'
+import { changedSince } from '../packages/core/lib/changed.js'
 import { tmpDir } from './_safety.mjs'
 
 function seed(rows) {
@@ -174,4 +175,46 @@ test('事件文件原本是零字节：回滚后仍是零字节文件，不是�
   assert.ok(fs.existsSync(ev), '零字节事件文件不能被删掉')
   assert.equal(fs.statSync(ev).size, 0)
   assert.equal(out.restored.events, true)
+})
+test('同一时间的两条后记：迁移后"现在怎么想"不变', () => {
+  const at = '2026-11-02T00:00:00.000Z'
+  const rows = [{
+    id: 'exp_order',
+    day: '2026-11-01',
+    then: { text: 'A', thought: '最初' },
+    later: [{ at, day: '2026-11-02', thought: '行内后写' }]
+  }]
+  const { dataDir, dir } = seed(rows)
+  const ev = eventsFile(dir)
+  fs.writeFileSync(ev, JSON.stringify({ id: 'exp_order', at, day: '2026-11-02', thought: '事件里那条', reason: '' }) + '\n', 'utf8')
+
+  const before = changedSince(dir, { days: 3650 })
+  assert.equal(before.length, 1)
+  assert.equal(before[0].now, '事件里那条', '迁移前当前想法应是事件里那条')
+
+  const out = migrate({ dataDir, apply: true })
+  assert.equal(out.ok, true, JSON.stringify(out))
+
+  const after = changedSince(dir, { days: 3650 })
+  assert.equal(after.length, 1)
+  assert.equal(after[0].now, '事件里那条', '迁移后当前想法不能被换掉')
+})
+
+test('旧 ID（formerId）上的后记：迁移不被误判缺条', () => {
+  const rows = [{
+    id: 'exp_new',
+    formerId: 'old_123',
+    day: '2026-11-01',
+    then: { text: 'A', thought: '最初' },
+    later: [{ at: '2026-11-02T00:00:00.000Z', day: '2026-11-02', thought: '新想法' }]
+  }]
+  const { dataDir, dir } = seed(rows)
+  fs.writeFileSync(eventsFile(dir), JSON.stringify({ id: 'old_123', at: '2026-11-02T00:00:00.000Z', day: '2026-11-02', thought: '新想法', reason: '' }) + '\n', 'utf8')
+
+  const out = migrate({ dataDir, apply: true })
+  assert.equal(out.ok, true, JSON.stringify(out))
+  assert.equal(out.eventsMatched, 1)
+  assert.equal(out.eventsCreated, 0)
+  const loaded = loadAll(dir).find((r) => r.id === 'exp_new')
+  assert.equal(loaded.later.length, 1)
 })
