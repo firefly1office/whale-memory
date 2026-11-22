@@ -2,11 +2,14 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [0.21.1] - 2026-11-22
 
 ### Added
 
 - `packages/emotion-intake` 以 `whale-emotion-intake@0.1.0` 形式发布：纯函数情绪候选模块、十行示例、接入指南；0.x 期间 API 不保证稳定。
+- `packages/emotion-intake`：把一句对话拆成情绪候选的纯函数模块（分句体验者判定、证据与感受分账、每回合限额），无存储/网络依赖。
+- `docs/emotion-intake-zh.md`：情绪采集的设计记录（含一次失败与关闭原因）。
+- `docs/self-plan-zh.md`：计划与后果闭环的设计记录。
 
 ### Fixed
 
@@ -19,14 +22,6 @@
 - `self-prompt.verify` 对照 history hash 校验快照与生效文件；被篡改的快照拒绝 `revert`。
 - MCP 的 `--readonly` / `--owner` 裸写不再静默变 false，直接报错并提示写 `true`。
 - `index.d.ts` 补齐 7 个导出并加 js↔d.ts↔运行时对账测试；CI 增加 `whale-eval --check`，发布前跑 `npm run check` 与 `npm run types`。
-
-## [0.21.1] - 2026-11-22
-
-### Added
-
-- `packages/emotion-intake`：把一句对话拆成情绪候选的纯函数模块（分句体验者判定、证据与感受分账、每回合限额），无存储/网络依赖。
-- `docs/emotion-intake-zh.md`：情绪采集的设计记录（含一次失败与关闭原因）。
-- `docs/self-plan-zh.md`：计划与后果闭环的设计记录。
 
 ## [0.21.0] - 2026-11-21
 
