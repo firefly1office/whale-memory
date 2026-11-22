@@ -71,6 +71,15 @@ export function plan({ dataDir }) {
       events.push(event)
     }
   }
+  // 重复 ID（哪怕原文完全相同）会让两条经历互相读到对方的后记
+  const seenIds = new Set()
+  for (const r of rows) {
+    const id = String(r.id || '').trim()
+    if (!id) continue
+    if (seenIds.has(id)) invalid.push({ id, reason: '重复的经历 id（后记会串到另一条）' })
+    else seenIds.add(id)
+  }
+
   // 规范化后相同的 id 会指向同一条事件，无法安全归属
   const byNorm = new Map()
   const dup = new Set()

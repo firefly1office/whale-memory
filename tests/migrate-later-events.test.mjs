@@ -326,3 +326,14 @@ test('id 含零宽字符：写盘前拒绝', () => {
   assert.equal(out.ok, false)
   assert.equal(fs.readFileSync(path.join(dir, 'self-experience.jsonl')).compare(before), 0)
 })
+test('两条经历共用同一 id：写盘前拒绝', () => {
+  const rows = [
+    { id: 'dup', day: '2026-11-01', then: { text: 'A', thought: '旧 A' }, later: [{ at: '2026-11-02T00:00:00.000Z', thought: '新 A' }] },
+    { id: 'dup', day: '2026-11-03', then: { text: 'B', thought: '旧 B' }, later: [{ at: '2026-11-04T00:00:00.000Z', thought: '新 B' }] }
+  ]
+  const { dataDir, dir } = seed(rows)
+  const before = fs.readFileSync(path.join(dir, 'self-experience.jsonl'))
+  const out = migrate({ dataDir, apply: true })
+  assert.equal(out.ok, false, JSON.stringify(out))
+  assert.equal(fs.readFileSync(path.join(dir, 'self-experience.jsonl')).compare(before), 0)
+})
