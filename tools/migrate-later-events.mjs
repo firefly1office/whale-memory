@@ -4,6 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createHash } from 'node:crypto'
 import { writeManifest, rollback as rollbackFromBackup } from './lib/migration-backup.mjs'
 import { withFileLock } from '../packages/core/lib/file-lock.js'
 import { eventsFile } from '../packages/core/lib/later-events.js'
@@ -105,6 +106,8 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   // 迁移回执：只有上一次迁移明确写过的副本才允许抵扣。
   // 没有回执时宁可留两条（来源不明的重复），也不能吞掉一条独立写下的后记。
   const receiptFile = path.join(dir, 'later-events-migration-receipt.json')
+  const experiencesText = fs.readFileSync(file, 'utf8')
+  const sourceHash = createHash('sha256').update(fs.readFileSync(file)).digest('hex')
   const receiptBefore = fs.existsSync(receiptFile) ? fs.readFileSync(receiptFile, 'utf8') : null
   let receipt = { version: 1, events: [] }
   if (receiptBefore) {
@@ -143,8 +146,8 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     const id = String(r.id || '')
     if (!id || !r.formerId) continue
     const alias = String(r.formerId)
-    // 别名恰好是另一条经历的当前 id：读取端两条都会把这条事件算进来，归谁无法判定，直接拒绝。
-    if (idSet.has(alias)) { if (alias !== id) ambiguous.add(alias); continue }
+    // 别名恰好是另一条的当前 id：读取端会把同一事件算给两条，归谁无法判定，写盘前拒绝。
+    if (idSet.has(alias)) { ambiguous.add(alias); continue }
     if (aliasSeen.has(alias) && aliasSeen.get(alias) !== id) ambiguous.add(alias)
     else aliasSeen.set(alias, id)
   }
@@ -159,8 +162,9 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     const k = ownerKey(e.id) + '|' + sigOf(e)
     fileCounts.set(k, (fileCounts.get(k) || 0) + 1)
   }
+  const receiptValid = Boolean(receipt && receipt.sourceHash && receipt.sourceHash === sourceHash)
   const receiptCounts = new Map()
-  for (const e of (Array.isArray(receipt.events) ? receipt.events : [])) {
+  for (const e of (receiptValid && Array.isArray(receipt.events) ? receipt.events : [])) {
     if (!e || !e.id) continue
     const k = ownerKey(e.id) + '|' + sigOf(e)
     receiptCounts.set(k, (receiptCounts.get(k) || 0) + 1)
@@ -199,12 +203,23 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
 
   // 迁移后的预期视图：已有事件 + 这次真正要写入的 fresh；同一时间戳时 fresh 在前。
   const viewAfter = new Map()
+  const skippedIdsForView = new Set((skipped || []).map((s) => s.id))
   for (const r of rows) {
     const id = String(r.id || '')
     if (!id) continue
     const existingForId = existingEvents.filter((e) => ownerKey(e.id) === id)
     const freshForId = fresh.filter((e) => ownerKey(e.id) === id)
+    const keptInline = skippedIdsForView.has(id)
+      ? (Array.isArray(r.later) ? r.later.filter(Boolean).map((l) => ({
+        at: String(l.at || r.at || ''),
+        day: String(l.day || r.day || ''),
+        thought: String(l.thought || ''),
+        reason: String(l.reason || ''),
+        feeling: l.feeling
+      })) : [])
+      : []
     const items = [
+      ...keptInline.map((e) => ({ sig: sigOf(e), at: String(e.at || ''), kind: 0 })),
       ...freshForId.map((e) => ({ sig: sigOf(e), at: String(e.at || ''), kind: 0 })),
       ...existingForId.map((e) => ({ sig: sigOf(e), at: String(e.at || ''), kind: 1 }))
     ]
@@ -245,6 +260,12 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
         void later
         return rest
       })
+      // 宿主追加经历时不持锁：写前复核快照，变了就停，不能用旧快照覆盖。
+      if (fs.readFileSync(file, 'utf8') !== experiencesText) {
+        const err = new Error('经历文件在迁移期间被追加/修改（可能有并发写入），已停止')
+        err.code = 'CONCURRENT_WRITE'
+        throw err
+      }
       const tmp2 = file + '.tmp-' + process.pid + '-' + Math.random().toString(36).slice(2, 8)
       fs.writeFileSync(tmp2, nextRows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
       fs.renameSync(tmp2, file)
@@ -259,7 +280,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
         const got = after.get(id) || []
         const n = Math.max(want.length, got.length)
         for (let i = 0; i < n; i += 1) {
-          if (want[i] !== got[i]) diffs.push({ id, field: '第 ' + (i + 1) + ' 条不同', want: want[i], got: got[i] })
+          if (want[i] !== got[i]) diffs.push({ id, index: i + 1, field: 'poster' })
         }
       }
       if (diffs.length) {
@@ -271,7 +292,8 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
       // 回执最后写：只有真正落盘并校验通过后，才承认"这些副本是迁移写的"。
       if (fresh.length) {
         const nextReceipt = {
-          version: 1,
+          version: 2,
+          sourceHash,
           updatedAt: new Date().toISOString(),
           events: [
             ...(Array.isArray(receipt.events) ? receipt.events : []),
@@ -284,6 +306,9 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
       return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: fresh.length, eventsMatched: matched, skipped, backup, eventsBackup }
     })
   } catch (error) {
+    if (error && error.code === 'CONCURRENT_WRITE') {
+      return { ok: false, error: String(error.message || error), concurrent: true, backup, eventsBackup }
+    }
     const restored = restoreBoth()
     return {
       ok: false,

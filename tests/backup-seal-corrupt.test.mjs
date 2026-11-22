@@ -95,3 +95,20 @@ test('经历主文件有坏行：省略 --data 时不能报可恢复', () => {
   assert.equal(r.ok, false, JSON.stringify(r.checks))
   assert.equal(r.verdict, '不可恢复')
 })
+test('无 id 但有正文的旧记录不算坏；只有 id 没正文才算', () => {
+  const data = tmpDir('legacy-rows-')
+  const mem = path.join(data, 'plugin-data', 'biomimetic-memory')
+  fs.mkdirSync(mem, { recursive: true })
+  fs.writeFileSync(path.join(mem, 'self-experience.jsonl'),
+    JSON.stringify({ at: '2026-11-01T00:00:00.000Z', text: '旧格式但有正文' }) + '\n', 'utf8')
+  fs.writeFileSync(path.join(mem, 'seal-events.jsonl'), '{"id":"x","action":"seal", 坏行\n', 'utf8')
+  const out = tmpDir('legacy-out-')
+  const bk = backup({ data, out })
+  const okCase = restoreCheck({ from: bk.dir })
+  assert.equal(okCase.ok, true, JSON.stringify(okCase.checks))
+
+  fs.appendFileSync(path.join(mem, 'self-experience.jsonl'), JSON.stringify({ id: 'no_body' }) + '\n', 'utf8')
+  const bk2 = backup({ data, out })
+  const badCase = restoreCheck({ from: bk2.dir })
+  assert.equal(badCase.ok, false, JSON.stringify(badCase.checks))
+})

@@ -5,6 +5,7 @@
 // 带 ID 的那条后记从 1 条变成 2 条。
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
 import test from 'node:test'
 
@@ -13,6 +14,12 @@ import { eventsFile } from '../packages/core/lib/later-events.js'
 import { loadAll } from '../packages/core/lib/self-experience.js'
 import { changedSince } from '../packages/core/lib/changed.js'
 import { tmpDir } from './_safety.mjs'
+
+// 回执绑定源文件摘要：测试里按当前经历文件算
+function writeReceipt(dir, events) {
+  const hash = createHash('sha256').update(fs.readFileSync(path.join(dir, 'self-experience.jsonl'))).digest('hex')
+  fs.writeFileSync(path.join(dir, 'later-events-migration-receipt.json'), JSON.stringify({ version: 2, sourceHash: hash, events }) + '\n', 'utf8')
+}
 
 function seed(rows) {
   const dataDir = tmpDir('migrate-')
@@ -53,6 +60,7 @@ test('有无 ID 混合时整批拒绝，两份文件都不动', () => {
     { day: '2026-11-02', then: { text: 'B', thought: '旧' }, later: [{ at: '2026-11-03T00:00:00.000Z', thought: '新' }] }
   ]
   const { dataDir, dir } = seed(rows)
+  void 0
   const expBefore = fs.readFileSync(path.join(dir, 'self-experience.jsonl'), 'utf8')
   const evBefore = fs.existsSync(eventsFile(dir)) ? fs.readFileSync(eventsFile(dir), 'utf8') : null
 
@@ -132,7 +140,7 @@ test('两条相同行内后记 + 一条已有副本（有迁移回执）：只�
   const existing = { id: 'exp_dup', ...later }
   fs.writeFileSync(ev, JSON.stringify(existing) + '\n', 'utf8')
   // 回执：这条事件是上次迁移写下的副本
-  fs.writeFileSync(path.join(dir, 'later-events-migration-receipt.json'), JSON.stringify({ version: 1, events: [existing] }) + '\n', 'utf8')
+  writeReceipt(dir, [existing])
 
   const out = migrate({ dataDir, apply: true })
   assert.equal(out.ok, true, JSON.stringify(out))
@@ -213,7 +221,7 @@ test('旧 ID（formerId）上的后记：迁移不被误判缺条', () => {
   const { dataDir, dir } = seed(rows)
   const legacy = { id: 'old_123', at: '2026-11-02T00:00:00.000Z', day: '2026-11-02', thought: '新想法', reason: '' }
   fs.writeFileSync(eventsFile(dir), JSON.stringify(legacy) + '\n', 'utf8')
-  fs.writeFileSync(path.join(dir, 'later-events-migration-receipt.json'), JSON.stringify({ version: 1, events: [legacy] }) + '\n', 'utf8')
+  writeReceipt(dir, [legacy])
 
   const out = migrate({ dataDir, apply: true })
   assert.equal(out.ok, true, JSON.stringify(out))
