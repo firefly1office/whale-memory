@@ -91,28 +91,54 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
   fs.copyFileSync(file, backup)
 
   const ev = eventsFile(dir)
-  const existing = fs.existsSync(ev) ? fs.readFileSync(ev, 'utf8') : ''
-  const eventsBackup = existing ? backup + '.events' : ''
-  if (existing) fs.copyFileSync(ev, eventsBackup)
+  const eventsExisted = fs.existsSync(ev)
+  const existing = eventsExisted ? fs.readFileSync(ev, 'utf8') : ''
+  const eventsBackup = eventsExisted ? backup + '.events' : ''
+  if (eventsExisted) fs.copyFileSync(ev, eventsBackup)
   writeManifest(backup, { eventsBackup })
 
-  // 已经写过的事件不再写：上次中途失败后重试，不会把同一条后记加成两条。
-  const seen = new Set()
+  // 每条事件的全字段签名：字段不同就是不同事件，自然日不同也不能合并。
+  const sigOf = (e) => JSON.stringify({
+    at: String(e.at || ''),
+    day: String(e.day || ''),
+    thought: String(e.thought || ''),
+    reason: String(e.reason || ''),
+    feeling: Array.isArray(e.feeling) ? e.feeling.map(String) : []
+  })
+
+  // 已有事件按"出现次数"抵扣：一条已有事件最多抵一条待迁移记录，
+  // 两条相同的行内后记不能被同一条已有事件一起抵掉。
+  const existingEvents = []
   for (const line of existing.split('\n')) {
     if (!line.trim()) continue
     try {
       const r = JSON.parse(line)
-      seen.add(r.id + '|' + r.at + '|' + r.thought)
-    } catch { /* 已有坏行原样保留 */ }
+      if (r && r.id && r.thought) existingEvents.push(r)
+    } catch { /* 已有坏行原样保留，不参与抵扣 */ }
   }
-  const fresh = events.filter((e) => !seen.has(e.id + '|' + e.at + '|' + e.thought))
+  const available = new Map()
+  for (const e of existingEvents) {
+    const k = e.id + '|' + sigOf(e)
+    available.set(k, (available.get(k) || 0) + 1)
+  }
+  const fresh = []
+  let matched = 0
+  for (const e of events) {
+    const k = e.id + '|' + sigOf(e)
+    const left = available.get(k) || 0
+    if (left > 0) { available.set(k, left - 1); matched += 1; continue }
+    fresh.push(e)
+  }
 
   // 任何一步失败都把两份文件恢复原样，并核对回滚本身是否成功。
+  // 事件文件"原本存在但为空"也要恢复成空文件，不能当成没有文件删掉。
   const restoreBoth = () => {
     const restored = { experiences: false, events: false }
     try { fs.copyFileSync(backup, file); restored.experiences = true } catch { /* 记在结果里 */ }
     try {
-      if (eventsBackup) { fs.copyFileSync(eventsBackup, ev); restored.events = true } else { fs.rmSync(ev, { force: true }); restored.events = true }
+      if (eventsExisted) fs.copyFileSync(eventsBackup, ev)
+      else fs.rmSync(ev, { force: true })
+      restored.events = true
     } catch { /* 记在结果里 */ }
     return restored
   }
@@ -135,16 +161,32 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
     fs.writeFileSync(tmp2, nextRows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
     fs.renameSync(tmp2, file)
 
-    // 等价校验：每条计划事件都要能在迁移后的视图里找到，且 at / thought / reason / feeling 都对得上
-    const views = new Map(loadAll(dir).map((r) => [r.id, r]))
+    // 等价校验：按 id 比较"完整字段 + 条数"。一条事件只能算一次，
+// 少一条、多一条、day/reason/feeling 任一不同都算不一致。
+    const views = new Map(loadAll(dir, { allowSealCorrupt: true }).map((r) => [r.id, r]))
+    const expected = new Map()
+    const push = (id, sig) => {
+      const list = expected.get(id) || []
+      list.push(sig)
+      expected.set(id, list)
+    }
+    for (const e of existingEvents) push(e.id, sigOf(e))
+    for (const e of fresh) push(e.id, sigOf(e))
+
     const missing = []
-    for (const e of events) {
-      const row = views.get(e.id)
-      const hit = row && (row.later || []).some((l) => String(l.at || '') === e.at
-        && String(l.thought) === e.thought
-        && String(l.reason || '') === String(e.reason || '')
-        && sameFeeling(l.feeling, e.feeling))
-      if (!hit) missing.push(e)
+    for (const [id, want] of expected) {
+      const row = views.get(id)
+      const got = (row?.later || []).map(sigOf)
+      const wantCounts = new Map()
+      for (const s of want) wantCounts.set(s, (wantCounts.get(s) || 0) + 1)
+      for (const s of got) {
+        const left = wantCounts.get(s) || 0
+        if (left > 0) wantCounts.set(s, left - 1)
+        else missing.push({ id, field: '多出一条', sig: s.slice(0, 80) })
+      }
+      for (const [s, left] of wantCounts) {
+        for (let i = 0; i < left; i += 1) missing.push({ id, field: '少一条', sig: s.slice(0, 80) })
+      }
     }
     if (missing.length) {
       const err = new Error('校验不一致')
@@ -152,7 +194,7 @@ export function migrate({ dataDir, apply = false, backupDir = '' }) {
       throw err
     }
 
-    return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: fresh.length, backup, eventsBackup }
+    return { ok: true, dryRun: false, experiences: rows.length, eventsCreated: fresh.length, eventsMatched: matched, backup, eventsBackup }
   } catch (error) {
     const restored = restoreBoth()
     return {

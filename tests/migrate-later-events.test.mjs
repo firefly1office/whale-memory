@@ -123,3 +123,55 @@ test('经历文件读不出来（非 ENOENT）：迁移返回失败，不报成�
   assert.equal(out.ok, false, JSON.stringify(out))
   assert.match(out.error, /经历文件读不出来/)
 })
+test('两条相同行内后记 + 一条已有副本：只抵扣一条，另一条要迁移过去', () => {
+  const later = { at: '2026-11-02T00:00:00.000Z', day: '2026-11-02', thought: '新', reason: '' }
+  const rows = [{ id: 'exp_dup', day: '2026-11-01', then: { text: 'A', thought: '旧' }, later: [later, { ...later }] }]
+  const { dataDir, dir } = seed(rows)
+  const ev = eventsFile(dir)
+  const existing = { id: 'exp_dup', ...later }
+  fs.writeFileSync(ev, JSON.stringify(existing) + '\n', 'utf8')
+
+  const out = migrate({ dataDir, apply: true })
+  assert.equal(out.ok, true, JSON.stringify(out))
+  assert.equal(out.eventsMatched, 1)
+  assert.equal(out.eventsCreated, 1)
+  const loaded = loadAll(dir).find((r) => r.id === 'exp_dup')
+  assert.equal(loaded.later.length, 2, '两条都要在')
+})
+
+test('同 id/时间/想法但自然日不同：不能被抵扣掉', () => {
+  const rows = [{ id: 'exp_day', day: '2026-11-01', then: { text: 'A', thought: '旧' }, later: [{ at: '2026-11-02T00:00:00.000Z', day: '2026-11-09', thought: '新' }] }]
+  const { dataDir, dir } = seed(rows)
+  const ev = eventsFile(dir)
+  fs.writeFileSync(ev, JSON.stringify({ id: 'exp_day', at: '2026-11-02T00:00:00.000Z', day: '2026-11-02', thought: '新', reason: '' }) + '\n', 'utf8')
+
+  const out = migrate({ dataDir, apply: true })
+  assert.equal(out.ok, true, JSON.stringify(out))
+  assert.equal(out.eventsCreated, 1)
+  const loaded = loadAll(dir).find((r) => r.id === 'exp_day')
+  assert.equal(loaded.later.length, 2)
+  assert.ok(loaded.later.some((l) => l.day === '2026-11-09'))
+})
+
+test('事件文件原本是零字节：回滚后仍是零字节文件，不是消失', () => {
+  const rows = [{ id: 'exp_empty', day: '2026-11-01', then: { text: 'A', thought: '旧' }, later: [{ at: '2026-11-02T00:00:00.000Z', thought: '新' }] }]
+  const { dataDir, dir } = seed(rows)
+  const ev = eventsFile(dir)
+  fs.writeFileSync(ev, '', 'utf8')
+  assert.equal(fs.statSync(ev).size, 0)
+
+  const original = fs.renameSync
+  let calls = 0
+  fs.renameSync = (...args) => {
+    calls += 1
+    if (calls === 2) { const e = new Error('EIO'); e.code = 'EIO'; throw e }
+    return original(...args)
+  }
+  let out
+  try { out = migrate({ dataDir, apply: true }) } finally { fs.renameSync = original }
+
+  assert.equal(out.ok, false)
+  assert.ok(fs.existsSync(ev), '零字节事件文件不能被删掉')
+  assert.equal(fs.statSync(ev).size, 0)
+  assert.equal(out.restored.events, true)
+})

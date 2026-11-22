@@ -21,7 +21,9 @@ const norm = (p) => {
 function within(root, target) {
   const base = norm(root)
   const p = norm(target)
-  return p === base || p.startsWith(base + path.sep)
+  if (p === base) return true
+  // 根目录本身以分隔符结尾，再拼一次会让前缀判断永远不成立。
+  return p.startsWith(base.endsWith(path.sep) ? base : base + path.sep)
 }
 
 /** 造一个临时目录并登记为可删除的根。测试里凡是需要清理的目录都该用它。 */
@@ -39,8 +41,11 @@ export function registerTmpRoot(dir) {
   const resolved = path.resolve(raw)
   const cwd = norm(process.cwd())
   const target = norm(resolved)
+  // 文件系统根不能登记：它包含一切，任何祖先/前缀判断都会失效。
+  if (target === norm(path.parse(resolved).root)) throw new Error('不能登记文件系统根目录：' + resolved)
   // 也不能登记工作目录的上级：那会把 cwd 和整个仓库都放进可删范围。
-  if (cwd === target || cwd.startsWith(target + path.sep)) throw new Error('不能登记包含当前工作目录的目录：' + resolved)
+  const prefix = target.endsWith(path.sep) ? target : target + path.sep
+  if (cwd === target || cwd.startsWith(prefix)) throw new Error('不能登记包含当前工作目录的目录：' + resolved)
   const st = fs.statSync(resolved)
   if (!st.isDirectory()) throw new Error('只能登记目录：' + resolved)
   roots.add(target)

@@ -63,3 +63,8 @@ const when: string = timeSense.humanTime(Date.now())
 const from: number | undefined = relativeWindow.parseRelativeWindow('上周三')?.from
 const card: string = personCard.renderPersonCard({ 名字: '灯塔店员' })
 console.log(when, from, card)
+
+// 0.21.1：封存日志 strict 选项（坏行时由调用方决定 fail closed）
+const strictSealed = sealEvents.sealedByExp('/tmp/whale', { strict: true }).get(made.id)?.day
+const strictAsOf = sealEvents.sealedByExp('/tmp/whale', { until: Date.now(), strict: false }).size
+console.log(strictSealed, strictAsOf)

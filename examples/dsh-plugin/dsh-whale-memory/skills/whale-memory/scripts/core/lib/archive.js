@@ -88,7 +88,7 @@ export function exportArchive(memDir, outDir, { name = '' } = {}) {
     exportedAt: new Date().toISOString(),
     files: manifestFiles,
     counts: {
-      experiences: loadAll(memDir).length,
+      experiences: loadAll(memDir, { allowSealCorrupt: true }).length,
       diaries: countLines(path.join(memDir, 'autobiography.jsonl')),
       laterEvents: countLines(path.join(memDir, 'later-events.jsonl')),
       recallEvents: countLines(path.join(memDir, 'recall-events.jsonl')),
@@ -151,7 +151,7 @@ export function importArchive(fromDir, memDir, { force = false } = {}) {
         throw new Error('Export changed during import: ' + f.name + '（导入期间备份内容发生变化）')
       }
     }
-    const loaded = loadAll(stage)
+    const loaded = loadAll(stage, { allowSealCorrupt: true })
     if (exists && force) {
       backup = target + '.pre-import-' + stamp() + '-' + crypto.randomUUID()
       fs.renameSync(target, backup)

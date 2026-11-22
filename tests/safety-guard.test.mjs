@@ -70,3 +70,7 @@ test('registerTmpRoot 拒绝工作目录的上级（否则仓库文件可被删�
   const upper = path.dirname(process.cwd()).toUpperCase()
   assert.throws(() => registerTmpRoot(upper), /包含当前工作目录|ENOENT|no such file/)
 })
+test('registerTmpRoot 拒绝文件系统根（根以分隔符结尾，前缀判断会失效）', () => {
+  const root = path.parse(process.cwd()).root
+  assert.throws(() => registerTmpRoot(root), /文件系统根目录/)
+})

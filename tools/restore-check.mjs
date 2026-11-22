@@ -59,9 +59,14 @@ export function restoreCheck({ from, data = '' }) {
   try {
     const restored = path.join(tmp, 'plugin-data', 'biomimetic-memory')
     archive.importArchive(from, restored)
-    const rows = loadAll(restored)
+    const rows = loadAll(restored, { allowSealCorrupt: true })
     const bad = badLines(restored)
     check('恢复后能读', true, rows.length + ' 条经历')
+    const sealBad = sealEvents.readAll(restored).bad
+    if (sealBad > 0) {
+      report.notes = report.notes || []
+      report.notes.push('封存日志有 ' + sealBad + ' 行无法解析：现场已按字节保全，但宿主展示会被阻止，需要修复日志。')
+    }
     // 原数据里本来就有的坏行（插件读的时候会跳过），备份如实带上不算备份坏了；只有比原数据多出来的才算
     let origBad = null
     if (data) { const om = path.join(path.resolve(data), 'plugin-data', 'biomimetic-memory'); if (fs.existsSync(om)) { try { origBad = badLines(om) } catch { origBad = null } } }
@@ -77,7 +82,7 @@ export function restoreCheck({ from, data = '' }) {
       } else {
         // 原数据读不了是"没法比对"，不是"备份坏了"：单独记，别把恢复演练判成不可恢复。
         try {
-          const orig = new Map(loadAll(origMem).map((r) => [r.id, fingerprint(r)]))
+          const orig = new Map(loadAll(origMem, { allowSealCorrupt: true }).map((r) => [r.id, fingerprint(r)]))
           const back = new Map(rows.map((r) => [r.id, fingerprint(r)]))
           const diffs = []
           for (const [id, fp] of orig) {

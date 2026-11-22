@@ -122,7 +122,7 @@ const brief = (r) => {
 
 // asOf：翻回那天的自己。只保留那一刻之前（含）写下的经历、后记、想起和选择；
 // 那之后发生的一律看不见。不传 asOf 就是现在的样子
-export function loadAll(dir, { asOf = null } = {}) {
+export function loadAll(dir, { asOf = null, allowSealCorrupt = false } = {}) {
   const until = parseAsOf(asOf)
   const { rows: all } = identify(dir)
   const rows = until === null ? all : all.filter((r) => before(r, until))
@@ -144,11 +144,13 @@ export function loadAll(dir, { asOf = null } = {}) {
   // 读不出来就抛出去，不能当成"什么都没封存"——否则正文可读、日志读不了时，
   // 召回/醒来/书会把本该藏起来的经历重新拿出来。
   // strict：坏行也算"状态未知"，展示路径必须 fail closed。
-  const sealedMap = sealEvents.sealedByExp(dir, { until, strict: true })
+  // allowSealCorrupt：只给"按字节备份/恢复/计数"这种不展示内容的工具用；
+  // 它们要能保住损坏现场，但不能把结果当"可见"用。
+  const sealedMap = sealEvents.sealedByExp(dir, { until, strict: !allowSealCorrupt })
   // 翻回那天时，她**现在**封存着的也不翻出来：封存说的是她现在不想被提起，而翻回那天正是在提起旧事。
   // 那时还没封存的，标成 afterAsOf（后来才封存），各处过滤照常生效；点名读仍然给，并写明是后来封存的
   let sealedNowMap = sealedMap
-  if (until !== null) sealedNowMap = sealEvents.sealedByExp(dir, { strict: true })
+  if (until !== null) sealedNowMap = sealEvents.sealedByExp(dir, { strict: !allowSealCorrupt })
 
   const viewed = rows.map((r) => {
     const keys = r.formerId ? [r.id, r.formerId] : [r.id]

@@ -83,7 +83,7 @@ export interface Experience {
 
 export const LIMITS: Record<string, number>
 
-export function loadAll(dir: string, opts?: { asOf?: AsOf }): Experience[]
+export function loadAll(dir: string, opts?: { asOf?: AsOf; allowSealCorrupt?: boolean }): Experience[]
 
 export function addExperience(dir: string, opts: {
   text: string
