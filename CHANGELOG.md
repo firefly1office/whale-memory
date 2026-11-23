@@ -2,6 +2,13 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Added
+
+- `packages/drafts`（`whale-drafts@0.1.0`）：作品稿本。一行一版的只追加存储、按 `baseRevision` 拒冲突、`operationId` 幂等重放、`asOf` 读回过去、`unreadable` 不装空；纯 Node，无依赖。
+- `docs/drafts-zh.md`：稿本的设计记录（为什么不是"再存一个字段"、失败码、上限与不做的部分）。
+
 ## [0.21.1] - 2026-11-22
 
 ### Added

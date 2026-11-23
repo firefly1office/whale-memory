@@ -62,6 +62,7 @@ node adapters/cli/memory-cli.mjs read --id <id> --as-of 2026-11-14
 | 接到 Claude Desktop / Claude Code / Cursor | [MCP 适配器](adapters/mcp/README.md)：`npx -y -p whale-memory-core whale-memory-mcp --data <目录>` |
 | 先跑一个能用的宿主 | [80 行参考宿主](examples/reference-host/host.mjs)：`node examples/reference-host/host.mjs --data ./xiaozhou` |
 | 在 JavaScript 里直接读写 | `npm install whale-memory-core`。注意包名带 `-core`：npm 上不带 `-core` 的 `whale-memory` 是别人的包，和本项目无关 |
+| 让她自己写的那一页能改、能读回、能翻回过去 | [作品稿本](packages/drafts/README.md)（`whale-drafts`）：一行一版、旧基线拒写、幂等重试；设计记录见 [docs/drafts-zh.md](docs/drafts-zh.md) |
 
 ## 接之前先看这四篇
 

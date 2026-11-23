@@ -1,0 +1,28 @@
+{
+  "name": "whale-drafts",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Append-only drafts for an AI companion: immutable revisions, baseRevision conflict check, idempotent replay, as-of reads.",
+  "license": "MIT",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "example.mjs",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "drafts",
+    "append-only",
+    "revisions",
+    "optimistic-concurrency",
+    "companion",
+    "memory"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}
