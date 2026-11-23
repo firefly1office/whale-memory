@@ -2,13 +2,22 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [Unreleased] · 2026-11-23
 
 ### Added
 
 - `packages/drafts`（`whale-drafts@0.1.0`）：作品稿本。一行一版的只追加存储、按 `baseRevision` 拒冲突、`operationId` 幂等重放、`asOf` 读回过去、`unreadable` 不装空；纯 Node，无依赖。
 - `docs/drafts-zh.md`：稿本的设计记录（为什么不是"再存一个字段"、失败码、上限与不做的部分）。
 - CI：`publish.yml` 增加 `drafts-v*` 触发与 `publish-drafts` 作业（发布前跑同一套 check + 类型冒烟）。
+- `packages/drafts` 补 `index.d.ts`、`repository` 字段与 `LICENSE`；`files` 白名单与实际文件对齐。
+
+### Fixed
+
+- `whale-drafts`：`itemId` 与 `scopeKey` 落到文件名前一律取哈希——之前把 `itemId` 直接拼路径，`../` 能读到别的作用域、甚至写出去；现在换行/控制字符拒绝，任何字符串都关在自己的作用域目录里。
+- `whale-drafts`：写入改成 `O_APPEND + fsync` 的单行追加，不再整份重写——之前每次保存都会把读不懂的行抹掉，违背"旧版本逐字节保留"。
+- `whale-drafts`：锁换成与 `whale-memory-core` 同一份实现（owner.json + pid 判活 + 心跳 + token 校验 + tombstone 回收），之前旧实现在锁很旧时会抢走活持有者的锁。
+- `whale-drafts`：幂等重放不再要求 `baseRevision` 相同（重试时别人写过一版，重试仍回原回执），文档同步；读结果增加 `corrupt` 计数。
+- 文档：`CONTRIBUTING` 的发版流程改成三包三 tag；`pitfalls` §8 列清三个包各自版本；`limits` 补作品稿本上限。
 
 ## [0.21.1] - 2026-11-22
 

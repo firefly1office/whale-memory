@@ -51,13 +51,24 @@ node tools/privacy-canary.mjs
 - **minor**（0.x.0）：加字段、加命令、仍能读旧数据
 - **major**（1.0.0 起）：需要迁移，或改变 `then` / `later` 的语义
 
-发版流程：
+仓库里有三个可发布包，各有自己的版本号和 tag 前缀：
+
+| 包 | 目录 | 包名 | tag 前缀 |
+| --- | --- | --- | --- |
+| 核心 | `packages/core` | `whale-memory-core` | `core-v*` |
+| 情绪采集 | `packages/emotion-intake` | `whale-emotion-intake` | `emotion-v*` |
+| 作品稿本 | `packages/drafts` | `whale-drafts` | `drafts-v*` |
+
+发版流程（以要发的那个包为准）：
 
 1. 更新 `CHANGELOG.md` 的 `[Unreleased]`，改成新版本号与日期
-2. `packages/core/package.json` 改版本号
-3. 打 tag：`git tag vX.Y.Z && git push origin vX.Y.Z`
-4. 在 GitHub 建 release，正文取 CHANGELOG 对应段落
-5. 需要发 npm 时，在 `packages/core` 里 `npm publish --access public`
+2. 改对应包 `packages/<包>/package.json` 的 `version`
+3. 语法/测试/闸门全过：`npm run check`（发布作业里也会再跑一次）
+4. 打对应前缀的 tag：`git tag core-vX.Y.Z` / `emotion-vX.Y.Z` / `drafts-vX.Y.Z`，再 `git push origin <tag>`
+5. tag 会触发 `.github/workflows/publish.yml` 里对应的作业，用 npm trusted publishing（OIDC）发布；失败不会消耗版本号，修完重推 tag 即可
+6. 在 GitHub 建 release，正文取 CHANGELOG 对应段落
+
+注意：`workflow_dispatch` 会同时尝试三个作业；只想发一个包时，用 tag，不要用手动触发。
 
 破坏性改动必须在 PR 标题里写 `BREAKING`，并在 CHANGELOG 里单独一段。
 

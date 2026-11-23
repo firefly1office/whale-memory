@@ -10,6 +10,8 @@
   },
   "files": [
     "index.js",
+    "index.d.ts",
+    "lib/file-lock.js",
     "example.mjs",
     "README.md",
     "LICENSE"
@@ -24,5 +26,10 @@
   ],
   "engines": {
     "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/firefly1office/whale-memory.git",
+    "directory": "packages/drafts"
   }
 }

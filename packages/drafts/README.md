@@ -31,10 +31,13 @@ listHistory(dir, { scopeKey: 'private:owner', itemId: 'story-1' })
 - **Optimistic concurrency.** `baseRevision` must be the revision the caller actually read.
   Otherwise `conflict` with `currentRevision` — no guessing, no auto-merge.
 - **Idempotent replay.** Same `operationId` + same text returns the original receipt
-  (`replayed: true`) instead of adding a version. Same id with different text is
-  `operation_conflict`.
+  (`replayed: true`) instead of adding a version — even if the caller re-read and now passes a
+  newer `baseRevision`, because a retry should not fail just because someone else moved on.
+  Same id with different text is `operation_conflict`. New ids still need an exact base.
 - **As-of reads.** `readDraft(dir, { ..., asOf })` returns the last revision at or before that
-  instant — "what did it look like then".
+  instant — "what did it look like then". It compares the `at` values the caller supplied, so a
+  clock that jumps backwards can make a later revision look older; that is the caller's clock,
+  not this module's business.
 - **Honest failures.** A file that cannot be parsed returns `unreadable`, never an empty page:
   "she hasn't written yet" and "we lost it" must not look the same.
 - **Bounded.** 16 KiB per revision, 2000 revisions per item. Hitting the cap returns
@@ -42,17 +45,22 @@ listHistory(dir, { scopeKey: 'private:owner', itemId: 'story-1' })
 
 ## Storage
 
-```
-<dir>/drafts/<sha256(scopeKey)[:32]>/<itemId>.jsonl    one JSON object per revision
-<dir>/drafts/.../<itemId>.jsonl.lock                   directory lock (mkdir)
-```
-
-Writes go through a temp file + rename while holding the lock, so readers never see half a line.
+One append-only JSONL file per (scope, item). Both keys are hashed before they touch the
+filesystem, so `itemId` can be any string (Chinese, spaces, even something that looks like a
+path) without escaping the data directory. Each line is one revision; writes append a single
+line under a directory lock (`mkdir` + owner file + heartbeat, same implementation as
+`whale-memory-core`), followed by `fsync`. Readers never see half a line, and **existing lines
+are never rewritten** — including lines this module cannot parse.
 
 ## Errors
 
 `invalid_input`, `conflict`, `operation_conflict`, `revision_missing`, `text_too_large`,
 `version_limit`, `busy`, `unreadable`, `storage_error`.
+
+## Stability
+
+Version `0.1.x`: the API is **not stable**. A minor bump may rename things or change the shape of
+return values; every such change is recorded in the repository `CHANGELOG.md`.
 
 ## What it does not do
 

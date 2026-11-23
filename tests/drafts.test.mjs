@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
+import crypto from 'node:crypto'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import {
@@ -23,6 +24,12 @@ function freshDir(label) {
 
 const SCOPE = 'private:owner'
 const ITEM = 'story-1'
+
+const sha = (value) => crypto.createHash('sha256').update(String(value), 'utf8').digest('hex').slice(0, 32)
+const onlyDraftFile = (dir) => {
+  const scopeDir = path.join(dir, 'drafts', sha(SCOPE))
+  return path.join(scopeDir, fs.readdirSync(scopeDir).filter((f) => f.endsWith('.jsonl'))[0])
+}
 
 test('第一次写：revision 1', () => {
   const dir = freshDir('first')
@@ -158,7 +165,7 @@ test('历史：从新到旧，能分页', () => {
 test('坏行只跳过自己，好行照常读', () => {
   const dir = freshDir('corrupt')
   saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 0, text: '好的那句' })
-  const file = path.join(dir, 'drafts', fs.readdirSync(path.join(dir, 'drafts'))[0], `${ITEM}.jsonl`)
+  const file = onlyDraftFile(dir)
   fs.appendFileSync(file, '这不是 JSON\n', 'utf8')
   const res = readDraft(dir, { scopeKey: SCOPE, itemId: ITEM })
   assert.equal(res.ok, true)
@@ -169,7 +176,7 @@ test('坏行只跳过自己，好行照常读', () => {
 test('整份都读不出来：unreadable，不假装空', () => {
   const dir = freshDir('all-corrupt')
   saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 0, text: '原来那句' })
-  const file = path.join(dir, 'drafts', fs.readdirSync(path.join(dir, 'drafts'))[0], `${ITEM}.jsonl`)
+  const file = onlyDraftFile(dir)
   fs.writeFileSync(file, '坏\n也坏\n', 'utf8')
   const res = readDraft(dir, { scopeKey: SCOPE, itemId: ITEM })
   assert.equal(res.ok, false)
@@ -190,7 +197,9 @@ test('落盘格式：一行一版，正文原样（不裁切、不改写）', ()
   const text = '我不记得那一天，只记得风很大。'
   saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 0, text })
   const scopeDir = path.join(dir, 'drafts', fs.readdirSync(path.join(dir, 'drafts'))[0])
-  const lines = fs.readFileSync(path.join(scopeDir, `${ITEM}.jsonl`), 'utf8').split('\n').filter(Boolean)
+  const files = fs.readdirSync(scopeDir).filter((f) => f.endsWith('.jsonl'))
+  assert.equal(files.length, 1)
+  const lines = fs.readFileSync(path.join(scopeDir, files[0]), 'utf8').split('\n').filter(Boolean)
   assert.equal(lines.length, 1)
   const row = JSON.parse(lines[0])
   assert.equal(row.text, text)
@@ -198,28 +207,127 @@ test('落盘格式：一行一版，正文原样（不裁切、不改写）', ()
   fs.rmSync(dir, { recursive: true, force: true })
 })
 
-test('两个进程抢同一个基线：一个成功，一个 conflict', async () => {
+test('八个进程同时抢同一个基线：只有一个成功，其余 conflict（有起跑栅栏）', async () => {
   const dir = freshDir('race')
   saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 0, text: '起点' })
-
-  const script = (label) => `
+  const gate = path.join(dir, 'go')
+  const code = (label) => `
+    import fs from 'node:fs'
     import { saveDraft } from ${JSON.stringify(PKG)}
+    while (!fs.existsSync(${JSON.stringify(gate)})) { /* 等大家一起起跑 */ }
     const res = saveDraft(${JSON.stringify(dir)}, { scopeKey: ${JSON.stringify(SCOPE)}, itemId: ${JSON.stringify(ITEM)}, baseRevision: 1, text: ${JSON.stringify(label)} })
     process.stdout.write(JSON.stringify(res))
   `
   const run = (label) => new Promise((resolve) => {
-    const child = spawn(process.execPath, ['--input-type=module', '-e', script(label)], { stdio: ['ignore', 'pipe', 'ignore'] })
+    const child = spawn(process.execPath, ['--input-type=module', '-e', code(label)], { stdio: ['ignore', 'pipe', 'ignore'] })
     let out = ''
     child.stdout.on('data', (chunk) => { out += String(chunk) })
     child.on('close', () => resolve(JSON.parse(out || '{}')))
   })
-
-
-  const [a, b] = await Promise.all([run('甲写的'), run('乙写的')])
-  const oks = [a, b].filter((r) => r && r.ok === true)
-  const conflicts = [a, b].filter((r) => r && r.code === 'conflict')
-  assert.equal(oks.length, 1)
-  assert.equal(conflicts.length, 1)
+  const pending = Array.from({ length: 8 }, (_, i) => run(`第 ${i + 1} 个`))
+  // 等子进程都起来了再放行
+  await new Promise((r) => setTimeout(r, 400))
+  fs.writeFileSync(gate, 'go', 'utf8')
+  const results = await Promise.all(pending)
+  const oks = results.filter((r) => r && r.ok === true)
+  const conflicts = results.filter((r) => r && r.code === 'conflict')
+  assert.equal(oks.length, 1, JSON.stringify(results))
+  assert.equal(conflicts.length, 7, JSON.stringify(results))
   assert.equal(readDraft(dir, { scopeKey: SCOPE, itemId: ITEM }).revision, 2)
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('itemId 里带路径也不会写到数据目录外面', () => {
+  const dir = freshDir('traversal')
+  const evil = '../../escape'
+  const res = saveDraft(dir, { scopeKey: SCOPE, itemId: evil, baseRevision: 0, text: '越界试试' })
+  assert.equal(res.ok, true)
+  // 只在 drafts 目录里落了一个文件
+  const inside = fs.readdirSync(path.join(dir, 'drafts'))
+  assert.equal(inside.length, 1)
+  const scopeDir = path.join(dir, 'drafts', inside[0])
+  assert.deepEqual(fs.readdirSync(scopeDir).filter((f) => f.endsWith('.jsonl')).length, 1)
+  // 数据目录外面没有多出任何东西
+  assert.ok(!fs.existsSync(path.join(dir, '..', 'escape.jsonl')))
+  assert.equal(readDraft(dir, { scopeKey: SCOPE, itemId: evil }).text, '越界试试')
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('两个作用域用同名 itemId：读不到对方的稿子', () => {
+  const dir = freshDir('scope-isolation')
+  saveDraft(dir, { scopeKey: 'private:a', itemId: 'same', baseRevision: 0, text: 'a 的' })
+  saveDraft(dir, { scopeKey: 'private:b', itemId: 'same', baseRevision: 0, text: 'b 的' })
+  assert.equal(readDraft(dir, { scopeKey: 'private:a', itemId: 'same' }).text, 'a 的')
+  assert.equal(readDraft(dir, { scopeKey: 'private:b', itemId: 'same' }).text, 'b 的')
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('itemId 带换行/控制字符：拒绝，不破坏一行一版的结构', () => {
+  const dir = freshDir('bad-id')
+  const res = saveDraft(dir, { scopeKey: SCOPE, itemId: 'a\nb', baseRevision: 0, text: 'x' })
+  assert.equal(res.ok, false)
+  assert.equal(res.code, 'invalid_input')
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('写入不会抹掉读不懂的旧行（byte-for-byte 那条保证）', () => {
+  const dir = freshDir('preserve-corrupt')
+  saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 0, text: '第一版' })
+  const file = onlyDraftFile(dir)
+  fs.appendFileSync(file, '这一行不是 JSON\n', 'utf8')
+  const res = saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 1, text: '第二版' })
+  assert.equal(res.ok, true)
+  const lines = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean)
+  assert.equal(lines.length, 3)
+  assert.equal(lines[1], '这一行不是 JSON')
+  // 读的时候坏行被跳过，但会告诉你有几行读不懂
+  const read = readDraft(dir, { scopeKey: SCOPE, itemId: ITEM })
+  assert.equal(read.revision, 2)
+  assert.equal(read.corrupt, 1)
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('版本到顶：拒绝写入，不悄悄裁掉历史', () => {
+  const dir = freshDir('limit')
+  const scopeDir = path.join(dir, 'drafts', sha(SCOPE))
+  fs.mkdirSync(scopeDir, { recursive: true })
+  const file = path.join(scopeDir, `${sha(ITEM)}.jsonl`)
+  const rows = []
+  for (let i = 1; i <= 2000; i += 1) {
+    rows.push(JSON.stringify({ v: 1, scopeKey: SCOPE, itemId: ITEM, revision: i, baseRevision: i - 1, operationId: '', at: i, text: `第 ${i} 版` }))
+  }
+  fs.writeFileSync(file, rows.join('\n') + '\n', 'utf8')
+  const res = saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 2000, text: '再来一版' })
+  assert.equal(res.ok, false)
+  assert.equal(res.code, 'version_limit')
+  // 文件没被裁：还是 2000 行
+  assert.equal(fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).length, 2000)
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('锁被活着的进程占着：返回 busy，不抢锁', () => {
+  const dir = freshDir('busy')
+  saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 0, text: '先有一版' })
+  const file = onlyDraftFile(dir)
+  const lock = `${file}.lock`
+  fs.mkdirSync(lock)
+  fs.writeFileSync(path.join(lock, 'owner.json'), JSON.stringify({ pid: process.pid, hostname: os.hostname(), token: 'x', acquiredAt: Date.now(), heartbeatAt: Date.now() }), 'utf8')
+  const res = saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 1, text: '抢不到', lockTimeoutMs: 150 })
+  assert.equal(res.ok, false)
+  assert.equal(res.code, 'busy')
+  fs.rmSync(lock, { recursive: true, force: true })
+  const again = saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 1, text: '锁放开后' })
+  assert.equal(again.ok, true)
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('幂等重放：调用方重读后基线变了，重试仍然回原回执', () => {
+  const dir = freshDir('replay-base')
+  const first = saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 0, text: '只该有一版', operationId: 'op-b' })
+  saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 1, text: '别人又写了一版' })
+  const retry = saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 9, text: '只该有一版', operationId: 'op-b' })
+  assert.equal(retry.ok, true)
+  assert.equal(retry.replayed, true)
+  assert.equal(retry.revision, first.revision)
   fs.rmSync(dir, { recursive: true, force: true })
 })
