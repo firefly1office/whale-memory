@@ -45,7 +45,7 @@ The last one is **going back to the person she was that day**: only the thoughts
 | Fabrication rate | **0** — ask about a detail that was never recorded and she answers "no record"; same on the dev and held-out sets |
 | Recall (strict, first hit) | dev set 92.9% · held-out 73.1% |
 | Sealing vs. leaking | 1290 checks (counted live by `whale-eval`), **0** leaks |
-| Tests | 603, CI runs ubuntu / windows × node 20 / 22 |
+| Tests | 604, CI runs ubuntu / windows × node 20 / 22 |
 
 The evaluation corpus is only 33 fictional experiences — [what it cannot measure](docs/eval.md) is written down too. Do not read this table as general accuracy.
 

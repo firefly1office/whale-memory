@@ -35,8 +35,9 @@ test('别的会话不在范围内', () => {
   assert.equal(recordInScope('group_2', 'group_1'), false)
 })
 
-test('不限定会话时全部在内', () => {
-  assert.equal(recordInScope('group_9', ''), true)
+test('空查询不再当全局：只有空记录键匹配', () => {
+  assert.equal(recordInScope('group_9', ''), false)
+  assert.equal(recordInScope('private_20002', ''), false)
   assert.equal(recordInScope('', ''), true)
 })
 

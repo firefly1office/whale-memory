@@ -10,7 +10,16 @@ export function createLog(fileName, { valid = (r) => Boolean(r) } = {}) {
 
   function readAll(memDir) {
     let raw = ''
-    try { raw = fs.readFileSync(eventsFile(memDir), 'utf8') } catch { return { rows: [], bad: 0 } }
+    try {
+      raw = fs.readFileSync(eventsFile(memDir), 'utf8')
+    } catch (error) {
+      // 只有"还没有这个文件"能当空；权限、是目录、坏盘必须报出来，不能当成 0 条。
+      if (error && error.code === 'ENOENT') return { rows: [], bad: 0 }
+      const wrapped = new Error('事件日志读不出来：' + path.basename(eventsFile(memDir)) + '：' + String(error && error.message ? error.message : error))
+      wrapped.code = 'EVENTS_UNREADABLE'
+      wrapped.cause = error
+      throw wrapped
+    }
     const rows = []
     let bad = 0
     for (const line of raw.split('\n')) {

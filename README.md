@@ -44,7 +44,7 @@ node adapters/cli/memory-cli.mjs read --id <id> --as-of 2026-11-14
 | 编造率 | **0** —— 问不存在的细节，答"没有记录"；开发集与留出集都是 0 |
 | 召回（strict 首位） | 开发集 92.9% · 留出集 73.1% |
 | 封存与外露 | 1290 处检查（由 `whale-eval` 按当前语料与出口现算），外露 **0** 次 |
-| 测试 | 603 个，CI 跑 ubuntu / windows × node 20 / 22 |
+| 测试 | 604 个，CI 跑 ubuntu / windows × node 20 / 22 |
 
 评测语料只有 33 条虚构经历——[它测不出的东西](docs/eval.md)也写在文档里，别把这张表当成通用准确率。
 

@@ -8,6 +8,12 @@
 
 - GitHub Releases 仍停在 `v0.17.0`（tag 与 npm 已到 0.21.1）：本机没有 `gh`，也没有可用的 GitHub token，这轮**只记录、未补**。补 Release 需要 Leo 给凭据，或在网页上手动补 `core-v0.21.0` / `core-v0.21.1` 两条。
 - 补记 `whale-emotion-intake@0.1.1`：npm 上有 `0.0.0-stage / 0.1.0 / 0.1.1`，仓库此前没有对应的 tag 与段落。实测两个 tarball **除 `package.json` 的版本号外逐文件哈希相同**，即 0.1.1 与 0.1.0 代码一致；仓库里的 `package.json` 已对齐到 0.1.1。无法确认 0.1.1 是从哪个提交发出的，所以这轮**不补 tag**（补错比不补更糟）——之后按 `publish.yml` 的「tag 与 version 对齐 + 注册表已有同版本提前失败」两道闸门走，不再从工作区直接发。
+- 事件日志族（`event-log` / `later-events` / `recall-events` / `unfinished-events` / `unsaid`）读失败不再静默当空：只把 `ENOENT` 算空，其余报错。此前事件文件读不出来时，`book` 导出的自传会**没有章节**、抽屉会显示「她没留下过话」、后记与想起次数静默为 0。
+- `read --as-of` 与 MCP `memory_read asOf` 不再带出封存理由（`sealed.note`）：asOf 早于封存时正文按「那天可见」给出（口径 A），但封存之后才写下的理由属于未来信息，一律不外露。
+- CLI：`--data` 写在子命令前后都可用（此前放前面会被当成用法错误）；`read` 指向读不到的路径改为报错（不再 `ok:true` + 空列表）；`--chat=` 空值直接拒绝，不再被吃成 `local:owner`。
+- 隐私默认收紧：`createAudience` 把**任何私聊 → 群**一律拒绝（自定义 `isActive` 也绕不过这一层）；`recordInScope(record, '')` 不再当「全局」，空 query 只匹配没有会话键的记录（**行为变更**：宿主若曾用空 query 表示「全部」，需要改成显式逐会话查询）。
+- `self-actions` 不再接受 `extra`：此前可以借它把触发原文落盘，与「不存触发文本」的承诺冲突。
+- `examples/with-vector` 与 `docs/archive/composition.md`：建索引与按 id 取回两处都过滤 `sealed`，示例不再把封存内容重新注入。
 
 ### Added
 

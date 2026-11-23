@@ -80,7 +80,11 @@ export function listUnsaid(dir, { chatKey, all = false } = {}) {
         return { id: x.id, day: x.day, kind: x.kind, text: x.text, reason: x.reason, status: x.status, ...(spoken ? { spokenDay: spoken.day } : {}) }
       })
     return { ok: true, items }
-  } catch (e) { return fail(e) }
+  } catch (e) {
+    // 抽屉内容读不出来时必须报错；返回空列表会让她以为里面什么都没有。
+    if (e && e.code === 'EVENTS_UNREADABLE') throw e
+    return fail(e)
+  }
 }
 
 function mark(dir, { chatKey, id }, status) {

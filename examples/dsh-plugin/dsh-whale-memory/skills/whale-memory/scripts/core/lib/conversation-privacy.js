@@ -78,8 +78,9 @@ export function createAudience({ ownerId = '', isActive = () => true } = {}) {
       if (source.base === dest.base) {
         // 同一个房间内：只有完全同一套槽位才算"这里本来就看得到"
         allowed = source.key === dest.key;
-      } else if (!(dest.group && isOwnerRoom(sourceKey, owner))) {
-        // 跨房间：主人私聊 / 本机主人不流向群；其余按 isActive 判断
+      } else if (!(dest.group && (source.private || source.local))) {
+        // 跨房间：任何私聊（主人的、别人的）和本机主人都不流向群；
+        // 别人的私聊要进群必须由宿主显式 opt-in（自定义 isActive 也绕不过这一层）。
         allowed = isActive(source.key, source.base);
       }
     }

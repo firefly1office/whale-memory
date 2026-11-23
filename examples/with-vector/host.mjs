@@ -22,7 +22,7 @@ exp.addExperience(dataDir, {
 
 // 2) 宿主侧：把经历灌进自己的向量库（这一步不属于 whale-memory）
 const store = createStore()
-for (const row of exp.loadAll(dataDir)) {
+for (const row of exp.loadAll(dataDir).filter((r) => !r.sealed)) {
   store.add(row.id, row.then.text + ' ' + row.then.thought)
 }
 console.log('[向量库] 已索引 ' + store.size() + ' 条')
@@ -33,7 +33,7 @@ const candidates = store.search(question, { topK: 2, minScore: 0.25 })
 console.log('[向量库] 候选：' + candidates.map((c) => c.id + '(' + c.score.toFixed(2) + ')').join(', '))
 
 // 4) whale-memory 只做结构：按 id 取回，渲染「当时 / 现在」
-const byId = new Map(exp.loadAll(dataDir).map((r) => [r.id, r]))
+const byId = new Map(exp.loadAll(dataDir).filter((r) => !r.sealed).map((r) => [r.id, r]))
 const picks = candidates.map((c) => byId.get(c.id)).filter(Boolean)
 for (const row of picks) {
   console.log('\n【宿主递回来的经历】')

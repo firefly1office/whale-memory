@@ -107,7 +107,7 @@ export function createSelfActionLog({ dir, actions = [], maxLines = DEFAULT_MAX_
    * @param {string} [input.triggerDigest] 调用方自己算的摘要（可选，建议 HMAC）
    * @param {number} [input.at] 时间戳；测试用
    */
-  function record({ action = '', source = 'unknown', outcome = 'ok', itemRef = '', triggerLen, triggerDigest = '', extra = null, at = Date.now() } = {}) {
+  function record({ action = '', source = 'unknown', outcome = 'ok', itemRef = '', triggerLen, triggerDigest = '', at = Date.now() } = {}) {
     const name = String(action || '').trim()
     if (!base) return fail('invalid_input', { field: 'dir' })
     if (!name) return fail('invalid_input', { field: 'action' })
@@ -126,7 +126,6 @@ export function createSelfActionLog({ dir, actions = [], maxLines = DEFAULT_MAX_
       ...(itemRef ? { itemRef: String(itemRef).slice(0, 64) } : {}),
       ...(Number.isFinite(Number(triggerLen)) ? { triggerLen: Math.max(0, Math.floor(Number(triggerLen))) } : {}),
       ...(triggerDigest ? { triggerDigest: String(triggerDigest).slice(0, 64) } : {}),
-      ...(extra && typeof extra === 'object' ? { extra } : {}),
     }
 
     try { fs.mkdirSync(base, { recursive: true }) } catch (error) { return fail('storage_error', { error }) }

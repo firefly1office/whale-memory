@@ -21,7 +21,7 @@ whale-memory 不是召回系统，是**人格层**。它不回答「哪段最相
 ## 接口只有三个
 
 ```js
-const rows = loadAll(dataDir)                 // 全部经历（宿主可以按 id 过滤）
+const rows = loadAll(dataDir).filter((r) => !r.sealed)   // 封存的不进索引，也不按 id 取回
 const row = currentView(dataDir, id)          // 单条，含合并后的 later
 const text = renderTwoPart(row)               // 「当时 / 现在」两段
 ```
@@ -36,7 +36,7 @@ const text = renderTwoPart(row)               // 「当时 / 现在」两段
 node examples/with-vector/host.mjs
 ```
 
-它演示：向量库找到候选 id → `loadAll()` 取回 → `renderTwoPart()` 渲染 → 角色改主意后再渲染。
+它演示：向量库找到候选 id → `loadAll()` 取回 → `renderTwoPart()` 渲染 → 角色改主意后再渲染。建索引和按 id 取回之前都先 `.filter((r) => !r.sealed)`——封存的经历不进索引，也不按 id 取回。
 
 ## 三条边界
 
@@ -57,6 +57,7 @@ node examples/with-vector/host.mjs
 ## 不要做的事
 
 - 不要用向量相似度决定「她当时怎么想」——那是 `then` 的内容，不是相似度
+- 不要把封存的经历索引进向量库：建索引与按 id 取回两处都要 `.filter((r) => !r.sealed)`，只有 `read --id` 点名读才放行
 - 不要把检索分数写进经历文件
 - 不要为了省 token 合并两条经历（`then` 不能覆盖）
 - 不要把日记索引进群聊可用的索引

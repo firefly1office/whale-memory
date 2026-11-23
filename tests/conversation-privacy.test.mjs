@@ -33,6 +33,13 @@ test('主人私聊不流向群', () => {
   assert.equal(aud.permits(LOCAL, GROUP), false)
 })
 
+test('别人的私聊默认也不流向群，显式 isActive 绕不过', () => {
+  assert.equal(aud.permits(FRIEND, GROUP), false)
+  assert.equal(aud.permits(FRIEND, GROUP_B), false)
+  const permissive = createAudience({ ownerId: OWNER, isActive: () => true })
+  assert.equal(permissive.permits(FRIEND, GROUP), false)
+})
+
 test('主人私聊可以流向朋友的私聊（策略可改）', () => {
   assert.equal(aud.permits(OWNER_DM, FRIEND), true)
 })

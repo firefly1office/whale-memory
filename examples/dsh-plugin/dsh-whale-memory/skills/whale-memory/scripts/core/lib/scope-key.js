@@ -76,7 +76,7 @@ export function scopeKeysFor(chatKey) {
 export function recordInScope(recordChatKey, queryChatKey) {
   const record = String(recordChatKey || '').trim();
   const query = String(queryChatKey || '').trim();
-  if (!query) return true;              // 不限定会话 = 全局
+  if (!query) return !record;           // 空查询只匹配没有会话键的记录，不再当“全局”
   if (!record) return false;
   return scopeKeysFor(query).includes(record);
 }

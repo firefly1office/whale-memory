@@ -19,7 +19,6 @@ export interface SelfActionRow {
   itemRef?: string
   triggerLen?: number
   triggerDigest?: string
-  extra?: unknown
 }
 
 export interface SelfActionOk { ok: true; [key: string]: unknown }
@@ -42,7 +41,6 @@ export interface RecordSelfActionInput {
   itemRef?: string
   triggerLen?: number
   triggerDigest?: string
-  extra?: unknown
   at?: number
 }
 
