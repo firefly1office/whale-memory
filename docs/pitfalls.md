@@ -57,7 +57,7 @@ overlay 会注入所有会话。第一个部署里，写 overlay 和回退 overl
 
 ## 8. 版本与发布状态
 
-- 三个包各自发版：`whale-memory-core` **0.21.1**（tag `core-v0.21.1`，npm 已发）、`whale-emotion-intake` **0.1.0**（tag `emotion-v0.1.0`，npm 已发）、`whale-drafts` **0.1.0**（tag `drafts-v0.1.0`，发布见 CHANGELOG）。论文对应的是 `v0.17.0`（提交 `549e51c`）；之后加的是模块（`changed` / `injection` / `fact-*` / `conversation-privacy` 等）与文档，严格模式的匹配口径没动（`MIN_COVER` 仍是 0.7）。
+- 三个包各自发版：`whale-memory-core` **0.21.1**（tag `core-v0.21.1`，npm 已发）、`whale-emotion-intake` **0.1.0**（tag `emotion-v0.1.0`，npm 已发）、`whale-drafts` **0.1.0**（未发布，尚无 tag；发布见 CHANGELOG）。论文对应的是 `v0.17.0`（提交 `549e51c`）；之后加的是模块（`changed` / `injection` / `fact-*` / `conversation-privacy` 等）与文档，严格模式的匹配口径没动（`MIN_COVER` 仍是 0.7）。
 - 装之前还是先看 `npm view whale-memory-core dist-tags`——缓存和镜像偶尔会给旧版本。
 - MCP 入口与英文文档以仓库为准。
 

@@ -46,8 +46,8 @@ listHistory(dir, { scopeKey: 'private:owner', itemId: 'story-1' })
 ## Storage
 
 One append-only JSONL file per (scope, item). Both keys are hashed before they touch the
-filesystem, so `itemId` can be any string (Chinese, spaces, even something that looks like a
-path) without escaping the data directory. Each line is one revision; writes append a single
+filesystem, so `itemId` can be almost any string up to 200 characters (Chinese, spaces, even something
+that looks like a path) without escaping the data directory. Each line is one revision; writes append a single
 line under a directory lock (`mkdir` + owner file + heartbeat, same implementation as
 `whale-memory-core`), followed by `fsync`. Readers never see half a line, and **existing lines
 are never rewritten** — including lines this module cannot parse.

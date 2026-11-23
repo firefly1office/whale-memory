@@ -65,7 +65,7 @@ node tools/privacy-canary.mjs
 2. 改对应包 `packages/<包>/package.json` 的 `version`
 3. 语法/测试/闸门全过：`npm run check`（发布作业里也会再跑一次）
 4. 打对应前缀的 tag：`git tag core-vX.Y.Z` / `emotion-vX.Y.Z` / `drafts-vX.Y.Z`，再 `git push origin <tag>`
-5. tag 会触发 `.github/workflows/publish.yml` 里对应的作业，用 npm trusted publishing（OIDC）发布；失败不会消耗版本号，修完重推 tag 即可
+5. tag 会触发 `.github/workflows/publish.yml` 里对应的作业，用 npm trusted publishing（OIDC）发布；失败不会消耗版本号，修完后删掉 tag 重打（`git tag -d <tag>` + `git push origin :refs/tags/<tag>`，再重新 `git tag` / `git push`）
 6. 在 GitHub 建 release，正文取 CHANGELOG 对应段落
 
 注意：`workflow_dispatch` 会同时尝试三个作业；只想发一个包时，用 tag，不要用手动触发。

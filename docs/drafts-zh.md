@@ -38,8 +38,10 @@
 ## 存储
 
 ```
-<dir>/drafts/<sha256(scopeKey)[:32]>/<itemId>.jsonl
+<dir>/drafts/<hash(scopeKey)>/<hash(itemId)>.jsonl
 ```
+
+两个键都先取哈希再进文件名：`itemId` 是任意字符串（中文、空格、看起来像路径的东西都行），但拼不出 `../`，越不出数据目录。
 
 一行一版：
 
@@ -47,8 +49,12 @@
 {"v":1,"scopeKey":"private:owner","itemId":"story-1","revision":2,"baseRevision":1,"operationId":"","at":1795432493803,"text":"…"}
 ```
 
-同一目录里的 `<itemId>.jsonl.lock` 是目录锁（mkdir 独占，1 秒拿不到返回 `busy`）。
-写入走"临时文件 + rename"，读方永远看不到半行。
+同一目录里的 `<itemId>.jsonl.lock` 是目录锁（mkdir 独占；默认等 3 秒，拿不到返回 `busy`）。
+锁里写 owner.json（pid + hostname + token + 心跳），同一台机器上按 pid 判活，活着的持有者不会被抢。
+
+写入是 **O_APPEND 单行追加 + fsync**，不重写整份文件：读不懂的旧行原样留着。
+追加前会看文件末尾是不是停在半行（崩溃/掉电），是就先补一个换行，让半行保持坏行、
+新版本照常可读。
 
 ## 接口
 
@@ -63,6 +69,9 @@ listHistory(dir, { scopeKey, itemId, before?, limit? })
 失败码：`invalid_input`、`conflict`、`operation_conflict`、`revision_missing`、
 `text_too_large`、`version_limit`、`busy`、`unreadable`、`storage_error`。
 
+读结果里还会带 `corrupt`（读不懂的行数，0 表示没有）。整份都读不懂时返回 `unreadable`，
+不会返回"空稿"——"她还没写"和"我们弄丢了"必须长得不一样。
+
 ## 不做什么
 
 - 不判断内容好坏、不调用模型、不生成正文；
@@ -71,6 +80,6 @@ listHistory(dir, { scopeKey, itemId, before?, limit? })
 
 ## 测试
 
-`tests/drafts.test.mjs`（18 项）：版本递增、旧基线冲突、旧版可读、幂等重放、幂等冲突、
-作用域隔离、as-of、历史分页、坏行跳过、整份坏掉不装空、正文原样落盘、**两个进程抢同一基线
-（一个成功一个 conflict）**。
+`tests/drafts.test.mjs`（28 项）：版本递增、旧基线冲突、旧版可读、幂等重放、幂等冲突、
+作用域隔离、as-of、历史分页、坏行跳过、整份坏掉不装空、正文原样落盘、**八个进程同时抢同一基线
+（有起跑栅栏，一个成功七个 conflict）**。

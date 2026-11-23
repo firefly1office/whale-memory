@@ -331,3 +331,34 @@ test('幂等重放：调用方重读后基线变了，重试仍然回原回执',
   assert.equal(retry.revision, first.revision)
   fs.rmSync(dir, { recursive: true, force: true })
 })
+
+test('文件末尾停在半行：下一次保存先补换行，旧半行留着当坏行，新版本读得到', () => {
+  const dir = freshDir('half-line')
+  saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 0, text: '完整的一版' })
+  const file = onlyDraftFile(dir)
+  // 模拟写到一半就断电：末尾没有换行
+  fs.appendFileSync(file, '{"v":1,"revision":2,"text":"写到一半', 'utf8')
+  const res = saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 1, text: '下一版' })
+  assert.equal(res.ok, true)
+  const read = readDraft(dir, { scopeKey: SCOPE, itemId: ITEM })
+  assert.equal(read.revision, 2)
+  assert.equal(read.text, '下一版')
+  assert.equal(read.corrupt, 1)
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('显式读 revision 0：按空稿返回，不报找不到', () => {
+  const dir = freshDir('rev0')
+  const res = readDraft(dir, { scopeKey: SCOPE, itemId: ITEM, revision: 0 })
+  assert.equal(res.ok, true)
+  assert.equal(res.empty, true)
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test('now 传 0 时按 0 记录（不会被 || 吞成当前时间）', () => {
+  const dir = freshDir('now-zero')
+  saveDraft(dir, { scopeKey: SCOPE, itemId: ITEM, baseRevision: 0, text: '零时刻', now: 0 })
+  const res = readDraft(dir, { scopeKey: SCOPE, itemId: ITEM })
+  assert.equal(res.at, 0)
+  fs.rmSync(dir, { recursive: true, force: true })
+})

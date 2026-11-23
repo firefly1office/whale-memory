@@ -105,3 +105,8 @@ const brokenLines: number = selfExperience.badLines('/tmp/whale')
 const closed = unfinishedEvents.decide('/tmp/whale', { id: made.id, choice: 'shelved' })
 const atomicPath: string = writeFileAtomic('/tmp/whale/atomic.txt', 'ok')
 console.log(recovery.action, recovery.recovered, journalPath.length, brokenLines, closed.noop, closed.row?.choice, atomicPath.length)
+
+// 作品稿本：类型声明要跟着实现走，加进来防止静默漂移
+import { saveDraft, readDraft, listHistory } from '../packages/drafts/index.js'
+const draftSaved = saveDraft('/tmp/drafts', { scopeKey: 'k', itemId: 'i', baseRevision: 0, text: 'x' })
+if (draftSaved.ok) { const r = readDraft('/tmp/drafts', { scopeKey: 'k', itemId: 'i' }); void r; const h = listHistory('/tmp/drafts', { scopeKey: 'k', itemId: 'i' }); void h }

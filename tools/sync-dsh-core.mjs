@@ -39,6 +39,17 @@ if (dstCli !== srcCli) {
   if (!check) { fs.writeFileSync(DST_CLI, srcCli, 'utf8'); synced += 1 }
 }
 
+// whale-drafts 的锁是 core 这份的逐字节副本（它要能单独安装，所以不依赖 core）。
+// 漂移检查放在这里：改锁的时候两边必须一起改，检查会红。
+const LOCK_SRC = path.join(SRC_LIB, 'file-lock.js')
+const LOCK_DST = path.join(root, 'packages', 'drafts', 'lib', 'file-lock.js')
+const lockSrc = fs.readFileSync(LOCK_SRC)
+const lockDst = fs.existsSync(LOCK_DST) ? fs.readFileSync(LOCK_DST) : null
+if (!lockDst || sha(lockSrc) !== sha(lockDst)) {
+  drift.push('drafts/lib/file-lock.js')
+  if (!check) { fs.mkdirSync(path.dirname(LOCK_DST), { recursive: true }); fs.writeFileSync(LOCK_DST, lockSrc); synced += 1 }
+}
+
 if (check && drift.length) {
   console.error('示例副本与 packages/core 漂移：' + drift.join(', '))
   console.error('跑 node tools/sync-dsh-core.mjs 同步后再提交。')

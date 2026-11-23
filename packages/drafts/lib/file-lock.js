@@ -1,6 +1,3 @@
-// 这份锁是从 packages/core/lib/file-lock.js 复制的（同一份实现，MIT）。
-// 为什么复制而不是依赖：whale-drafts 要能单独安（不拉 whale-memory-core）。
-// 两边改锁的时候记得同步；tests/drafts.test.mjs 里有并发用例守着它的行为。
 // 跨进程文件锁：mkdir 独占 + 忙等重试；Windows 上并发 mkdir/rm 会短暂 EPERM/ENOENT，按“忙”处理
 //
 // 抢锁规则（2026-11 修）：

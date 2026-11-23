@@ -86,6 +86,19 @@ function loadVersions(file) {
 function appendLine(file, line) {
   const fd = fs.openSync(file, 'a')
   try {
+    // 文件末尾如果停在半行（崩溃、掉电、写入不足），直接追加会把新行粘在坏行后面，
+    // 结果是"保存成功但这一版读不出来"。先补一个换行，让半行原样留着当坏行。
+    const size = fs.fstatSync(fd).size
+    if (size > 0) {
+      const rfd = fs.openSync(file, 'r')
+      try {
+        const last = Buffer.alloc(1)
+        fs.readSync(rfd, last, 0, 1, size - 1)
+        if (last[0] !== 0x0a) fs.writeSync(fd, '\n')
+      } finally {
+        fs.closeSync(rfd)
+      }
+    }
     const buf = Buffer.from(line, 'utf8')
     let offset = 0
     while (offset < buf.length) offset += fs.writeSync(fd, buf, offset, buf.length - offset)
@@ -154,7 +167,7 @@ export function saveDraft(dir, {
       if (base !== currentRevision) return fail('conflict', { itemId: id, currentRevision })
       if (versions.length >= MAX_VERSIONS_PER_ITEM) return fail('version_limit', { limit: MAX_VERSIONS_PER_ITEM })
 
-      const at = Number(now) || Date.now()
+      const at = Number.isFinite(Number(now)) ? Number(now) : Date.now()
       const row = {
         v: 1, scopeKey: scope, itemId: id,
         revision: currentRevision + 1, baseRevision: base,
@@ -162,7 +175,7 @@ export function saveDraft(dir, {
       }
       appendLine(file, `${JSON.stringify(row)}\n`)
       return { ok: true, itemId: id, revision: row.revision, at }
-    }, { timeoutMs: Math.max(50, Number(lockTimeoutMs) || DEFAULT_LOCK_TIMEOUT_MS) })
+    }, { timeoutMs: Number.isFinite(Number(lockTimeoutMs)) ? Math.max(0, Number(lockTimeoutMs)) : DEFAULT_LOCK_TIMEOUT_MS })
   } catch (error) {
     if (String(error && error.message || '') === LOCKED_MESSAGE) return fail('busy')
     return fail('storage_error', { error })
@@ -187,6 +200,8 @@ export function readDraft(dir, { scopeKey = '', itemId = '', revision, asOf } = 
 
   if (revision !== undefined && revision !== null) {
     const want = Number(revision)
+    // 空稿读出来的就是 revision 0；显式要 0 时按"空"返回，而不是报找不到
+    if (want === 0) return { ok: true, itemId: id, revision: 0, empty: true, corrupt }
     const hit = versions.find((row) => row.revision === want)
     if (!hit) return fail('revision_missing', { itemId: id, revision: want })
     return { ok: true, itemId: id, revision: hit.revision, text: hit.text, at: hit.at, corrupt }
