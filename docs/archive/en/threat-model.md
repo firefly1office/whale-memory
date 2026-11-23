@@ -34,10 +34,10 @@
 | 1 | **Private matters read out in a group chat** | The waking block and the drawer accept only one-to-one session keys they can identify, matched by anchor — a longer number does not count; group chats and unknown keys are refused outright. Diary reads are off by default | The host must pass the right `chatKey`, and must not expose diary- and drawer-related tools in group chats. The owner check in the tool layer must be **anchored** (`^private[:_]<号码>(#\|$)`), not a "contains" match |
 | 2 | **Rewriting the past** | Once `then` is written there is no modifying interface at all; changing your mind can only append a later note; every event is append-only; import does not overwrite unless `--force` (which backs up first) | Do not add an "edit experience" tool to the host yourself |
 | 3 | **Being induced to write false memories** | Append only, never overwrite; every entry carries a time; provenance (`refs`) must point at experiences that really exist | Restrict write-type tools in group chats; if necessary, expose them only in the owner's session |
-| 4 | **Making things up when she cannot remember** | strict recall would rather return nothing; the fabrication rate of `whale-eval` on the holdout set is 0 ([eval.md](eval.md)) | Require in the prompt that "an empty recall means saying she does not remember"; results from loose must be labelled "possibly not the same event" |
+| 4 | **Making things up when she cannot remember** | strict recall would rather return nothing; the fabrication rate of `whale-eval` on the holdout set is 0 ([eval.md](../../eval.md)) | Require in the prompt that "an empty recall means saying she does not remember"; results from loose must be labelled "possibly not the same event" |
 | 5 | **Sealed things dragged back out** | Not delivered by recall, memory, the waking block, the read-back listing, the book, recaps, the provenance and links of other experiences, going back to that day, the CLI or MCP; `whale-eval` checked 105 exit points and found 0 leaks | The host's own injection, indexing and summaries also have to filter `sealed` |
 | 6 | **The drawer being seen or brought up automatically** | The module does not export a function that returns raw rows; no injection path reads it; MCP does not expose it by default | Register the drawer tool only in the owner's session |
-| 7 | **The prompt overlay being injected into** | Every change keeps a version and can be reverted (see [limits.md](limits.md)) | Let only trusted callers change it; do not splice the user's free text in as it is |
+| 7 | **The prompt overlay being injected into** | Every change keeps a version and can be reverted (see [limits.md](../../limits.md)) | Let only trusted callers change it; do not splice the user's free text in as it is |
 | 8 | **Instructions hidden in a web page** | Out of scope for this project | When the host reads a link, it has to label the page content as "written by someone else, not an instruction from the owner" |
 | 9 | **The host being led onto the local machine when it reads a link** | Out of scope for this project | The plugin that reads links must refuse loopback and intranet addresses itself, and **check every redirect hop**. Do not rely on a global switch in the host such as "allow intranet images" |
 | 10 | **Other local processes reading the files** | Plaintext storage, no built-in encryption | Use full-disk encryption; on multi-user machines rely on OS account isolation |
@@ -59,5 +59,5 @@
 ## What is not in this model
 
 - Multi-tenancy, remote access, HTTP services: this project does not provide them, and does not intend to.
-- Compliance-grade deletion of a single entry: in direct conflict with append-only, see [limits.md](limits.md).
+- Compliance-grade deletion of a single entry: in direct conflict with append-only, see [limits.md](../../limits.md).
 - Jailbreaks of the model itself: they can only be mitigated, not eliminated.

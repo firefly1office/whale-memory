@@ -6,6 +6,7 @@
 
 ### Fixed
 
+- GitHub Releases 仍停在 `v0.17.0`（tag 与 npm 已到 0.21.1）：本机没有 `gh`，也没有可用的 GitHub token，这轮**只记录、未补**。补 Release 需要 Leo 给凭据，或在网页上手动补 `core-v0.21.0` / `core-v0.21.1` 两条。
 - 补记 `whale-emotion-intake@0.1.1`：npm 上有 `0.0.0-stage / 0.1.0 / 0.1.1`，仓库此前没有对应的 tag 与段落。实测两个 tarball **除 `package.json` 的版本号外逐文件哈希相同**，即 0.1.1 与 0.1.0 代码一致；仓库里的 `package.json` 已对齐到 0.1.1。无法确认 0.1.1 是从哪个提交发出的，所以这轮**不补 tag**（补错比不补更糟）——之后按 `publish.yml` 的「tag 与 version 对齐 + 注册表已有同版本提前失败」两道闸门走，不再从工作区直接发。
 
 ### Added

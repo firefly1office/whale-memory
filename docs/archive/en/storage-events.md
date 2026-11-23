@@ -50,7 +50,7 @@ all of the above accept a cut-off moment until (going back to who she was that d
 
 1. Once `then` is written, its bytes are not changed.
 2. Counts (`recalls`) are not written back into the experience line.
-3. Event files are append-only and never rewritten; deletion can only be whole-store deletion (see `purge` in [limits.md](limits.md)).
+3. Event files are append-only and never rewritten; deletion can only be whole-store deletion (see `purge` in [limits.md](../../limits.md)).
 4. Read operations do not write to disk; `recall` is read-only by default, and recording a "recall" requires an explicit `mark: true` or `markRecalled`.
 5. Submitting the same choice repeatedly does not write a second line; concurrent submissions are guaranteed to record it only once by "re-read → decide → append" inside the lock.
 6. Experience appends take no lock, event appends go through the lock: do not let two host processes write the same directory at the same time.
@@ -64,4 +64,4 @@ Both tools are dry-run by default; back up first, validate, and rollback is poss
 
 ## Why there is no compaction
 
-Compaction produces a summary, and once a summary replaces the original text, "how she thought at the time" is no longer inspectable. This project chooses to keep the original text and leave abstraction to the host; the host may build an index on the side at write time, but an index is never a source (see [limits.md](limits.md)).
+Compaction produces a summary, and once a summary replaces the original text, "how she thought at the time" is no longer inspectable. This project chooses to keep the original text and leave abstraction to the host; the host may build an index on the side at write time, but an index is never a source (see [limits.md](../../limits.md)).

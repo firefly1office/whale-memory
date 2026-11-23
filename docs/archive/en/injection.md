@@ -4,7 +4,7 @@
 
 `recall` only handles "finding"; it does not handle "whether it should be said". That part belongs to the host, and it is also the place where memory most easily turns into a "memory log".
 
-Below is the dumbest set of rules that still works. A runnable version lives in [`examples/injection/`](../../examples/injection/), and the tests are in `tests/injection-example.test.mjs`.
+Below is the dumbest set of rules that still works. A runnable version lives in [`examples/injection/`](../../../examples/injection/), and the tests are in `tests/injection-example.test.mjs`.
 
 ## Seven rules
 

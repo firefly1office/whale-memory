@@ -105,4 +105,4 @@ It is a good idea to run it once a week against the latest copy; the one taken b
 - Put the backup inside the data root, or on a syncing cloud drive.
 - Import while the host is running.
 - Delete the `*.pre-import-*` directory after a failed restore — that is her from before the restore. Confirm everything is normal, and clean up a few days later.
-- If you truly want to forget it completely, use `purge` (see [limits.md](limits.md)); it does not care about backups you put elsewhere, and you have to delete those yourself.
+- If you truly want to forget it completely, use `purge` (see [limits.md](../../limits.md)); it does not care about backups you put elsewhere, and you have to delete those yourself.

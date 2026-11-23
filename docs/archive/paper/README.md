@@ -19,7 +19,7 @@
 
 ## 先看什么
 
-- 想接这个库：先读 [`docs/pitfalls.md`](../pitfalls.md)，再看 [`docs/porting.md`](../porting.md)。
+- 想接这个库：先读 [`docs/pitfalls.md`](../../pitfalls.md)，再看 [`docs/porting.md`](../porting.md)。
 - 想复核数字：第 6 节与随报告提供的 `notes/`（调研记录，不随仓库分发）；仓库根目录跑 `npm run check` 与 `node tools/whale-eval.mjs`。
 - 想引用：请注明这是技术报告，不是同行评审论文；版本与提交号一并给出。
 
