@@ -8,6 +8,7 @@
 
 - `packages/drafts`（`whale-drafts@0.1.0`）：作品稿本。一行一版的只追加存储、按 `baseRevision` 拒冲突、`operationId` 幂等重放、`asOf` 读回过去、`unreadable` 不装空；纯 Node，无依赖。
 - `docs/drafts-zh.md`：稿本的设计记录（为什么不是"再存一个字段"、失败码、上限与不做的部分）。
+- CI：`publish.yml` 增加 `drafts-v*` 触发与 `publish-drafts` 作业（发布前跑同一套 check + 类型冒烟）。
 
 ## [0.21.1] - 2026-11-22
 

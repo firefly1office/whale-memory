@@ -57,7 +57,7 @@ overlay 会注入所有会话。第一个部署里，写 overlay 和回退 overl
 
 ## 8. 版本与发布状态
 
-- 当前仓库与 npm 都是 **0.21.0**（tag `core-v0.21.0`）。论文对应的是 `v0.17.0`（提交 `549e51c`）；之后加的是模块（`changed` / `injection` / `fact-*` / `conversation-privacy` 等）与文档，严格模式的匹配口径没动（`MIN_COVER` 仍是 0.7）。
+- 当前仓库与 npm 都是 **0.21.1**（tag `core-v0.21.1`）。论文对应的是 `v0.17.0`（提交 `549e51c`）；之后加的是模块（`changed` / `injection` / `fact-*` / `conversation-privacy` 等）与文档，严格模式的匹配口径没动（`MIN_COVER` 仍是 0.7）。
 - 装之前还是先看 `npm view whale-memory-core dist-tags`——缓存和镜像偶尔会给旧版本。
 - MCP 入口与英文文档以仓库为准。
 

@@ -8,6 +8,7 @@ on:
     tags:
       - 'core-v*'
       - 'emotion-v*'
+      - 'drafts-v*'
 
 permissions:
   contents: read
@@ -69,4 +70,34 @@ jobs:
 
       - name: 发布（带 provenance）
         working-directory: packages/emotion-intake
+        run: npm publish --provenance --access public
+
+
+  publish-drafts:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/drafts-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      # 发布前先过硬闸：语法、测试、封存外露 / then 不可变、类型声明；不过就不发
+      - name: 发布前自检（测试 / check）
+        run: npm run check
+
+      - name: 发布前类型冒烟
+        run: npm run types
+
+      - name: 版本与包名自检
+        working-directory: packages/drafts
+        run: |
+          node -e "const p=require('./package.json');console.log('package:',p.name,'version:',p.version)"
+          test "$(node -p "require('./package.json').name")" = "whale-drafts"
+          test "$(node -p "require('./package.json').private || false")" = "false"
+
+      - name: 发布（带 provenance）
+        working-directory: packages/drafts
         run: npm publish --provenance --access public
