@@ -181,13 +181,37 @@ function doDoctor() {
   return { ok: checks.every((c) => c.ok), checks }
 }
 
-const cmd = process.argv[2]
+// 位置无关：跳过 --flag / --flag=value / --flag value，第一个裸词是命令，第二个是子命令。
+// 这样 `--data ./x read` 和 `read --data ./x` 等价（P2-11）。
+function positionalArgs(argv) {
+  const bare = []
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]
+    if (a.startsWith('--')) {
+      if (!a.includes('=')) {
+        const next = argv[i + 1]
+        if (next !== undefined && !next.startsWith('--')) i++
+      }
+      continue
+    }
+    bare.push(a)
+  }
+  return bare
+}
+const POSITIONAL = positionalArgs(process.argv.slice(2))
+const cmd = POSITIONAL[0]
+const SUB = POSITIONAL[1]
 let DATA = ''
 let MEM_DIR = ''
 let LANG = 'zh'
 try {
   // 数据根目录（下面有 plugin-data/）：--data 优先，其次 WHALE_DATA_DIR，最后是当前目录下的 data/
   DATA = path.resolve(arg('data', '') || process.env.WHALE_DATA_DIR || path.join(process.cwd(), 'data'))
+  // 盘符/根不存在时直接报错：读不到不能当"她没写过"（P2-1）。存在但为空的目录仍算新库。
+  const dataRoot = path.parse(DATA).root
+  if (dataRoot && !fs.existsSync(dataRoot)) {
+    throw new Error('Data root not found: ' + DATA + '（数据根目录不存在：' + DATA + '）')
+  }
   // 输出语言（两段式、醒来块的标签）：--lang en|zh；不给就看 WHALE_LANG，再看系统语言
   LANG = (arg('lang', '') || process.env.WHALE_LANG || (/^zh/i.test(String(process.env.LC_ALL || process.env.LANG || Intl.DateTimeFormat().resolvedOptions().locale || '')) ? 'zh' : 'en')) === 'zh' ? 'zh' : 'en'
   MEM_DIR = path.join(DATA, 'plugin-data', 'biomimetic-memory')
@@ -233,6 +257,21 @@ try {
     const picked = only ? all.filter((r) => r.id === only || r.formerId === only) : all.filter((r) => includeSealed || !sealedThen(r))
     const rows = n === 0 ? [] : picked.slice(-n)
     const feelingNow = (r) => { const l = [...(r.later || [])].reverse().find((x) => Array.isArray(x.feeling) && x.feeling.length); return l ? l.feeling : [] }
+    // 口径 A：翻回那天，正文照给；但封存理由（note）是她后来才写下的，不能混进那一天。
+    const sealedInView = (r) => {
+      if (!r.sealed) return undefined
+      if (asOf && r.sealed.afterAsOf) {
+        const { note, ...rest } = r.sealed
+        return rest
+      }
+      return r.sealed
+    }
+    const rowInView = (r) => {
+      const sealed = sealedInView(r)
+      if (sealed === r.sealed) return r
+      const { note, ...rest } = r.sealed
+      return { ...r, sealed: rest }
+    }
     const res = {
       ok: true,
       ...(asOf ? { asOf } : {}),
@@ -242,8 +281,8 @@ try {
         unfinished: r.then.unfinished || '', unfinishedState: r.unfinishedState || null,
         later: (r.later || []).map((x) => x.thought),
         refs: r.then.refs || [], citedBy: (r.citedBy || []).map((x) => x.id),
-        ...(r.sealed ? { sealed: r.sealed } : {}),
-        ...(only ? { view: exp.renderTwoPart(r, { lang: LANG }) } : {})
+        ...(sealedInView(r) ? { sealed: sealedInView(r) } : {}),
+        ...(only ? { view: exp.renderTwoPart(rowInView(r), { lang: LANG }) } : {})
       }))
     }
     if (!only && !includeSealed) {
@@ -307,7 +346,7 @@ try {
     if (!res.ok) process.exitCode = 1
   } else if (cmd === 'chapter') {
     // 人生章节：她给一段日子起名字；改名保留旧名；经历按日期自动落进去
-    const sub = process.argv[3]
+    const sub = SUB
     let res
     if (sub === 'open') res = chapterEvents.open(MEM_DIR, { name: arg('name', '') || '', from: arg('from', '') || '', to: arg('to', '') || '', note: arg('note', '') || '' })
     else if (sub === 'rename') res = chapterEvents.rename(MEM_DIR, { id: arg('id', '') || '', name: arg('name', '') || '' })
@@ -321,8 +360,12 @@ try {
     if (res) out({ ok: true, noop: res.noop, ...(res.row ? { chapter: res.row } : {}) })
   } else if (cmd === 'unsaid') {
     // 没说出口的抽屉：只在一对一会话里打开（--chat 默认 local:owner）；永不自动注入
-    const sub = process.argv[3]
-    const chatKey = arg('chat', 'local:owner') || 'local:owner'
+    const sub = SUB
+    // --chat= 这种空值不能被当成默认的一对一（P2-5）：抽屉的门不能靠"空串"打开。
+    const chatProvided = process.argv.some((a) => a === '--chat' || a.startsWith('--chat='))
+    const chatRaw = arg('chat', '')
+    if (chatProvided && !String(chatRaw || '').trim()) throw new Error('--chat cannot be empty（--chat 不能是空值）')
+    const chatKey = String(chatRaw || '').trim() || 'local:owner'
     let res
     if (sub === 'leave') res = unsaid.leaveUnsaid(MEM_DIR, { chatKey, kind: arg('kind', 'draft') || 'draft', text: arg('text', '') || '', reason: arg('reason', '') || '' })
     else if (sub === 'list') res = unsaid.listUnsaid(MEM_DIR, { chatKey, all: String(arg('all', 'false')) === 'true' })
@@ -343,7 +386,10 @@ try {
       out({ ok: true, file: target, chars: md.length })
     } else out({ ok: true, markdown: md })
   } else if (cmd === 'waking') {
-    const chat = arg('chat', 'local:owner') || 'local:owner'
+    const chatProvided = process.argv.some((a) => a === '--chat' || a.startsWith('--chat='))
+    const chatRaw = arg('chat', '')
+    if (chatProvided && !String(chatRaw || '').trim()) throw new Error('--chat cannot be empty（--chat 不能是空值）')
+    const chat = String(chatRaw || '').trim() || 'local:owner'
     const block = waking.buildWakingBlock(DATA, chat, { lang: LANG })
     out({ ok: true, block })
     // 打印成功即视为已展示；只想预览不占用今天的额度，加 --peek true
@@ -355,7 +401,7 @@ try {
     const rows = n === 0 ? [] : mem.recall(MEM_DIR, q, { includeDiary, limit: n })
     out({ ok: true, block: mem.renderBlock(rows) })
   } else if (cmd === 'prompt') {
-    const sub = process.argv[3]
+    const sub = SUB
     if (sub === 'get') out({ ok: true, text: prompt.load(DATA) })
     else if (sub === 'set') out(prompt.save(DATA, arg('text') || '', arg('reason', '') || ''))
     else if (sub === 'history') {
@@ -364,7 +410,7 @@ try {
     } else if (sub === 'revert') out(prompt.revert(DATA, arg('version') || ''))
     else throw new Error('prompt subcommands: get/set/history/revert（prompt 子命令：get/set/history/revert）')
   } else if (cmd === 'settings') {
-    const sub = process.argv[3]
+    const sub = SUB
     if (sub === 'get') out({ ok: true, settings: settings.load(DATA) })
     else if (sub === 'set') {
       const patch = JSON.parse(arg('json', '{}') || '{}')
