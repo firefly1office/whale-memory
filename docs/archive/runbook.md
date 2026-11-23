@@ -105,4 +105,4 @@ node tools/restore-check.mjs --from "E:\鲸鲸备份\memory-backup-2026-11-16T15
 - 把备份放进数据根，或者放进同步网盘。
 - 宿主运行时导入。
 - 恢复失败后删掉 `*.pre-import-*` 目录——那是恢复之前的她。确认一切正常、过几天再清理。
-- 真要彻底忘掉，用 `purge`（见 [limits.md](limits.md)）；它不管你放在别处的备份，那些要自己删。
+- 真要彻底忘掉，用 `purge`（见 [limits.md](../limits.md)）；它不管你放在别处的备份，那些要自己删。

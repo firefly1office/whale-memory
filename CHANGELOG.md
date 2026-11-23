@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 补记 `whale-emotion-intake@0.1.1`：npm 上有 `0.0.0-stage / 0.1.0 / 0.1.1`，仓库此前没有对应的 tag 与段落。实测两个 tarball **除 `package.json` 的版本号外逐文件哈希相同**，即 0.1.1 与 0.1.0 代码一致；仓库里的 `package.json` 已对齐到 0.1.1。无法确认 0.1.1 是从哪个提交发出的，所以这轮**不补 tag**（补错比不补更糟）——之后按 `publish.yml` 的「tag 与 version 对齐 + 注册表已有同版本提前失败」两道闸门走，不再从工作区直接发。
+
 ### Added
 
 - `packages/core/lib/self-actions.js`（`whale-memory-core/self-actions`）：自主行动日志。只追加、`O_APPEND + fsync`、半行保护、复用 `file-lock`、5000 行到顶**拒写**；`action` 白名单与 `source`/`outcome` 全由调用方声明，库不推断；**不存触发文本，也不存它的裸哈希**（短句的 sha256 等于明文），要留痕请传宿主自己算的 HMAC。

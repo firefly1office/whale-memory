@@ -77,7 +77,7 @@
 - 这个项目的数据量级是几千条，bigram 够用
 - 向量检索会引入模型依赖和不可解释的相似度，与"证据优先"冲突
 - 真正缺的不是语义相似度，而是**原文锚与后续记录**——先把这个做好
-- 但**宿主可以自带向量库**：检索层只负责给出 id，`then/later` 负责"她还是不是她"。接法见 [composition.md](composition.md)，可跑的例子在 [`examples/with-vector/`](../examples/with-vector/)
+- 但**宿主可以自带向量库**：检索层只负责给出 id，`then/later` 负责"她还是不是她"。接法见 [composition.md](composition.md)，可跑的例子在 [`examples/with-vector/`](../../examples/with-vector/)
 
 ## 如果要接自己的宿主
 
@@ -91,4 +91,4 @@
 
 - [schema.md](schema.md)：数据格式、写入上限、召回语义
 - [porting.md](porting.md)：宿主契约、模块表、隐私规则
-- [examples/samples/](../examples/samples/)：三条虚构经历
+- [examples/samples/](../../examples/samples/)：三条虚构经历
