@@ -44,7 +44,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/core-v')
         working-directory: packages/core
         run: |
-          want="v$(node -p "require('./package.json').version")"
+          want="$(node -p "require('./package.json').version")"
           got="${GITHUB_REF_NAME#core-v}"
           echo "tag=$GITHUB_REF_NAME package=$want"
           test "$want" = "$got"
@@ -82,7 +82,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/emotion-v')
         working-directory: packages/emotion-intake
         run: |
-          want="v$(node -p "require('./package.json').version")"
+          want="$(node -p "require('./package.json').version")"
           got="${GITHUB_REF_NAME#emotion-v}"
           echo "tag=$GITHUB_REF_NAME package=$want"
           test "$want" = "$got"
@@ -121,7 +121,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/drafts-v')
         working-directory: packages/drafts
         run: |
-          want="v$(node -p "require('./package.json').version")"
+          want="$(node -p "require('./package.json').version")"
           got="${GITHUB_REF_NAME#drafts-v}"
           echo "tag=$GITHUB_REF_NAME package=$want"
           test "$want" = "$got"
