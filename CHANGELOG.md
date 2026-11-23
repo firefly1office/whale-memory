@@ -2,6 +2,13 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Added
+
+- `packages/core/lib/self-actions.js`（`whale-memory-core/self-actions`）：自主行动日志。只追加、`O_APPEND + fsync`、半行保护、复用 `file-lock`、5000 行到顶**拒写**；`action` 白名单与 `source`/`outcome` 全由调用方声明，库不推断；**不存触发文本，也不存它的裸哈希**（短句的 sha256 等于明文），要留痕请传宿主自己算的 HMAC。
+- `docs/self-actions-zh.md`：这一层的设计记录（存什么、不存什么、留给宿主的四件事）。
+
 ## [drafts-v0.1.0] - 2026-11-23
 
 ### Added

@@ -125,6 +125,10 @@
       "types": "./lib/changed.d.ts",
       "default": "./lib/changed.js"
     },
+    "./self-actions": {
+      "types": "./lib/self-actions.d.ts",
+      "default": "./lib/self-actions.js"
+    },
     "./injection": {
       "types": "./lib/injection.d.ts",
       "default": "./lib/injection.js"

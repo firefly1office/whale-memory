@@ -110,3 +110,9 @@ console.log(recovery.action, recovery.recovered, journalPath.length, brokenLines
 import { saveDraft, readDraft, listHistory } from '../packages/drafts/index.js'
 const draftSaved = saveDraft('/tmp/drafts', { scopeKey: 'k', itemId: 'i', baseRevision: 0, text: 'x' })
 if (draftSaved.ok) { const r = readDraft('/tmp/drafts', { scopeKey: 'k', itemId: 'i' }); void r; const h = listHistory('/tmp/drafts', { scopeKey: 'k', itemId: 'i' }); void h }
+
+// 自主行动日志：接口小，但类型要跟着走
+import { createSelfActionLog } from '../packages/core/lib/self-actions.js'
+const actionLog = createSelfActionLog({ dir: '/tmp/actions', actions: ['draft_save'] })
+const rec = actionLog.record({ action: 'draft_save', source: 'self', outcome: 'ok' })
+if (rec.ok) { const s2 = actionLog.summarize({ days: 7 }); void s2 }
