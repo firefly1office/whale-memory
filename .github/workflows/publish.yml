@@ -2,6 +2,9 @@ name: publish
 
 # 用 npm trusted publishing（OIDC）发布包。
 # 不需要 NPM_TOKEN，也不需要验证码：GitHub 直接向 npm 证明这次发布来自这个仓库。
+#
+# 三个包共用一个 matrix 作业：闸门（check / 类型 / 包名 / tag-version / 版本已存在）
+# 只写一遍，加包就是加一行 matrix。
 on:
   workflow_dispatch:
   push:
@@ -15,8 +18,22 @@ permissions:
   id-token: write   # OIDC 必须有
 
 jobs:
-  publish-core:
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/core-v')
+  publish:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: whale-memory-core
+            dir: packages/core
+            prefix: core-v
+          - name: whale-emotion-intake
+            dir: packages/emotion-intake
+            prefix: emotion-v
+          - name: whale-drafts
+            dir: packages/drafts
+            prefix: drafts-v
+    # 手动触发会跑全部；tag 触发只跑前缀对上的那个
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, format('refs/tags/{0}', matrix.prefix))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,98 +50,34 @@ jobs:
       - name: 发布前类型冒烟
         run: npm run types
 
-      - name: 版本与包名自检
-        working-directory: packages/core
+      - name: 包名自检
+        working-directory: ${{ matrix.dir }}
         run: |
           node -e "const p=require('./package.json');console.log('package:',p.name,'version:',p.version)"
-          test "$(node -p "require('./package.json').name")" = "whale-memory-core"
-
-      # 闸门：tag 必须和包里的版本号一致，否则打错 tag 也会把旧版本发成 latest
-      - name: tag-version-core-v
-        if: startsWith(github.ref, 'refs/tags/core-v')
-        working-directory: packages/core
-        run: |
-          want="$(node -p "require('./package.json').version")"
-          got="${GITHUB_REF_NAME#core-v}"
-          echo "tag=$GITHUB_REF_NAME package=$want"
-          test "$want" = "$got"
-      - name: 发布（带 provenance）
-        working-directory: packages/core
-        run: npm publish --provenance --access public
-
-  publish-emotion:
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/emotion-v')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
-
-      # 发布前先过硬闸：语法、测试、封存外露 / then 不可变、类型声明；不过就不发
-      - name: 发布前自检（测试 / check）
-        run: npm run check
-
-      - name: 发布前类型冒烟
-        run: npm run types
-
-      - name: 版本与包名自检
-        working-directory: packages/emotion-intake
-        run: |
-          node -e "const p=require('./package.json');console.log('package:',p.name,'version:',p.version)"
-          test "$(node -p "require('./package.json').name")" = "whale-emotion-intake"
+          test "$(node -p "require('./package.json').name")" = "${{ matrix.name }}"
           test "$(node -p "require('./package.json').private || false")" = "false"
 
       # 闸门：tag 必须和包里的版本号一致，否则打错 tag 也会把旧版本发成 latest
-      - name: tag-version-emotion-v
-        if: startsWith(github.ref, 'refs/tags/emotion-v')
-        working-directory: packages/emotion-intake
+      - name: tag 与 version 对齐
+        if: startsWith(github.ref, format('refs/tags/{0}', matrix.prefix))
+        working-directory: ${{ matrix.dir }}
         run: |
           want="$(node -p "require('./package.json').version")"
-          got="${GITHUB_REF_NAME#emotion-v}"
+          got="${GITHUB_REF_NAME#${{ matrix.prefix }}}"
           echo "tag=$GITHUB_REF_NAME package=$want"
           test "$want" = "$got"
-      - name: 发布（带 provenance）
-        working-directory: packages/emotion-intake
-        run: npm publish --provenance --access public
 
-
-  publish-drafts:
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/drafts-v')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
-
-      # 发布前先过硬闸：语法、测试、封存外露 / then 不可变、类型声明；不过就不发
-      - name: 发布前自检（测试 / check）
-        run: npm run check
-
-      - name: 发布前类型冒烟
-        run: npm run types
-
-      - name: 版本与包名自检
-        working-directory: packages/drafts
+      # 闸门：注册表上已有同版本就别等 403，提前失败并说清楚
+      - name: 注册表是否已有这个版本
+        working-directory: ${{ matrix.dir }}
         run: |
-          node -e "const p=require('./package.json');console.log('package:',p.name,'version:',p.version)"
-          test "$(node -p "require('./package.json').name")" = "whale-drafts"
-          test "$(node -p "require('./package.json').private || false")" = "false"
+          version="$(node -p "require('./package.json').version")"
+          if npm view "${{ matrix.name }}@${version}" version >/dev/null 2>&1; then
+            echo "::error::${{ matrix.name }}@${version} 已经发布过了；改版本号再打 tag，或确认要不要重发。"
+            exit 1
+          fi
+          echo "${{ matrix.name }}@${version} 尚未发布，可以继续"
 
-      # 闸门：tag 必须和包里的版本号一致，否则打错 tag 也会把旧版本发成 latest
-      - name: tag-version-drafts-v
-        if: startsWith(github.ref, 'refs/tags/drafts-v')
-        working-directory: packages/drafts
-        run: |
-          want="$(node -p "require('./package.json').version")"
-          got="${GITHUB_REF_NAME#drafts-v}"
-          echo "tag=$GITHUB_REF_NAME package=$want"
-          test "$want" = "$got"
       - name: 发布（带 provenance）
-        working-directory: packages/drafts
+        working-directory: ${{ matrix.dir }}
         run: npm publish --provenance --access public

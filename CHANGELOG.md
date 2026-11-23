@@ -2,12 +2,13 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [drafts-v0.1.0] - 2026-11-23
 
 ### Added
 
 - `packages/drafts`（`whale-drafts@0.1.0`，已发布（2026-11-23），tag `drafts-v0.1.0`，npm `latest`）：作品稿本。一行一版的只追加存储、按 `baseRevision` 拒冲突、`operationId` 幂等重放、`asOf` 读回过去、`unreadable` 不装空；纯 Node，无依赖。
 - `docs/drafts-zh.md`：稿本的设计记录（为什么不是"再存一个字段"、失败码、上限与不做的部分）。
+- 版本号与注册表对齐：`whale-emotion-intake` 仓库版本改回它已发布的 `0.1.1`；`publish.yml` 合并成一个 matrix 作业，闸门只写一遍，并新增「注册表已有同版本就提前失败」。
 - CI：`publish.yml` 增加 `drafts-v*` 触发与 `publish-drafts` 作业（发布前跑同一套 check + 类型冒烟）。
 - `packages/drafts` 补 `index.d.ts`、`repository` 字段与 `LICENSE`；`files` 白名单与实际文件对齐。
 

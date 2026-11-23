@@ -61,7 +61,7 @@ node tools/privacy-canary.mjs
 
 发版流程（以要发的那个包为准）：
 
-1. 更新 `CHANGELOG.md` 的 `[Unreleased]`，改成新版本号与日期
+1. 更新 `CHANGELOG.md` 的 `[Unreleased]`，改成 `<包前缀>-v<版本>` 与日期（例如 `## [drafts-v0.1.0] - 2026-11-23`）
 2. 改对应包 `packages/<包>/package.json` 的 `version`
 3. 语法/测试/闸门全过：`npm run check`（发布作业里也会再跑一次）
 4. 打对应前缀的 tag：`git tag core-vX.Y.Z` / `emotion-vX.Y.Z` / `drafts-vX.Y.Z`，再 `git push origin <tag>`
