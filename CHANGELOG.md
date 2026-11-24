@@ -19,6 +19,7 @@
 
 - `packages/core/lib/self-actions.js`（`whale-memory-core/self-actions`）：自主行动日志。只追加、`O_APPEND + fsync`、半行保护、复用 `file-lock`、5000 行到顶**拒写**；`action` 白名单与 `source`/`outcome` 全由调用方声明，库不推断；**不存触发文本，也不存它的裸哈希**（短句的 sha256 等于明文），要留痕请传宿主自己算的 HMAC。
 - `docs/self-actions-zh.md`：这一层的设计记录（存什么、不存什么、留给宿主的四件事）。
+- `packages/core/lib/action-source.js`（`whale-memory-core/action-source`）：发起来源判据。把「什么话题」和「谁要的」分开判——`self` 只有一条入口（调用方显式声明这一轮没有外部输入），空文本与判不清一律 `unknown`；不认英文标识当话题词，避免 `self_project_draft` 把 `project_done` 误判成"被要求"；话题词表与祈使词表可由宿主扩展。`docs/action-source-zh.md` 记录取舍与边界。
 
 ## [drafts-v0.1.0] - 2026-11-23
 

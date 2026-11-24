@@ -13,6 +13,7 @@
       "types": "./index.d.ts",
       "default": "./index.js"
     },
+    "./action-source": { "types": "./lib/action-source.d.ts", "default": "./lib/action-source.js" },
     "./self-experience": {
       "types": "./lib/self-experience.d.ts",
       "default": "./lib/self-experience.js"
