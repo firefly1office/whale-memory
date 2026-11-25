@@ -4,7 +4,9 @@
 import { createLog, stamp } from './event-log.js'
 import { before } from './as-of.js'
 
-const log = createLog('link-events.jsonl', { valid: (r) => Boolean(r.from && r.to && r.reason) })
+// 一行算不算合格的联想事件。文件和 SQLite 两个容器用同一条判据，坏行的口径才一致
+export const isValid = (r) => Boolean(r && r.from && r.to && r.reason)
+const log = createLog('link-events.jsonl', { valid: isValid })
 export const eventsFile = log.eventsFile
 export const readAll = log.readAll
 export const internals = { FILE: log.FILE }
@@ -22,9 +24,14 @@ export function link(memDir, { from, to, reason }, opts = {}) {
 
 // 每条经历连着哪些：不分方向，两头都能看到；until 用于翻回那天
 export function linksByExp(memDir, { until = null } = {}) {
+  return linksRows(readAll(memDir).rows, { until })
+}
+
+// 同上，但输入是已经读出来的行（不碰文件）：SQLite 后端走这里
+export function linksRows(rows, { until = null } = {}) {
   const map = new Map()
   const push = (id, other, r) => map.set(id, [...(map.get(id) || []), { other, reason: r.reason, at: r.at, day: r.day }])
-  for (const r of readAll(memDir).rows) {
+  for (const r of rows) {
     if (!before(r, until)) continue
     push(r.from, r.to, r)
     push(r.to, r.from, r)

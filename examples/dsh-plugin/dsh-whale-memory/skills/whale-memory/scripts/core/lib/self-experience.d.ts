@@ -83,7 +83,10 @@ export interface Experience {
 
 export const LIMITS: Record<string, number>
 
-export function loadAll(dir: string, opts?: { asOf?: AsOf; allowSealCorrupt?: boolean }): Experience[]
+/** 读哪个容器：file（默认，JSONL）或 sqlite（memory.sqlite；拿不到 node:sqlite、没迁移、迁移后 JSONL 又变过都会抛错，不静默退回 file） */
+export type StorageBackendName = 'file' | 'sqlite'
+
+export function loadAll(dir: string, opts?: { asOf?: AsOf; allowSealCorrupt?: boolean; allowCorrupt?: boolean; backend?: StorageBackendName }): Experience[]
 
 /** 经历文件里解析不了的行数：展示路径遇到坏行会 fail closed，这个用于诊断和"先备份再修复" */
 export function badLines(dir: string): number
@@ -114,7 +117,7 @@ export function reviseExperience(dir: string, opts: { id: string; thought: strin
 
 export function markRecalled(dir: string, id: string): boolean
 
-export function currentView(dir: string, id: string, opts?: { asOf?: AsOf }): Experience | null
+export function currentView(dir: string, id: string, opts?: { asOf?: AsOf; backend?: StorageBackendName }): Experience | null
 
 export function recall(dir: string, query: string, opts?: {
   limit?: number
@@ -128,6 +131,8 @@ export function recall(dir: string, query: string, opts?: {
   includeSealed?: boolean
   /** strict 用哪套门槛：cover（默认，0.17 起）或 legacy（0.16 及以前，结果逐条一致） */
   gate?: 'cover' | 'legacy'
+  /** 读哪个容器（默认 file）。sqlite 下不能 mark：写路径还在 JSONL 上 */
+  backend?: StorageBackendName
 }): Experience[]
 
 /** 事后联想：两条都必须存在、必须写理由；同一对（不分方向）只连一次 */

@@ -62,16 +62,25 @@ export function readAll(memDir) {
     if (!line.trim()) continue
     try {
       const r = JSON.parse(line)
-      if (r && r.id && r.thought) rows.push(r)
+      if (isValid(r)) rows.push(r)
       else bad += 1
     } catch { bad += 1 }
   }
   return { rows, bad }
 }
 
+// 一行算不算合格的后记事件。文件和 SQLite 两个容器用同一条判据，坏行的口径才一致
+export function isValid(r) {
+  return Boolean(r && r.id && r.thought)
+}
+
 // until：只要这一刻之前（含）写下的后记，「翻回那天的自己」用
 export function groupByExp(memDir, { until = null } = {}) {
-  const { rows } = readAll(memDir)
+  return groupRows(readAll(memDir).rows, { until })
+}
+
+// 同上，但输入是已经读出来的行（不碰文件）：SQLite 后端从库里读出事件后走这里
+export function groupRows(rows, { until = null } = {}) {
   const map = new Map()
   for (const r of rows) {
     if (!before(r, until)) continue

@@ -72,18 +72,27 @@ export function readAll(memDir) {
     if (!line.trim()) continue
     try {
       const r = JSON.parse(line)
-      if (r && r.id && ACTIONS.has(r.action)) rows.push(r)
+      if (isValid(r)) rows.push(r)
       else bad += 1
     } catch { bad += 1 }
   }
   return { rows, bad }
 }
 
+// 一行算不算合格的封存事件。文件和 SQLite 两个容器用同一条判据，坏行的口径才一致
+export function isValid(r) {
+  return Boolean(r && r.id && ACTIONS.has(r.action))
+}
+
 // 每个经历 id 现在是否封存着：只收最后一次是 seal 的；until 用于翻回那天（那时还没封存就不算）
 // strict：展示路径用。日志里有坏行时"某条经历唯一一次封存"可能正好坏掉，
 // 这时不能默认可见——把"状态未知"抛给调用方（fail closed）。
 export function sealedByExp(memDir, { until = null, strict = false } = {}) {
-  const { rows, bad } = readAll(memDir)
+  return sealedFrom(readAll(memDir), { until, strict })
+}
+
+// 同上，但输入是已经读出来的 { rows, bad }（不碰文件）：SQLite 后端走这里，坏行同样 fail closed
+export function sealedFrom({ rows, bad }, { until = null, strict = false } = {}) {
   if (strict && bad > 0) {
     const error = new Error('封存日志有 ' + bad + ' 行无法解析，封存状态不确定')
     error.code = 'SEAL_EVENTS_CORRUPT'

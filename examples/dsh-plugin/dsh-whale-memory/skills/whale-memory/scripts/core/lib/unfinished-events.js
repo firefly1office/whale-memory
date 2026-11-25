@@ -82,17 +82,26 @@ export function readAll(memDir) {
     if (!line.trim()) continue
     try {
       const r = JSON.parse(line)
-      if (r && r.id && CHOICES.has(r.choice)) rows.push(r)
+      if (isValid(r)) rows.push(r)
       else bad += 1
     } catch { bad += 1 }
   }
   return { rows, bad }
 }
 
+// 一行算不算合格的「没弄完」事件。文件和 SQLite 两个容器用同一条判据，坏行的口径才一致
+export function isValid(r) {
+  return Boolean(r && r.id && CHOICES.has(r.choice))
+}
+
 // 每个经历 id 的最新状态，附带完整的选择历史（渲染"中间放下过"要用）
 // until：按这一刻之前（含）的选择重放，「翻回那天的自己」用
 export function latestByExp(memDir, { until = null } = {}) {
-  const { rows } = readAll(memDir)
+  return latestRows(readAll(memDir).rows, { until })
+}
+
+// 同上，但输入是已经读出来的行（不碰文件）：SQLite 后端走这里
+export function latestRows(rows, { until = null } = {}) {
   const map = new Map()
   for (const r of rows) {
     if (!before(r, until)) continue

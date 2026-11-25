@@ -6,6 +6,11 @@
 
 ### Added
 
+- **事件也进 SQLite（阶段 1 续）**：新增 `events` 表（`seq` 自增 + `kind` / `exp_id` 索引 + 整行 json）。六类事件一起搬：契约里的四类（later / seal / recall / unfinished），加上 `loadAll` 同样会读的 link / chapter——只搬四类的话 sqlite 读出来会缺联想与章节。事件的 JSON 形状一个字不改。sqlite 后端新增 `appendEvent(kind, row, { mustExist })`、`appendWithEvents(record, events)`、`events(kind)`，**记录与事件同事务**：一组写入要么全成、要么全不成；file 后端补齐 `appendEvent` / `events` / `byDay`，接口两边一致。
+- `loadAll` / `recall` / `currentView` 新增可选 `backend: 'file' | 'sqlite'`。**默认 file，零行为变化**：原有 652 项测试一条没改、全过。sqlite 在一次读事务里取整库快照，再走同一套合并逻辑，所以同一份数据上两个后端逐条相等。fail closed：拿不到 `node:sqlite`（`SQLITE_UNAVAILABLE`）、目录没迁移过（`STORAGE_NOT_MIGRATED`）、只有记录表的早期库（`STORAGE_INCOMPLETE`）、迁移后 JSONL 又被写过（`STORAGE_STALE`）都抛错——不静默退回 file，也不当成空。sqlite 下 `recall({ mark: true })` 直接拒绝（写路径还在 JSONL 上）。
+- `tools/migrate-storage.mjs` 扩到事件：记录与六类事件在同一个事务里写；写完重新打开库，用 `loadAll` 同一条读路径逐条对拍（条数、顺序、每条 JSON 逐字节）。坏行、没有 id 的旧格式记录、重复 id 都拒绝迁移并说清是哪一类；读的过程中源文件变了也不迁。迁移时记下每个源文件的字节数，之后读库时据此判断有没有过期。
+- 事件模块新增不碰文件的纯函数（输入是已经读出的行）：`groupRows` / `sealedFrom` / `countRows` / `latestRows` / `linksRows` / `chapterRows`，以及各自的 `isValid`——文件和 SQLite 用同一条坏行判据。原有函数改为调用它们，行为不变。
+- `tests/storage-events.test.mjs`（19 项）：迁移前后 `loadAll` 逐条相等（含两个 asOf、allowCorrupt），召回在 13 个查询 × limit × mode × gate × includeSealed × asOf 共 936 个组合上 id 序列与内容逐条相同；同事务的三种失败；五种 fail closed；迁移的演练、回滚、拒绝、verify-only。另在临时副本上做了 3 处变异（sqlite 漏读联想、封存不再 fail closed、迁移漏搬章节），新测试分别抓到 3 / 1 / 5 项失败。
 - **存储后端抽象（阶段 1）**：`packages/core/lib/storage/`——`openBackend({ kind: 'file' | 'sqlite' })`，两个后端遵守同一份契约（记录不可变、id 永不复用）。SQLite 用 Node 内置 `node:sqlite`（>= 22.5），**不引第三方依赖**；拿不到就报错，不静默降级。
 - `tools/migrate-storage.mjs`：JSONL → SQLite，默认演练；**逐条按 id 对拍**，任何一条不一致整体回滚；源文件一字不改。
 - `tools/bench-storage.mjs`：两后端对比。本机 2 万条实测：写入 file 133,242ms / sqlite 206ms；byId p50 20.6ms / 0.012ms。
@@ -14,6 +19,12 @@
 - `docs/contract-v1-zh.md`：**v1 契约**（阶段 0）。写清数据契约（记录不可变、封存是事件、as-of 口径）、六个动作的 API 契约与错误形状、v1 内的兼容承诺（只加不减、破坏性变更走 v2 且双读一个 minor）、以及**明确不承诺**的五件事（单条物理删除、多写者、加密、可用性、向量检索）。
 - `schemas/record.v1.json`：经历记录的 JSON Schema（字段、上限、枚举）。
 - `tests/contract-v1.test.mjs`（9 项）：契约测试，对着当前实现跑。写它的时候抓到两处**文档与实现不符**并改了文档：`noop` 是布尔值（首次封存为 false）；`loadAll` 不隐藏封存记录，只挂 `sealed` 状态，过滤是调用方的事。
+
+### Fixed
+
+- `openBackend({ kind: 'sqlite' })` 拿不到 `node:sqlite` 时，现在在打开这一步就报错。此前要等到第一次读写才报，文档里「try sqlite / catch 退回 file」的写法接不住。
+- `tools/migrate-storage.mjs`：对拍失败时此前直接退出、留下一个半成品库；现在和其它失败一样整体回滚、删库（连同 -wal / -shm）。
+- README 索引行里一个控制字符（`\f`）吃掉了「file」的 f。
 
 ### Added
 

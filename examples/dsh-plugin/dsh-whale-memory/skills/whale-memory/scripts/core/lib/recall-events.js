@@ -65,11 +65,16 @@ export function readAll(memDir) {
     if (!line.trim()) continue
     try {
       const r = JSON.parse(line)
-      if (r && r.id) rows.push(r)
+      if (isValid(r)) rows.push(r)
       else bad += 1
     } catch { bad += 1 }
   }
   return { rows, bad }
+}
+
+// 一行算不算合格的想起事件。文件和 SQLite 两个容器用同一条判据，坏行的口径才一致
+export function isValid(r) {
+  return Boolean(r && r.id)
 }
 
 // 进程内缓存：同一进程里连续 recall 不再重复解析整个事件文件
@@ -83,7 +88,13 @@ export function countByExp(memDir, { until = null } = {}) {
   const hit = until === null ? memo.get(memDir) : null
   if (hit && hit.stamp === stamp) return hit.map
 
-  const { rows } = readAll(memDir)
+  const map = countRows(readAll(memDir).rows, { until })
+  if (until === null) memo.set(memDir, { stamp, map })
+  return map
+}
+
+// 同上，但输入是已经读出来的行（不碰文件、不走缓存）：SQLite 后端走这里
+export function countRows(rows, { until = null } = {}) {
   const map = new Map()
   for (const r of rows) {
     if (!before(r, until)) continue
@@ -92,7 +103,6 @@ export function countByExp(memDir, { until = null } = {}) {
     if (String(r.at || '') > cur.lastAt) cur.lastAt = String(r.at || '')
     map.set(r.id, cur)
   }
-  if (until === null) memo.set(memDir, { stamp, map })
   return map
 }
 

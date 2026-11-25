@@ -22,4 +22,8 @@ export function decide(memDir: string, opts: { id: string; action: SealAction; n
 export function readAll(memDir: string): { rows: SealEvent[]; bad: number }
 /** 现在（或截至 until）仍封存着的经历；strict 时坏行会抛 SEAL_EVENTS_CORRUPT */
 export function sealedByExp(memDir: string, opts?: { until?: number | null; strict?: boolean }): Map<string, SealedInfo>
+/** 同 sealedByExp，但输入是已经读出的 { rows, bad }（不碰文件）；strict 时坏行同样抛 */
+export function sealedFrom(read: { rows: SealEvent[]; bad: number }, opts?: { until?: number | null; strict?: boolean }): Map<string, SealedInfo>
+/** 一行算不算合格的封存事件（文件与 SQLite 同一条判据） */
+export function isValid(row: unknown): boolean
 export const internals: { FILE: string }

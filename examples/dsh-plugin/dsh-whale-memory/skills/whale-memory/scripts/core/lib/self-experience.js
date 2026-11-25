@@ -10,6 +10,7 @@ import * as linkEvents from './link-events.js'
 import * as chapterEvents from './chapter-events.js'
 import { queryTerms, requiredOverlap, matchedTerms, normalizeText, contentUnits, coverage, MIN_COVER } from './query-match.js'
 import { parseAsOf, before, dayOf } from './as-of.js'
+import { readSnapshot } from './sqlite-store.js'
 
 const FILE = 'self-experience.jsonl'
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
@@ -152,7 +153,11 @@ function normalize(r) {
 // 否则谁也不给（事件原样留在文件里），由 pendingLegacyEvents 报告
 // strict：展示路径用，坏行直接抛（见 readAll）
 function identify(dir, { strict = false } = {}) {
-  const raw = readAll(dir, { strict })
+  return identifyRaw(readAll(dir, { strict }))
+}
+
+// 同上，输入是已经读出来的 { rows, bad }（文件或 SQLite 都行）
+function identifyRaw(raw) {
   const rows = raw.rows.map(normalize).filter((r) => r && r.then && r.then.text)
   const explicit = new Set(rows.filter((r) => !r.formerId).map((r) => r.id))
   const owners = new Map()
@@ -190,10 +195,53 @@ const brief = (r) => {
 // 坏行（self-experience.jsonl 里有解析不了的行）默认 fail closed：返回的部分经历会
 // 把"少了一条"装成"就这些"，召回/书/体检都会当真。要按字节备份、恢复演练、计数这种
 // 不展示内容的工具，传 allowCorrupt（导出/恢复那条路走 allowSealCorrupt，含义相同）。
-export function loadAll(dir, { asOf = null, allowSealCorrupt = false, allowCorrupt = false } = {}) {
+// 数据从哪来：file（默认，原样走各模块的读文件函数，调用顺序与参数和以前一模一样）
+// 或 sqlite（一次读事务拿到记录 + 六类事件的快照，再走同一套合并逻辑）。
+// 合并逻辑只有一份，所以两个后端在同一份数据上读出来的结果逐条相同。
+const BACKENDS = new Set(['file', 'sqlite'])
+
+function backendName(backend) {
+  const name = backend === undefined || backend === null || backend === '' ? 'file' : String(backend)
+  if (!BACKENDS.has(name)) throw new Error('未知的存储后端：' + name + '（支持 file / sqlite）')
+  return name
+}
+
+function fileSource(dir) {
+  return {
+    records: (strict) => readAll(dir, { strict }),
+    recalls: (until, onError) => readEvents(dir, recallEvents.eventsFile, () => recallEvents.countByExp(dir, { until }), onError),
+    later: (until, onError) => readEvents(dir, laterEvents.eventsFile, () => laterEvents.groupByExp(dir, { until }), onError),
+    unfinished: (until, onError) => readEvents(dir, unfinishedEvents.eventsFile, () => unfinishedEvents.latestByExp(dir, { until }), onError),
+    sealed: (until, strict) => sealEvents.sealedByExp(dir, { until, strict }),
+    links: (until, onError) => readEvents(dir, linkEvents.eventsFile, () => linkEvents.linksByExp(dir, { until }), onError),
+    chapters: (until, onError) => readEvents(dir, chapterEvents.eventsFile, () => chapterEvents.chapters(dir, { until }), onError)
+  }
+}
+
+// 快照在这里一次读完：拿不到 node:sqlite、没迁移、库不全、JSONL 在迁移后又变过，都在这一步抛（见 sqlite-store.readSnapshot）
+function sqliteSource(dir) {
+  const snap = readSnapshot(dir)
+  const ev = (kind) => snap.events[kind]
+  return {
+    records: (strict) => {
+      if (strict && snap.records.bad > 0) throw experienceCorrupt(snap.records.bad)
+      return snap.records
+    },
+    recalls: (until) => recallEvents.countRows(ev('recall').rows, { until }),
+    later: (until) => laterEvents.groupRows(ev('later').rows, { until }),
+    unfinished: (until) => unfinishedEvents.latestRows(ev('unfinished').rows, { until }),
+    sealed: (until, strict) => sealEvents.sealedFrom(ev('seal'), { until, strict }),
+    links: (until) => linkEvents.linksRows(ev('link').rows, { until }),
+    chapters: (until) => chapterEvents.chapterRows(ev('chapter').rows, { until })
+  }
+}
+
+// backend：'file'（默认，零行为变化）或 'sqlite'（读 memory.sqlite，要求 node:sqlite；拿不到就报错，不静默退回 file）
+export function loadAll(dir, { asOf = null, allowSealCorrupt = false, allowCorrupt = false, backend = 'file' } = {}) {
   const until = parseAsOf(asOf)
   const rawMode = Boolean(allowSealCorrupt || allowCorrupt)
-  const { rows: all } = identify(dir, { strict: !rawMode })
+  const src = backendName(backend) === 'sqlite' ? sqliteSource(dir) : fileSource(dir)
+  const { rows: all } = identifyRaw(src.records(!rawMode))
   const rows = until === null ? all : all.filter((r) => before(r, until))
   if (!rows.length) return rows
 
@@ -201,13 +249,13 @@ export function loadAll(dir, { asOf = null, allowSealCorrupt = false, allowCorru
   // 读不出来必须报出来（readEvents）：否则会当成"她从没想起过"。
   // rawMode（按字节备份/恢复/计数）不看事件内容，读不出来也不该拦住备份。
   const onEventError = rawMode ? () => new Map() : null
-  const counts = readEvents(dir, recallEvents.eventsFile, () => recallEvents.countByExp(dir, { until }), onEventError)
+  const counts = src.recalls(until, onEventError)
 
   // 改主意：旧 later 数组 + later-events 事件，按时间合并
-  const laterMap = readEvents(dir, laterEvents.eventsFile, () => laterEvents.groupByExp(dir, { until }), onEventError)
+  const laterMap = src.later(until, onEventError)
 
   // 没弄完的事后来怎么样了：想通 / 暂放 / 再接着想
-  const unfinishedMap = readEvents(dir, unfinishedEvents.eventsFile, () => unfinishedEvents.latestByExp(dir, { until }), onEventError)
+  const unfinishedMap = src.unfinished(until, onEventError)
 
   // 她选择封存的：不再被主动想起，但还在。
   // 读不出来就抛出去，不能当成"什么都没封存"——否则正文可读、日志读不了时，
@@ -215,11 +263,11 @@ export function loadAll(dir, { asOf = null, allowSealCorrupt = false, allowCorru
   // strict：坏行也算"状态未知"，展示路径必须 fail closed。
   // allowSealCorrupt：只给"按字节备份/恢复/计数"这种不展示内容的工具用；
   // 它们要能保住损坏现场，但不能把结果当"可见"用。
-  const sealedMap = sealEvents.sealedByExp(dir, { until, strict: !allowSealCorrupt })
+  const sealedMap = src.sealed(until, !allowSealCorrupt)
   // 翻回那天时，她**现在**封存着的也不翻出来：封存说的是她现在不想被提起，而翻回那天正是在提起旧事。
   // 那时还没封存的，标成 afterAsOf（后来才封存），各处过滤照常生效；点名读仍然给，并写明是后来封存的
   let sealedNowMap = sealedMap
-  if (until !== null) sealedNowMap = sealEvents.sealedByExp(dir, { strict: !allowSealCorrupt })
+  if (until !== null) sealedNowMap = src.sealed(null, !allowSealCorrupt)
 
   const viewed = rows.map((r) => {
     const keys = r.formerId ? [r.id, r.formerId] : [r.id]
@@ -292,8 +340,8 @@ export function loadAll(dir, { asOf = null, allowSealCorrupt = false, allowCorru
   }
 
   // 事后联想（两头都看得见）与人生章节（按 day 落进她起过名字的那段日子）
-  const linkMap = readEvents(dir, linkEvents.eventsFile, () => linkEvents.linksByExp(dir, { until }), onEventError)
-  const chapterList = readEvents(dir, chapterEvents.eventsFile, () => chapterEvents.chapters(dir, { until }), rawMode ? () => [] : null)
+  const linkMap = src.links(until, onEventError)
+  const chapterList = src.chapters(until, rawMode ? () => [] : null)
   for (const r of viewed) {
     const keys = r.formerId ? [r.id, r.formerId] : [r.id]
     const links = !r.duplicateOf && keys.flatMap((k) => linkMap.get(k) || [])
@@ -496,8 +544,8 @@ export function markRecalled(dir, id) {
 }
 
 // asOf：看那天的这一条（那之后的后记、选择、想起都不算）；那天还没写下就返回 null
-export function currentView(dir, id, { asOf = null } = {}) {
-  const rows = loadAll(dir, { asOf })
+export function currentView(dir, id, { asOf = null, backend = 'file' } = {}) {
+  const rows = loadAll(dir, { asOf, backend })
   return rows.find((r) => r.id === id) || rows.find((r) => r.formerId === id) || null
 }
 
@@ -511,9 +559,12 @@ export function currentView(dir, id, { asOf = null } = {}) {
 // 她封存了的经历不会被召回；includeSealed=true 只给"她自己要翻"这种明确场景用
 // gate：strict 下用哪套门槛。'cover'（默认，0.17 起）= 至少对上一个词 + 意思至少 70% 被接住；
 //       'legacy' = 0.16 及以前的口径（长查询要 60% 的两字词对上），排序也照旧。宿主想保持旧行为时用
-export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover' } = {}) {
+// backend：读哪个容器（默认 file，见 loadAll）。写路径还没切到 sqlite：sqlite 下 mark=true 会把想起记到 JSONL、
+// 库里看不见，所以直接拒绝，不留一笔两边对不上的账
+export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover', backend = 'file' } = {}) {
   if (mark && asOf !== null && asOf !== undefined && asOf !== '') throw new Error('Looking back at an earlier day does not record a recall: mark and asOf cannot be used together.（翻回旧日子时不记「想起」：mark 和 asOf 不能一起用。）')
-  const rows = loadAll(dir, { asOf }).filter((r) => includeSealed || !r.sealed)
+  if (mark && backendName(backend) !== 'file') throw new Error('mark=true only works with the file backend for now: recalls are still written to JSONL.（写路径还没切到 sqlite：mark=true 目前只能配 file 后端。）')
+  const rows = loadAll(dir, { asOf, backend }).filter((r) => includeSealed || !r.sealed)
   const q = String(query || '')
   const parsed = queryTerms(q)
   const { terms } = parsed

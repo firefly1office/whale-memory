@@ -29,6 +29,10 @@ export interface Chapter {
 export function eventsFile(memDir: string): string
 export function readAll(memDir: string): { rows: ChapterEvent[]; bad: number }
 export function chapters(memDir: string, opts?: { until?: number | null }): Chapter[]
+/** 同 chapters，但输入是已经读出的行（不碰文件） */
+export function chapterRows(rows: ChapterEvent[], opts?: { until?: number | null }): Chapter[]
+/** 一行算不算合格的章节事件（文件与 SQLite 同一条判据） */
+export function isValid(row: unknown): boolean
 /** 这一天落在哪些章节里（章节可以重叠） */
 export function chaptersOn(list: Chapter[], day: string): Chapter[]
 /** from 默认今天；同名同起点重复提交是 noop */

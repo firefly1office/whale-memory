@@ -6,7 +6,9 @@ import { createLog, stamp } from './event-log.js'
 import { before, parseAsOf } from './as-of.js'
 
 export const ACTIONS = new Set(['open', 'rename', 'close'])
-const log = createLog('chapter-events.jsonl', { valid: (r) => Boolean(r.id && ACTIONS.has(r.action)) })
+// 一行算不算合格的章节事件。文件和 SQLite 两个容器用同一条判据，坏行的口径才一致
+export const isValid = (r) => Boolean(r && r.id && ACTIONS.has(r.action))
+const log = createLog('chapter-events.jsonl', { valid: isValid })
 export const eventsFile = log.eventsFile
 export const readAll = log.readAll
 export const internals = { FILE: log.FILE }
@@ -30,8 +32,13 @@ function checkDay(v, label) {
 
 // 重放事件，得到每个章节现在（或截至 until）的样子
 export function chapters(memDir, { until = null } = {}) {
+  return chapterRows(readAll(memDir).rows, { until })
+}
+
+// 同上，但输入是已经读出来的行（不碰文件）：SQLite 后端走这里
+export function chapterRows(rows, { until = null } = {}) {
   const map = new Map()
-  for (const r of readAll(memDir).rows) {
+  for (const r of rows) {
     if (!before(r, until)) continue
     if (r.action === 'open') map.set(r.id, { id: r.id, name: r.name, names: [r.name], from: r.from, to: r.to || '', note: r.note || '', openedAt: r.at })
     const c = map.get(r.id)
