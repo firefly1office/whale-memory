@@ -2,6 +2,11 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### Added
+
+- `docs/no-impersonation-zh.md`：别用「主人」的身份对她说话——一次内部测试的复盘。只写做法对错：本机注入入口有闸才留着、验证走夹具或真实回合、出了事不删不瞒、认账要原文。附一份给同类项目的检查清单。
 ## [0.22.0] - 2026-11-25
 
 ### Added
