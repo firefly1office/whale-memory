@@ -6,6 +6,11 @@
 
 ### Added
 
+- **存储后端抽象（阶段 1）**：`packages/core/lib/storage/`——`openBackend({ kind: 'file' | 'sqlite' })`，两个后端遵守同一份契约（记录不可变、id 永不复用）。SQLite 用 Node 内置 `node:sqlite`（>= 22.5），**不引第三方依赖**；拿不到就报错，不静默降级。
+- `tools/migrate-storage.mjs`：JSONL → SQLite，默认演练；**逐条按 id 对拍**，任何一条不一致整体回滚；源文件一字不改。
+- `tools/bench-storage.mjs`：两后端对比。本机 2 万条实测：写入 file 133,242ms / sqlite 206ms；byId p50 20.6ms / 0.012ms。
+- `docs/storage-backend-zh.md`：接口、迁移规矩、实测数字，以及「sqlite 不是一切更快」的读法。
+- `tests/storage-backend.test.mjs`（12 项）：同一组契约对两个后端各跑一遍 + 迁移对拍 + 拒绝覆盖。
 - `docs/contract-v1-zh.md`：**v1 契约**（阶段 0）。写清数据契约（记录不可变、封存是事件、as-of 口径）、六个动作的 API 契约与错误形状、v1 内的兼容承诺（只加不减、破坏性变更走 v2 且双读一个 minor）、以及**明确不承诺**的五件事（单条物理删除、多写者、加密、可用性、向量检索）。
 - `schemas/record.v1.json`：经历记录的 JSON Schema（字段、上限、枚举）。
 - `tests/contract-v1.test.mjs`（9 项）：契约测试，对着当前实现跑。写它的时候抓到两处**文档与实现不符**并改了文档：`noop` 是布尔值（首次封存为 false）；`loadAll` 不隐藏封存记录，只挂 `sealed` 状态，过滤是调用方的事。

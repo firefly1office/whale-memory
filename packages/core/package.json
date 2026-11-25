@@ -136,7 +136,10 @@
     "./injection": {
       "types": "./lib/injection.d.ts",
       "default": "./lib/injection.js"
-    }
+    },
+    "./storage/backend": "./lib/storage/backend.js",
+    "./storage/file-backend": "./lib/storage/file-backend.js",
+    "./storage/sqlite-backend": "./lib/storage/sqlite-backend.js"
   },
   "files": [
     "index.js",
