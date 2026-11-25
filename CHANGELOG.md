@@ -2,10 +2,13 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [0.22.0] - 2026-11-25
 
 ### Added
 
+- `tools/preflight.mjs`（含 `tests/preflight.test.mjs` 6 项）：外发预检。扫本机路径、用户名、6–11 位连续数字（8 位日期放行）、16 位以上十六进制、私钥头；命中退出码 1。它只管**材料正文**，并把「调用链自带的字段查不到」写在文档里——正文干净不等于没泄漏。
+- `docs/preflight-zh.md`：外发预检的设计记录（两层外发、扫什么、管不到的四件事）。
+- `docs/consent-before-building-zh.md`：先问再做——一次上线顺序错误的复盘。只写做法对错：会落到她身上的改动先问再做；拒绝当约束留着，不分析、不换名重做；记录只回答「发生了什么」，不回答「她是什么样的人」。
 - `docs/facts-not-self-report-zh.md`：为什么“她说她做了”不能当事实；事实、声明、自述三者的边界，以及自主动作日志、时间线、声明对账的用法。
 
 ### Fixed

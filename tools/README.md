@@ -11,6 +11,7 @@
 | `sync-dsh-core.mjs` | 把 `packages/core` 同步到 DSH 示例副本；`--check` 只校验漂移 |
 | `privacy-canary.mjs` | 隐私金丝雀：用合成记录验证跨会话可见性规则 |
 | `eval-recall.mjs` | 召回小评测：命中率 + 无关查询是否真的返回空 |
+| `preflight.mjs` | 外发预检：扫路径/用户名/账号样式数字/长哈希/私钥头；命中退出码 1 |
 
 `npm run check` 会依次跑以上五项。
 

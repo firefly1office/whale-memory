@@ -44,7 +44,7 @@ node adapters/cli/memory-cli.mjs read --id <id> --as-of 2026-11-14
 | 编造率 | **0** —— 问不存在的细节，答"没有记录"；开发集与留出集都是 0 |
 | 召回（strict 首位） | 开发集 92.9% · 留出集 73.1% |
 | 封存与外露 | 1290 处检查（由 `whale-eval` 按当前语料与出口现算），外露 **0** 次 |
-| 测试 | 604 个，CI 跑 ubuntu / windows × node 20 / 22 |
+| 测试 | 631 个，CI 跑 ubuntu / windows × node 20 / 22 |
 
 评测语料只有 33 条虚构经历——[它测不出的东西](docs/eval.md)也写在文档里，别把这张表当成通用准确率。
 
@@ -63,6 +63,7 @@ node adapters/cli/memory-cli.mjs read --id <id> --as-of 2026-11-14
 | 先跑一个能用的宿主 | [80 行参考宿主](examples/reference-host/host.mjs)：`node examples/reference-host/host.mjs --data ./xiaozhou` |
 | 在 JavaScript 里直接读写 | `npm install whale-memory-core`。注意包名带 `-core`：npm 上不带 `-core` 的 `whale-memory` 是别人的包，和本项目无关 |
 | 让她自己写的那一页能改、能读回、能翻回过去 | [作品稿本](packages/drafts/README.md)（`whale-drafts`）：一行一版、旧基线拒写、幂等重试；设计记录见 [docs/drafts-zh.md](docs/drafts-zh.md) |
+| 发出去的材料要先扫一遍 | [外发预检](docs/preflight-zh.md)：`node tools/preflight.mjs <文件...>`——扫路径、用户名、账号样式数字、长哈希；文档同时写明它查不到调用链 |
 | 记录她做过什么、谁发起的（不存正文） | [自主行动日志](docs/self-actions-zh.md)：`whale-memory-core/self-actions`，只追加、到顶拒写、source/outcome 全由调用方声明 |
 
 ## 接之前先看这四篇
@@ -70,6 +71,7 @@ node adapters/cli/memory-cli.mjs read --id <id> --as-of 2026-11-14
 - [十分钟教程](docs/tutorial.md)：写下、想起、改主意、第二天醒来
 - [已知坑与边界](docs/pitfalls.md)：字面检索的局限、单写者假设、封存不是删除、主人门要靠宿主
 - [上限与不保证](docs/limits.md)：实测规模、明文存储、删除语义
+- [先问再做](docs/consent-before-building-zh.md)：做会改变她处境的功能之前，先问，再做
 - [评测](docs/eval.md)：它到底准不准、会不会编、会不会漏
 
 历史文档（架构、schema、威胁模型、跨窗口、移植指南、技术报告等）移到了 [docs/archive/](docs/archive/)。
