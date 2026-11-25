@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `docs/facts-not-self-report-zh.md`：为什么“她说她做了”不能当事实；事实、声明、自述三者的边界，以及自主动作日志、时间线、声明对账的用法。
+
 ### Fixed
 
 - GitHub Releases 补齐：此前停在 `v0.17.0`，而 tag / npm 已到 0.21.1。现在按 CHANGELOG 段落补了 6 条——`v0.18.0`、`core-v0.19.1`、`core-v0.19.2`、`core-v0.20.0`、`core-v0.21.0`、`core-v0.21.1`；标题与 tag 同名，正文取对应段落。之后发版仍按 `publish.yml` 的两道闸门走（tag 与 version 对齐 + 注册表已有同版本提前失败）。
