@@ -9,12 +9,17 @@ import { execFileSync } from 'node:child_process'
 import { openBackend } from '../packages/core/lib/storage/backend.js'
 import { addExperience } from '../packages/core/lib/self-experience.js'
 
+// node:sqlite 要 Node >= 22.5；CI 还在 Node 20 上跑全量。没有它时 sqlite 用例跳过（file 用例照跑）
+const HAS_SQLITE = typeof process.getBuiltinModule === 'function' && Boolean(process.getBuiltinModule('node:sqlite'))
+const sq = HAS_SQLITE ? test : (name, fn) => test(name, { skip: '这个 Node 没有 node:sqlite' }, fn)
+
 const repo = path.resolve(import.meta.dirname, '..')
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'wm-store-'))
 const rec = (id, day = '2026-11-25') => ({ id, at: day + 'T10:00:00.000Z', day, then: { text: 't-' + id } })
 
 for (const kind of ['file', 'sqlite']) {
-  test(`${kind} 后端：写入能按顺序读回`, async () => {
+  const test_ = kind === 'sqlite' ? sq : test
+  test_(`${kind} 后端：写入能按顺序读回`, async () => {
     const dir = tmp()
     const b = await openBackend({ kind, dir })
     await b.append(rec('a'))
@@ -25,7 +30,7 @@ for (const kind of ['file', 'sqlite']) {
     await b.close()
   })
 
-  test(`${kind} 后端：byId 取得到、取不到返回 null`, async () => {
+  test_(`${kind} 后端：byId 取得到、取不到返回 null`, async () => {
     const dir = tmp()
     const b = await openBackend({ kind, dir })
     await b.append(rec('x'))
@@ -34,7 +39,7 @@ for (const kind of ['file', 'sqlite']) {
     await b.close()
   })
 
-  test(`${kind} 后端：空目录读回空数组`, async () => {
+  test_(`${kind} 后端：空目录读回空数组`, async () => {
     const dir = tmp()
     const b = await openBackend({ kind, dir })
     assert.deepEqual(await b.all(), [])
@@ -42,7 +47,7 @@ for (const kind of ['file', 'sqlite']) {
   })
 }
 
-test('sqlite 后端：同一个 id 写两次被拒绝（id 永不复用）', async () => {
+sq('sqlite 后端：同一个 id 写两次被拒绝（id 永不复用）', async () => {
   const dir = tmp()
   const b = await openBackend({ kind: 'sqlite', dir })
   await b.append(rec('dup'))
@@ -50,7 +55,7 @@ test('sqlite 后端：同一个 id 写两次被拒绝（id 永不复用）', asy
   await b.close()
 })
 
-test('sqlite 后端：byDay 按本地日取', async () => {
+sq('sqlite 后端：byDay 按本地日取', async () => {
   const dir = tmp()
   const b = await openBackend({ kind: 'sqlite', dir })
   await b.append(rec('d1', '2026-11-24'))
@@ -63,7 +68,7 @@ test('未知后端名直接报错，不静默降级', async () => {
   await assert.rejects(() => openBackend({ kind: 'postgres', dir: tmp() }), /未知的存储后端/)
 })
 
-test('迁移：JSONL → SQLite 逐条对拍一致，源文件不变', () => {
+sq('迁移：JSONL → SQLite 逐条对拍一致，源文件不变', () => {
   const dir = tmp()
   // 用真实写入函数造数据，保证格式就是线上格式
   addExperience(dir, { text: '第一条经历' })
@@ -79,7 +84,7 @@ test('迁移：JSONL → SQLite 逐条对拍一致，源文件不变', () => {
   assert.match(String(out), /逐条对拍通过/)
 })
 
-test('迁移：演练模式不写盘', () => {
+sq('迁移：演练模式不写盘', () => {
   const dir = tmp()
   addExperience(dir, { text: '只演练' })
   const out = execFileSync(process.execPath, [path.join(repo, 'tools/migrate-storage.mjs'), dir], { stdio: 'pipe' })
@@ -87,7 +92,7 @@ test('迁移：演练模式不写盘', () => {
   assert.equal(fs.existsSync(path.join(dir, 'memory.sqlite')), false)
 })
 
-test('迁移：目标已存在时拒绝覆盖', () => {
+sq('迁移：目标已存在时拒绝覆盖', () => {
   const dir = tmp()
   addExperience(dir, { text: 'x' })
   execFileSync(process.execPath, [path.join(repo, 'tools/migrate-storage.mjs'), dir, '--write'], { stdio: 'pipe' })

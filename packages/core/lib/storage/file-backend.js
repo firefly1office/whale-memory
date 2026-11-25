@@ -24,7 +24,9 @@ function appendLine(file, value) {
   }
 }
 
-// 读一个 JSONL：坏行（含不合格行）直接抛错——展示路径不许把坏行当空
+// 读一个 JSONL：坏行（含不合格行）直接抛错——展示路径不许把坏行当空。
+// 坏行的口径必须和 loadAll 一模一样：trim 只用来跳过空行，解析的是**原样那一行**。
+// 先 trim 再解析会把 BOM / 全角空格 / NBSP 包着的行救活，而 loadAll 把它当坏行——迁移就会把坏行搬进库。
 function readLines(file, valid = null) {
   let raw
   try {
@@ -36,8 +38,8 @@ function readLines(file, valid = null) {
   const out = []
   const lines = raw.split('\n')
   for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i].trim()
-    if (!line) continue
+    const line = lines[i]
+    if (!line.trim()) continue
     let r
     try {
       r = JSON.parse(line)
@@ -68,13 +70,16 @@ export class FileBackend {
 
   /**
    * 追加一条事件到它自己的 JSONL（原样一行，不改形状），和各事件模块用同一把锁。
-   * mustExist：先确认经历在（文件后端没有事务，查和写之间不是原子的——要原子请用 sqlite 后端）。
+   * mustExist：先确认指向的经历都在（联想两头都查；章节不指向经历，不查）。
+   * 文件后端没有事务，查和写之间不是原子的——要原子请用 sqlite 后端。
    */
   async appendEvent(kind, row, { mustExist = false } = {}) {
     const k = kindOf(kind)
     if (!k.valid(row)) throw new Error(kind + ' 事件不合格（缺必填字段），拒绝写入')
-    if (mustExist && !(await this.all()).some((r) => r && r.id === k.subject(row))) {
-      throw new Error('找不到这条经历：' + k.subject(row) + '（事件没有写入）')
+    if (mustExist) {
+      const ids = new Set((await this.all()).map((r) => r && r.id))
+      const missing = k.expIds(row).filter((id) => !ids.has(id))
+      if (missing.length) throw new Error('找不到这条经历：' + missing.join('、') + '（事件没有写入）')
     }
     fs.mkdirSync(this.dir, { recursive: true })
     const file = path.join(this.dir, k.file)

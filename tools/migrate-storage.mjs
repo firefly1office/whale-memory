@@ -21,7 +21,7 @@ import path from 'node:path'
 import { FileBackend } from '../packages/core/lib/storage/file-backend.js'
 import {
   DB_FILE, RECORDS_FILE, EVENT_KINDS, KIND_NAMES,
-  sqliteAvailable, openDatabase, insertRecord, insertEvent, writeSources, sourceSizes, readSnapshot
+  sqliteAvailable, openDatabaseFile, insertRecord, insertEvent, writeSources, sourceSizes, readSnapshot
 } from '../packages/core/lib/sqlite-store.js'
 import * as laterEvents from '../packages/core/lib/later-events.js'
 import * as sealEvents from '../packages/core/lib/seal-events.js'
@@ -58,6 +58,9 @@ try {
 console.log('源文件：记录 ' + source.records.length + ' 条；事件 ' + KIND_NAMES.map((k) => k + ' ' + source.events[k].length).join(' / '))
 
 const targetPath = path.join(dir, DB_FILE)
+const TMP_PREFIX = '.' + DB_FILE + '.migrating-'
+const stale = fs.readdirSync(dir).filter((name) => name.startsWith(TMP_PREFIX))
+if (stale.length) console.log('注意：有上次中断留下的临时库 ' + stale.join('、') + '（不会被当成库读，可以手工删掉）')
 
 if (!sqliteAvailable()) fail('这台机器拿不到内置 node:sqlite（需要 Node >= 22.5），不能迁移到 SQLite。', 2)
 
@@ -78,9 +81,13 @@ if (!write) {
 
 if (fs.existsSync(targetPath)) fail(DB_FILE + ' 已存在；迁移不覆盖。要重来请先手工移走它（连同 -wal / -shm）。', 3)
 
+// 先建在临时文件名上：进程被杀、断电时只留下一个临时文件，不会占住 memory.sqlite 挡住下一次迁移，
+// 也不会被当成库读。提交、关库之后才改成正式名字，再按线上读法对拍。
+const tmpPath = path.join(dir, TMP_PREFIX + process.pid)
 let db = null
+let placed = false
 try {
-  db = openDatabase(dir, { create: true })
+  db = openDatabaseFile(tmpPath, { create: true })
   db.exec('BEGIN IMMEDIATE')
   try {
     for (const row of source.records) insertRecord(db, row)
@@ -92,19 +99,37 @@ try {
     try { db.exec('ROLLBACK') } catch { }
     throw error
   }
+  // 改名前收成单个文件（不留 -wal / -shm），改名才是完整的一步；后端打开时会再切回 WAL
+  db.exec('PRAGMA journal_mode = DELETE')
   db.close()
   db = null
+  if (fs.existsSync(targetPath)) throw new Error(DB_FILE + ' 在迁移过程中出现了（不是这次建的，不动它）')
+  fs.renameSync(tmpPath, targetPath)
+  placed = true
+  if (process.env.WM_MIGRATE_TAMPER_BEFORE_VERIFY === '1') {
+    // （测试注入）提交之后、对拍之前把库里一条记录改掉，验证「对拍失败也整体回滚」
+    const t = openDatabaseFile(targetPath)
+    t.exec(`UPDATE records SET json = replace(json, '"text":"', '"text":"（被改过）') WHERE rowid = (SELECT MIN(rowid) FROM records)`)
+    t.close()
+  }
   // 重新打开、按线上读法读回来再对拍：不信写入时的内存，只信落盘的库
   verify(dir, source)
   console.log('已写入 ' + targetPath)
   console.log('回滚：删掉 ' + DB_FILE + '（及 -wal / -shm）即可；源文件没有改动。')
 } catch (error) {
-  // 失败就把半成品删掉，不留一个"迁移了一半"的库
+  // 失败就把半成品删掉，不留一个"迁移了一半"的库；删完再看一眼，删不掉就照实说
   try { if (db) db.close() } catch { }
-  for (const suffix of ['', '-wal', '-shm', '-journal']) {
-    try { fs.rmSync(targetPath + suffix, { force: true }) } catch { }
+  const leftovers = []
+  for (const base of placed ? [targetPath, tmpPath] : [tmpPath]) {
+    for (const suffix of ['', '-wal', '-shm', '-journal']) {
+      const f = base + suffix
+      try { fs.rmSync(f, { force: true }) } catch { }
+      if (fs.existsSync(f)) leftovers.push(f)
+    }
   }
-  fail('迁移失败，已回滚（' + DB_FILE + ' 已删除，源文件未改）：' + (error?.message || error))
+  const why = error?.message || error
+  if (leftovers.length) fail('迁移失败，但这些文件没删掉，请手工删除：' + leftovers.join('、') + '。源文件未改。原因：' + why)
+  fail('迁移失败，已回滚（没有留下库文件，源文件未改）：' + why)
 }
 
 // ------------------------------------------------------------------

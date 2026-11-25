@@ -3,8 +3,9 @@
 // 目的：把「记录存在哪」和「记录长什么样」分开。契约（docs/contract-v1-zh.md）
 // 说记录不可变、追加写；引擎换成 SQLite 也不该改变契约里的任何一条。
 //
-// 这一版只接管**经历记录**（self-experience.jsonl）。事件文件（改主意/封存/想起/未完成）
-// 仍然是 JSONL，等下一小步再搬——一次只换一层，好回流。
+// 两个后端都接管经历记录和六类事件（改主意/封存/想起/未完成/联想/章节）：
+// append / appendEvent / events / all / byId / byDay / count；sqlite 另有 appendWithEvents 与 transaction。
+// 上层的写路径（addExperience 等）还没接到这里，仍直接写 JSONL——见 docs/storage-backend-zh.md 第六节。
 
 /** @typedef {{ id: string, at: string, day: string, then: object, [k: string]: any }} Record */
 

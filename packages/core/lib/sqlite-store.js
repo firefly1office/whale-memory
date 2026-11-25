@@ -23,13 +23,14 @@ const fileOf = (mod) => path.basename(mod.eventsFile('.'))
 // 事件种类 → 原来的 JSONL 文件、合格判据、索引用的主体 id。
 // 契约里点名的四类之外，loadAll 还读联想与章节两类；只搬一部分的话，sqlite 读出来会缺东西，所以六类一起搬。
 // subject：建索引用。联想按 from，章节按章节 id（不是经历 id），其余按经历 id。
+// expIds：这条事件指向哪些经历（mustExist 要逐一确认在）。联想两头都算；章节不指向经历。
 export const EVENT_KINDS = Object.freeze({
-  later: { file: fileOf(laterEvents), valid: laterEvents.isValid, subject: (r) => r.id },
-  seal: { file: fileOf(sealEvents), valid: sealEvents.isValid, subject: (r) => r.id },
-  recall: { file: fileOf(recallEvents), valid: recallEvents.isValid, subject: (r) => r.id },
-  unfinished: { file: fileOf(unfinishedEvents), valid: unfinishedEvents.isValid, subject: (r) => r.id },
-  link: { file: fileOf(linkEvents), valid: linkEvents.isValid, subject: (r) => r.from },
-  chapter: { file: fileOf(chapterEvents), valid: chapterEvents.isValid, subject: (r) => r.id }
+  later: { file: fileOf(laterEvents), valid: laterEvents.isValid, subject: (r) => r.id, expIds: (r) => [r.id] },
+  seal: { file: fileOf(sealEvents), valid: sealEvents.isValid, subject: (r) => r.id, expIds: (r) => [r.id] },
+  recall: { file: fileOf(recallEvents), valid: recallEvents.isValid, subject: (r) => r.id, expIds: (r) => [r.id] },
+  unfinished: { file: fileOf(unfinishedEvents), valid: unfinishedEvents.isValid, subject: (r) => r.id, expIds: (r) => [r.id] },
+  link: { file: fileOf(linkEvents), valid: linkEvents.isValid, subject: (r) => r.from, expIds: (r) => [r.from, r.to] },
+  chapter: { file: fileOf(chapterEvents), valid: chapterEvents.isValid, subject: (r) => r.id, expIds: () => [] }
 })
 export const KIND_NAMES = Object.freeze(Object.keys(EVENT_KINDS))
 
@@ -37,7 +38,8 @@ export const KIND_NAMES = Object.freeze(Object.keys(EVENT_KINDS))
 export const SOURCE_FILES = Object.freeze([RECORDS_FILE, ...KIND_NAMES.map((k) => EVENT_KINDS[k].file)])
 
 export function kindOf(kind) {
-  const k = EVENT_KINDS[kind]
+  // 只认自己的键：constructor / toString / __proto__ 这类原型上的名字不能混进来
+  const k = typeof kind === 'string' && Object.hasOwn(EVENT_KINDS, kind) ? EVENT_KINDS[kind] : null
   if (!k) throw new Error('未知的事件类型：' + kind + '（支持 ' + KIND_NAMES.join(' / ') + '）')
   return k
 }
@@ -101,15 +103,24 @@ export function ensureSchema(db) {
  * 先取 node:sqlite 再看文件：拿不到 node:sqlite 时，不管库在不在都报错。
  */
 export function openDatabase(dir, { create = false } = {}) {
+  return openDatabaseFile(path.join(dir, DB_FILE), { create })
+}
+
+/** 同上，但直接给库文件路径（迁移先建在临时文件名上，对拍通过再改名）。建表失败时句柄当场关掉，不漏。 */
+export function openDatabaseFile(file, { create = false } = {}) {
   const { DatabaseSync } = loadSqlite()
-  const file = path.join(dir, DB_FILE)
   if (!create && !fs.existsSync(file)) return null
-  if (create) fs.mkdirSync(dir, { recursive: true })
+  if (create) fs.mkdirSync(path.dirname(file), { recursive: true })
   const db = new DatabaseSync(file)
   if (create) {
-    db.exec('PRAGMA journal_mode = WAL')
-    db.exec('PRAGMA synchronous = NORMAL')
-    ensureSchema(db)
+    try {
+      db.exec('PRAGMA journal_mode = WAL')
+      db.exec('PRAGMA synchronous = NORMAL')
+      ensureSchema(db)
+    } catch (error) {
+      try { db.close() } catch { }
+      throw error
+    }
   }
   return db
 }

@@ -49,17 +49,24 @@ catch { db = await openBackend({ kind: 'file', dir }) }
 | 方法 | 语义 |
 | --- | --- |
 | `append(record)` | 追加一条。sqlite 遇到重复 id 抛错（id 永不复用） |
-| `appendEvent(kind, row, { mustExist })` | 追加一条事件，原样存这一行。`mustExist`：先确认指向的经历在（sqlite 里查和写在同一个事务）。这是低层追加，不做「重复封存算 noop」这类业务判断 |
-| `appendWithEvents(record, events)` | 仅 sqlite：一条经历加若干 `{ kind, row }`，**同一个事务**——任何一条失败（重复 id、事件不合格），整组都不落盘 |
+| `appendEvent(kind, row, { mustExist })` | 追加一条事件，原样存这一行。`mustExist`：先确认指向的经历都在（联想两头都查；章节不指向经历，不查）；sqlite 里查和写在同一个事务。这是低层追加，不做「重复封存算 noop」这类业务判断 |
+| `appendWithEvents(record, events)` | 仅 sqlite：一条经历加若干 `{ kind, row }`，**同一个事务**——任何一条失败（重复 id、事件不合格），整组都不落盘；在 `transaction()` 里调用也一样（这一组是一层 SAVEPOINT） |
 | `all()` | 全部记录，按写入顺序。坏数据整体失败，不当空 |
 | `events(kind)` | 某一类事件，按追加顺序。坏行、不合格行整体失败 |
 | `byId(id)` | 取一条，没有返回 `null` |
 | `byDay(day)` | 按本地日取（sqlite 有索引；file 走全量过滤） |
 | `count()` | 条数 |
-| `transaction(fn)` | 仅 sqlite：记录与事件都在这一个事务里，失败自动回滚。file 后端没有（`capabilities.transactions === false`） |
+| `transaction(fn)` | 仅 sqlite：记录与事件都在这一个事务里，失败自动回滚；在 `fn` 里再调 `transaction()` 是一层 SAVEPOINT，内层失败只撤内层。file 后端没有（`capabilities.transactions === false`） |
 | `close()` | 释放连接 |
 
-不认识的 `kind` 两个后端都拒绝。合格判据和读文件时完全同一条（各事件模块的 `isValid`）。
+不认识的 `kind` 两个后端都拒绝（包括 `constructor` 这类原型上的名字）。合格判据和读文件时完全同一条（各事件模块的 `isValid`）；读行时也和 `loadAll` 一样**不先 trim 再解析**，行首带 BOM 的行两边都算坏行。
+
+sqlite 后端的事务规矩（一个后端对象只有一条连接）：
+
+- **同一时刻只有一个事务**。不在这个事务调用链里的读写一律排队，等它结束——不会悄悄并进别人的事务、跟着别人一起回滚，也读不到别人还没提交的东西；
+- 在事务自己的调用链里（`transaction(fn)` 的 `fn` 以及它 await 的一切），写入直接进这个事务；`appendWithEvents` / `appendEvent` / 嵌套的 `transaction()` 各包一层 SAVEPOINT；
+- 同一个事务里别并发跑两个嵌套分组（`Promise.all` 两个嵌套 `transaction`）：SAVEPOINT 是栈，交错会乱；
+- 事务里不能 `close()`（会自己等自己），直接拒绝。
 
 ## 三、上层读路径：`loadAll` / `recall` / `currentView` 的 `backend`
 
@@ -70,7 +77,7 @@ loadAll(dir, { backend: 'sqlite' })   // 读 memory.sqlite
 recall(dir, '海边', { backend: 'sqlite', limit: 3 })
 ```
 
-- **默认 file，零行为变化**：不传 `backend` 走的还是原来那些读文件函数，调用顺序和参数都没变；原有 652 项测试一条没改、全过。
+- **默认 file，零行为变化**：不传 `backend` 走的还是原来那些读文件函数，调用顺序和参数都没变；默认路径的原有测试一条没改、全过。独立复审专门找过这一条的反例（错误抛出的先后、allowCorrupt、asOf、旧格式、重复 id、想起次数的缓存、示例副本），没找到。
 - **逐条一致**：sqlite 在一次读事务里取整库快照（记录 + 六类事件），然后走**同一套**合并逻辑（后记合并、封存与 as-of、想起次数、出处与反向引用、联想、章节）。合并逻辑只有一份，所以同一份数据上两个后端结果逐条相等。测试在 936 个召回组合上逐条比过 id 序列和内容。
 - **API 仍是同步的**：`node:sqlite` 的 `DatabaseSync` 本来就是同步的，用 `process.getBuiltinModule('node:sqlite')` 同步取。宿主不用改一行。只 import 不会碰 `node:sqlite`，Node 20 照常能加载。
 
@@ -102,7 +109,7 @@ node tools/migrate-storage.mjs <memory-dir> --verify-only # 已有的库和源�
 1. **源文件一个字节不改**——迁移是叠加，不是替换；
 2. **同事务**：记录与六类事件在同一个事务里写；
 3. **逐条对拍**：写完重新打开库，用 `loadAll` 同一条读路径读回来；条数、顺序、每条 JSON 逐字节相同，才算成功；
-4. 任何一步失败（包括对拍失败）→ **整体回滚**，删掉半成品（连同 `-wal` / `-shm`），不留「迁移了一半」的库；
+4. 任何一步失败（包括对拍失败）→ **整体回滚**，删掉半成品（连同 `-wal` / `-shm`），删完再确认一遍，删不掉就照实列出来，不留「迁移了一半」的库。库先建在临时文件 `.memory.sqlite.migrating-<pid>` 上，提交、关库之后才改名成 `memory.sqlite` 再对拍：进程中途被杀只会留下临时文件，不占正式文件名、不挡下一次迁移（下次运行会提示可以删）；
 5. **拒绝迁移**、说清是哪一类，先修复再来：经历或事件文件有坏行或不合格行（迁过去会把「状态不确定」变成「确定」）；没有 id 的旧格式记录（0.10 之前写的）；重复 id；读的过程中源文件变了；
 6. 目标已存在时**拒绝覆盖**，要重来请手工移走；
 7. **回滚**：删掉 `memory.sqlite`（及 `-wal` / `-shm`）即可。源文件没动，file 后端照常。
@@ -136,7 +143,8 @@ node tools/migrate-storage.mjs <memory-dir> --verify-only # 已有的库和源�
 - **没有 id 的旧格式记录**不进 sqlite（`records` 按 id 存），这样的目录先留在 file 后端；
 - **过期判断只比字节数**：只追加的文件，追加一定变长；同长度的手工改写查不出来；
 - **没有多写者支持**：sqlite 有事务，但契约里「单写者」的承诺没改；
-- `unsaid.jsonl`（抽屉）不在 `loadAll` 里，这一轮没搬。
+- `unsaid.jsonl`（抽屉）不在 `loadAll` 里，这一轮没搬；
+- **只在 Node 24 上实测过**。没有 node:sqlite 的 Node（20、22.5 以下）上 sqlite 用例会跳过，file 用例照跑——用 `--no-experimental-sqlite` 模拟过，复审时也在真 Node 20 上复现过原来的失败；22.5–22.12（要加 `--experimental-sqlite`）没测。
 
 ## 七、下一步
 

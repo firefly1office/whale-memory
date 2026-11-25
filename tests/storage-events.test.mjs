@@ -17,12 +17,17 @@ import { spawnSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 
 import { openBackend } from '../packages/core/lib/storage/backend.js'
+import { FileBackend } from '../packages/core/lib/storage/file-backend.js'
 import {
   loadAll, recall, currentView, addExperience, reviseExperience, setSealed, markRecalled,
   setUnfinishedState, linkExperiences
 } from '../packages/core/lib/self-experience.js'
 import * as chapterEvents from '../packages/core/lib/chapter-events.js'
 import { KIND_NAMES, EVENT_KINDS, DB_FILE } from '../packages/core/lib/sqlite-store.js'
+
+// node:sqlite 要 Node >= 22.5；CI 还在 Node 20 上跑全量。没有它时 sqlite 用例跳过（file 用例照跑）
+const HAS_SQLITE = typeof process.getBuiltinModule === 'function' && Boolean(process.getBuiltinModule('node:sqlite'))
+const sq = HAS_SQLITE ? test : (name, fn) => test(name, { skip: '这个 Node 没有 node:sqlite' }, fn)
 
 const repo = path.resolve(import.meta.dirname, '..')
 const TOOL = path.join(repo, 'tools/migrate-storage.mjs')
@@ -116,9 +121,12 @@ function writeFixture(dir) {
   return { a: a.id, b: b.id }
 }
 
+// memory.sqlite 及其 -wal/-shm，以及迁移时的临时库 .memory.sqlite.migrating-*
+const isDbFile = (n) => n.startsWith(DB_FILE) || n.startsWith('.' + DB_FILE)
+
 // 目录里每个文件的字节（不含 SQLite 文件）：用来证明源文件一个字节都没变
 function snapshot(dir) {
-  return Object.fromEntries(fs.readdirSync(dir).filter((n) => !n.startsWith(DB_FILE)).sort().map((n) => [n, fs.readFileSync(path.join(dir, n)).toString('base64')]))
+  return Object.fromEntries(fs.readdirSync(dir).filter((n) => !isDbFile(n)).sort().map((n) => [n, fs.readFileSync(path.join(dir, n)).toString('base64')]))
 }
 
 const migrate = (dir, ...flags) => migrateEnv(dir, {}, ...flags)
@@ -128,7 +136,7 @@ function migrateEnv(dir, env, ...flags) {
   return { status: r.status, out: String(r.stdout || '') + String(r.stderr || '') }
 }
 
-const dbFiles = (dir) => fs.readdirSync(dir).filter((n) => n.startsWith(DB_FILE))
+const dbFiles = (dir) => fs.readdirSync(dir).filter(isDbFile)
 
 const QUERIES = ['雨', '海边 海鸟', '鲸鱼', '书店', '猫', '吵架', '做饭 米饭', '明信片', '彩虹', '真实写入', '望远镜', 'xyz 不存在的词', '']
 const AS_OF = [null, '2026-11-05', '2026-11-10T12:00:00.000Z']
@@ -152,7 +160,7 @@ test('默认路径不变：不传 backend 与 backend: "file" 结果完全相同
   assert.deepEqual(recallMatrix(dir, null), recallMatrix(dir, 'file'))
 })
 
-test('迁移前后：loadAll 逐条相等（含 asOf 与 allowCorrupt），召回 id 序列逐条相同', () => {
+sq('迁移前后：loadAll 逐条相等（含 asOf 与 allowCorrupt），召回 id 序列逐条相同', () => {
   const dir = tmp()
   writeFixture(dir)
   // 迁移之前先算好 file 后端的结果
@@ -195,7 +203,7 @@ test('迁移前后：loadAll 逐条相等（含 asOf 与 allowCorrupt），召�
   assert.ok(beforeLoads[2].some((r) => r.sealed && r.sealed.afterAsOf), '后来才封存')
 })
 
-test('currentView 也能选后端，结果相同', () => {
+sq('currentView 也能选后端，结果相同', () => {
   const dir = tmp()
   const { a } = writeFixture(dir)
   assert.equal(migrate(dir, '--write').status, 0)
@@ -204,7 +212,7 @@ test('currentView 也能选后端，结果相同', () => {
   }
 })
 
-test('后端 API 直接写：同样的记录与事件写进两个后端，loadAll 读出来相同', async () => {
+sq('后端 API 直接写：同样的记录与事件写进两个后端，loadAll 读出来相同', async () => {
   const fileDir = tmp()
   const sqlDir = tmp()
   const recs = [
@@ -232,7 +240,7 @@ test('后端 API 直接写：同样的记录与事件写进两个后端，loadAl
 
 // ---------------------------------------------------------------- 同事务
 
-test('sqlite：一条经历 + 它的事件同事务写，事件不合格时经历也不落盘', async () => {
+sq('sqlite：一条经历 + 它的事件同事务写，事件不合格时经历也不落盘', async () => {
   const dir = tmp()
   const b = await openBackend({ kind: 'sqlite', dir })
   const r = rec('exp_tx', '2026-11-01T00:00:00Z', { text: '整组写' })
@@ -253,7 +261,7 @@ test('sqlite：一条经历 + 它的事件同事务写，事件不合格时经�
   await b.close()
 })
 
-test('sqlite：改主意指向不存在的经历时整条不写（查和写同一个事务）', async () => {
+sq('sqlite：改主意指向不存在的经历时整条不写（查和写同一个事务）', async () => {
   const dir = tmp()
   const b = await openBackend({ kind: 'sqlite', dir })
   await assert.rejects(() => b.appendEvent('later', { id: 'exp_ghost', at: at('2026-11-02T00:00:00Z'), thought: '谁也看不见的后记' }, { mustExist: true }), /找不到这条经历/)
@@ -264,7 +272,7 @@ test('sqlite：改主意指向不存在的经历时整条不写（查和写同�
   await b.close()
 })
 
-test('sqlite：transaction() 里抛错，记录和事件一起回滚', async () => {
+sq('sqlite：transaction() 里抛错，记录和事件一起回滚', async () => {
   const dir = tmp()
   const b = await openBackend({ kind: 'sqlite', dir })
   await assert.rejects(() => b.transaction(async (db) => {
@@ -278,7 +286,7 @@ test('sqlite：transaction() 里抛错，记录和事件一起回滚', async () 
   await b.close()
 })
 
-test('未知事件类型、不合格事件：两个后端都拒绝', async () => {
+sq('未知事件类型、不合格事件：两个后端都拒绝', async () => {
   for (const kind of ['file', 'sqlite']) {
     const b = await openBackend({ kind, dir: tmp() })
     await assert.rejects(() => b.appendEvent('mood', { id: 'x', at: at('2026-11-01T00:00:00Z') }), /未知的事件类型/)
@@ -291,7 +299,7 @@ test('未知事件类型、不合格事件：两个后端都拒绝', async () =>
 
 // ---------------------------------------------------------------- fail closed
 
-test('sqlite 读：没迁移过但有 JSONL → 报错，不当成空；空目录如实返回空', () => {
+sq('sqlite 读：没迁移过但有 JSONL → 报错，不当成空；空目录如实返回空', () => {
   const dir = tmp()
   addExperience(dir, { text: '只在 JSONL 里' })
   assert.throws(() => loadAll(dir, { backend: 'sqlite' }), (e) => e.code === 'STORAGE_NOT_MIGRATED')
@@ -302,7 +310,7 @@ test('sqlite 读：没迁移过但有 JSONL → 报错，不当成空；空目�
   assert.equal(fs.existsSync(path.join(empty, DB_FILE)), false)
 })
 
-test('sqlite 读：迁移之后 JSONL 又被写过 → STORAGE_STALE，不读出一份少了东西的记忆', () => {
+sq('sqlite 读：迁移之后 JSONL 又被写过 → STORAGE_STALE，不读出一份少了东西的记忆', () => {
   const dir = tmp()
   const { a } = writeFixture(dir)
   assert.equal(migrate(dir, '--write').status, 0)
@@ -314,7 +322,7 @@ test('sqlite 读：迁移之后 JSONL 又被写过 → STORAGE_STALE，不读出
   assert.match(v.out, /对不上/)
 })
 
-test('sqlite 读：阶段 1 早期只有记录表的库 → STORAGE_INCOMPLETE', () => {
+sq('sqlite 读：阶段 1 早期只有记录表的库 → STORAGE_INCOMPLETE', () => {
   const dir = tmp()
   const { DatabaseSync } = process.getBuiltinModule('node:sqlite')
   const db = new DatabaseSync(path.join(dir, DB_FILE))
@@ -323,7 +331,7 @@ test('sqlite 读：阶段 1 早期只有记录表的库 → STORAGE_INCOMPLETE',
   assert.throws(() => loadAll(dir, { backend: 'sqlite' }), (e) => e.code === 'STORAGE_INCOMPLETE')
 })
 
-test('sqlite 读：封存事件有坏行时和 file 一样 fail closed；allowSealCorrupt 才放行', async () => {
+sq('sqlite 读：封存事件有坏行时和 file 一样 fail closed；allowSealCorrupt 才放行', async () => {
   const fileDir = tmp()
   const sqlDir = tmp()
   const r = rec('exp_s', '2026-11-01T00:00:00Z', { text: '封存状态未知的经历' })
@@ -350,7 +358,7 @@ test('未知后端名报错；sqlite 下 recall 不能 mark（写路径还在 JS
   assert.equal(fs.existsSync(path.join(dir, 'recall-events.jsonl')), false, '拒绝时不许已经记了一笔')
 })
 
-test('拿不到 node:sqlite：sqlite 后端报错，不静默降级；默认路径照常', () => {
+test('拿不到 node:sqlite：sqlite 后端报错，不静默降级；默认路径照常', (t) => {
   const dir = tmp()
   addExperience(dir, { text: '默认路径不需要 sqlite' })
   const lib = pathToFileURL(path.join(repo, 'packages/core/lib/self-experience.js')).href
@@ -364,7 +372,9 @@ test('拿不到 node:sqlite：sqlite 后端报错，不静默降级；默认路�
     try { await openBackend({ kind: 'sqlite', dir }); out.backend = 'no-error' } catch (e) { out.backend = e.code }
     console.log(JSON.stringify(out))
   `
-  const r = spawnSync(process.execPath, ['--no-experimental-sqlite', '--input-type=module', '-e', script], { encoding: 'utf8' })
+  const flags = HAS_SQLITE ? ['--no-experimental-sqlite'] : []
+  const r = spawnSync(process.execPath, [...flags, '--input-type=module', '-e', script], { encoding: 'utf8' })
+  if (/bad option/i.test(String(r.stderr))) return t.skip('这个 Node 不认 --no-experimental-sqlite')
   assert.equal(r.status, 0, r.stderr)
   assert.deepEqual(JSON.parse(r.stdout.trim()), { file: 1, sqlite: 'SQLITE_UNAVAILABLE', backend: 'SQLITE_UNAVAILABLE' })
   assert.equal(fs.existsSync(path.join(dir, DB_FILE)), false)
@@ -372,7 +382,7 @@ test('拿不到 node:sqlite：sqlite 后端报错，不静默降级；默认路�
 
 // ---------------------------------------------------------------- 迁移工具
 
-test('迁移：演练只报数，不写任何文件', () => {
+sq('迁移：演练只报数，不写任何文件', () => {
   const dir = tmp()
   writeFixture(dir)
   const bytes = snapshot(dir)
@@ -384,7 +394,7 @@ test('迁移：演练只报数，不写任何文件', () => {
   assert.deepEqual(snapshot(dir), bytes)
 })
 
-test('迁移：事件逐条对拍，verify-only 也覆盖事件', () => {
+sq('迁移：事件逐条对拍，verify-only 也覆盖事件', () => {
   const dir = tmp()
   writeFixture(dir)
   assert.equal(migrate(dir, '--write').status, 0)
@@ -393,7 +403,7 @@ test('迁移：事件逐条对拍，verify-only 也覆盖事件', () => {
   assert.match(v.out, /逐条对拍通过：记录 14 条、事件 \d+ 条全部一致/)
 })
 
-test('迁移：写完提交前失败 → 整体回滚，库和 -wal/-shm 都不留，源文件不变', () => {
+sq('迁移：写完提交前失败 → 整体回滚，库和 -wal/-shm 都不留，源文件不变', () => {
   const dir = tmp()
   writeFixture(dir)
   const bytes = snapshot(dir)
@@ -406,7 +416,7 @@ test('迁移：写完提交前失败 → 整体回滚，库和 -wal/-shm 都不�
   assert.equal(migrate(dir, '--write').status, 0)
 })
 
-test('迁移：事件文件有坏行 / 旧格式无 id / 重复 id → 拒绝迁移，不建库，源文件不变', () => {
+sq('迁移：事件文件有坏行 / 旧格式无 id / 重复 id → 拒绝迁移，不建库，源文件不变', () => {
   const cases = [
     ['坏行', (dir) => fs.appendFileSync(path.join(dir, EVENT_KINDS.unfinished.file), '{坏行\n'), /坏行或不合格行/],
     ['不合格行', (dir) => fs.appendFileSync(path.join(dir, EVENT_KINDS.link.file), JSON.stringify({ from: 'exp_f01', to: 'exp_f02' }) + '\n'), /坏行或不合格行/],
@@ -426,7 +436,7 @@ test('迁移：事件文件有坏行 / 旧格式无 id / 重复 id → 拒绝迁
   }
 })
 
-test('迁移：verify-only 认出只有记录表的旧库', () => {
+sq('迁移：verify-only 认出只有记录表的旧库', () => {
   const dir = tmp()
   writeFixture(dir)
   const { DatabaseSync } = process.getBuiltinModule('node:sqlite')
@@ -437,4 +447,147 @@ test('迁移：verify-only 认出只有记录表的旧库', () => {
   assert.equal(v.status, 1)
   assert.match(v.out, /缺表/)
   assert.equal(migrate(dir, '--write').status, 3, '旧库在时拒绝覆盖')
+})
+
+// ---------------------------------------------------------------- 复审抓到的回归（2026-11-25 晚）
+
+const okLater = (id, s) => ({ id, at: at(s), day: dayOfIso(at(s)), thought: '合格的后记', reason: '' })
+const badLater = (id, s) => ({ id, at: at(s), day: dayOfIso(at(s)), reason: '缺 thought，不合格' })
+
+sq('sqlite：事务里 appendWithEvents 失败只撤这一组，外层接住错误后照常提交', async () => {
+  const b = await openBackend({ kind: 'sqlite', dir: tmp() })
+  await b.transaction(async (t) => {
+    await t.append(rec('exp_keep', '2026-11-01T00:00:00Z', { text: '外层写的' }))
+    await assert.rejects(() => t.appendWithEvents(rec('exp_grp', '2026-11-01T00:00:00Z', { text: '这一组要整组撤掉' }), [
+      { kind: 'later', row: okLater('exp_grp', '2026-11-02T00:00:00Z') },
+      { kind: 'later', row: badLater('exp_grp', '2026-11-03T00:00:00Z') }
+    ]), /不合格/)
+    await t.appendEvent('later', okLater('exp_keep', '2026-11-04T00:00:00Z'))
+  })
+  assert.deepEqual((await b.all()).map((r) => r.id), ['exp_keep'])
+  assert.deepEqual((await b.events('later')).map((r) => r.id), ['exp_keep'])
+  await b.close()
+})
+
+sq('sqlite：嵌套 transaction() 失败只撤内层（SAVEPOINT），外层照常提交', async () => {
+  const b = await openBackend({ kind: 'sqlite', dir: tmp() })
+  await b.transaction(async (t) => {
+    await t.append(rec('exp_outer', '2026-11-01T00:00:00Z', { text: '外层' }))
+    await assert.rejects(() => t.transaction(async (u) => {
+      await u.append(rec('exp_inner', '2026-11-01T00:00:00Z', { text: '内层' }))
+      throw new Error('内层失败')
+    }), /内层失败/)
+  })
+  assert.deepEqual((await b.all()).map((r) => r.id), ['exp_outer'])
+  await b.close()
+})
+
+sq('sqlite：不相干的调用方排队，不会并进别人的事务、跟着别人一起回滚', async () => {
+  const b = await openBackend({ kind: 'sqlite', dir: tmp() })
+  await b.count() // 先把连接建好
+  let release
+  const gate = new Promise((resolve) => { release = resolve })
+  const order = []
+  const p1 = b.transaction(async (t) => {
+    await t.append(rec('exp_p1', '2026-11-01T00:00:00Z', { text: '会被回滚' }))
+    await gate
+    order.push('p1 throws')
+    throw new Error('p1 失败')
+  })
+  const p2 = b.appendWithEvents(rec('exp_p2', '2026-11-01T00:00:00Z', { text: '别人的写入' }), [{ kind: 'seal', row: { id: 'exp_p2', at: at('2026-11-02T00:00:00Z'), day: '2026-11-02', action: 'seal', note: '' } }])
+    .then(() => order.push('p2 done'))
+  const p3 = b.transaction(async (t) => {
+    await t.append(rec('exp_p3a', '2026-11-01T00:00:00Z', { text: '第三个事务' }))
+    await t.append(rec('exp_p3b', '2026-11-01T00:00:00Z', { text: '第三个事务' }))
+    throw new Error('p3 失败')
+  })
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  release()
+  await assert.rejects(p1, /p1 失败/)
+  await p2
+  await assert.rejects(p3, /p3 失败/)
+  assert.deepEqual(order, ['p1 throws', 'p2 done'], 'p2 要等 p1 结束才执行')
+  assert.deepEqual((await b.all()).map((r) => r.id), ['exp_p2'], 'p1、p3 整体回滚，p2 自己提交')
+  assert.equal((await b.events('seal')).length, 1)
+  await b.close()
+})
+
+sq('sqlite：事务里调 close() 直接拒绝（否则会自己等自己）', async () => {
+  const b = await openBackend({ kind: 'sqlite', dir: tmp() })
+  await assert.rejects(() => b.transaction(async (t) => { await t.close() }), /不能 close/)
+  await b.close()
+})
+
+sq('坏行口径一致：行首带 BOM 的经历，loadAll 当坏行，迁移也拒绝（不会把坏行搬进库）', async () => {
+  const dir = tmp()
+  const lines = [rec('exp_bom', '2026-11-01T00:00:00Z', { text: '带 BOM 的一行' }), rec('exp_ok', '2026-11-02T00:00:00Z', { text: '正常' })].map((r) => JSON.stringify(r))
+  fs.writeFileSync(path.join(dir, 'self-experience.jsonl'), '\uFEFF' + lines.join('\n') + '\n')
+  assert.throws(() => loadAll(dir), (e) => e.code === 'EXPERIENCE_CORRUPT')
+  await assert.rejects(() => new FileBackend(dir).all(), /不是合法 JSON/)
+  const bytes = snapshot(dir)
+  const m = migrate(dir, '--write')
+  assert.equal(m.status, 1, m.out)
+  assert.deepEqual(dbFiles(dir), [])
+  assert.deepEqual(snapshot(dir), bytes)
+})
+
+sq('未知事件类型：原型上的名字（constructor / toString / __proto__）也拒绝', async () => {
+  for (const kind of ['file', 'sqlite']) {
+    const b = await openBackend({ kind, dir: tmp() })
+    for (const name of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+      await assert.rejects(() => b.events(name), /未知的事件类型/, kind + ' events ' + name)
+      await assert.rejects(() => b.appendEvent(name, { id: 'x', at: at('2026-11-01T00:00:00Z') }), /未知的事件类型/, kind + ' appendEvent ' + name)
+    }
+    await b.close()
+  }
+})
+
+sq('mustExist：联想两头都要在；章节不指向经历，不查', async () => {
+  for (const kind of ['file', 'sqlite']) {
+    const b = await openBackend({ kind, dir: tmp() })
+    await b.append(rec('exp_a', '2026-11-01T00:00:00Z', { text: '在的' }))
+    await assert.rejects(() => b.appendEvent('link', { from: 'exp_a', to: 'exp_ghost', at: at('2026-11-02T00:00:00Z'), day: '2026-11-02', reason: '一头不在' }, { mustExist: true }), /exp_ghost/, kind)
+    await assert.rejects(() => b.appendEvent('link', { from: 'exp_ghost', to: 'exp_a', at: at('2026-11-02T00:00:00Z'), day: '2026-11-02', reason: '另一头不在' }, { mustExist: true }), /exp_ghost/, kind)
+    assert.deepEqual(await b.events('link'), [], kind + '：一条都不许写进去')
+    await b.appendEvent('chapter', { id: 'ch_1', at: at('2026-11-01T00:00:00Z'), day: '2026-11-01', action: 'open', name: '十一月', from: '2026-11-01', to: '', note: '' }, { mustExist: true })
+    assert.equal((await b.events('chapter')).length, 1, kind)
+    await b.close()
+  }
+})
+
+sq('迁移：提交之后对拍失败 → 整体回滚，正式库和临时库都不留，可以重来', () => {
+  const dir = tmp()
+  writeFixture(dir)
+  const bytes = snapshot(dir)
+  const m = migrateEnv(dir, { WM_MIGRATE_TAMPER_BEFORE_VERIFY: '1' }, '--write')
+  assert.equal(m.status, 1, m.out)
+  assert.match(m.out, /对不上/)
+  assert.match(m.out, /已回滚/)
+  assert.deepEqual(dbFiles(dir), [])
+  assert.deepEqual(snapshot(dir), bytes)
+  assert.equal(migrate(dir, '--write').status, 0)
+})
+
+sq('迁移：verify-only 抓得到库里被改过的一条', () => {
+  const dir = tmp()
+  writeFixture(dir)
+  assert.equal(migrate(dir, '--write').status, 0)
+  const { DatabaseSync } = process.getBuiltinModule('node:sqlite')
+  const db = new DatabaseSync(path.join(dir, DB_FILE))
+  db.exec("UPDATE events SET json = replace(json, '\"thought\":\"', '\"thought\":\"改过') WHERE seq = (SELECT MIN(seq) FROM events WHERE kind = 'later')")
+  db.close()
+  const v = migrate(dir, '--verify-only')
+  assert.equal(v.status, 1, v.out)
+  assert.match(v.out, /later 事件第 1 条对不上/)
+})
+
+sq('迁移：上次中断留下的临时库不挡路，只提示', () => {
+  const dir = tmp()
+  writeFixture(dir)
+  fs.writeFileSync(path.join(dir, '.' + DB_FILE + '.migrating-99999'), 'half-built')
+  const m = migrate(dir, '--write')
+  assert.equal(m.status, 0, m.out)
+  assert.match(m.out, /上次中断留下的临时库/)
+  assert.ok(fs.existsSync(path.join(dir, DB_FILE)))
+  assert.ok(loadAll(dir, { backend: 'sqlite' }).length > 0)
 })
