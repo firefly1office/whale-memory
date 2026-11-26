@@ -285,8 +285,28 @@ function sqliteSource(dir) {
   }
 }
 
+// 擦除后留下的"共用旧 id"：同一个旧 id 被两条以上经历用过，擦掉其中一条之后，
+// 剩下那条会独占这个旧 id，旧后记就会被算到它头上。墓碑里记下了这些 id（ambiguousIds）；
+// 读的时候把它们的事件摘掉——"对不上就不归任何人"，擦除不该改变别的记录读出来的样子。
+function ambiguousLegacyIds(dir) {
+  const out = new Set()
+  let raw
+  try {
+    raw = fs.readFileSync(path.join(dir, 'tombstones.jsonl'), 'utf8')
+  } catch {
+    return out
+  }
+  for (const line of raw.split('\n')) {
+    if (!line.trim()) continue
+    let row
+    try { row = JSON.parse(line) } catch { continue }
+    if (row && Array.isArray(row.ambiguousIds)) for (const id of row.ambiguousIds) out.add(String(id))
+  }
+  return out
+}
+
 // 事件侧：两个后端在这里分开，往上走的是同一套合并逻辑（同一份数据读出来逐字段相同）
-function readSide(src, { until, rawMode, allowSealCorrupt }) {
+function readSide(src, { until, rawMode, allowSealCorrupt, dir = null }) {
   // 想起次数：有事件文件就以事件为准；没有事件时才退回旧字段。
   // 读不出来必须报出来（readEvents）：否则会当成"她从没想起过"。
   // rawMode（按字节备份/恢复/计数）不看事件内容，读不出来也不该拦住备份。
@@ -314,6 +334,18 @@ function readSide(src, { until, rawMode, allowSealCorrupt }) {
   const linkMap = src.links(until, onEventError)
   const chapterList = src.chapters(until, rawMode ? () => [] : null)
 
+  // 共用旧 id：这些 id 上的事件不归任何人（见 ambiguousLegacyIds 的注释）。
+  // rawMode 是按字节备份/计数用的，不动它，免得备份统计和读出来的不一样。
+  if (!rawMode && dir) {
+    const ambiguous = ambiguousLegacyIds(dir)
+    if (ambiguous.size) {
+      for (const id of ambiguous) {
+        laterMap.delete(id)
+        unfinishedMap.delete(id)
+        counts.delete(id)
+      }
+    }
+  }
   return { until, rawMode, counts, laterMap, unfinishedMap, sealedMap, sealedNowMap, linkMap, chapterList }
 }
 
@@ -458,7 +490,7 @@ export function loadAll(dir, { asOf = null, allowSealCorrupt = false, allowCorru
   const rows = until === null ? all : all.filter((r) => before(r, until))
   if (!rows.length) return rows
 
-  const side = readSide(src, { until, rawMode, allowSealCorrupt })
+  const side = readSide(src, { until, rawMode, allowSealCorrupt, dir })
   const viewed = rows.map((r) => mergeRow(r, side))
   const cross = buildCrossRef(viewed.map((row, seq) => ({ seq, row })))
   for (let seq = 0; seq < viewed.length; seq++) attachLinks(attachRefs(viewed[seq], seq, cross), seq, cross, side)
@@ -593,7 +625,7 @@ export async function* iterate(dir, { asOf = null, backend = 'file', allowCorrup
   // 坏行：展示路径 fail closed，而且要在吐出第一条之前就拒绝（不许先给几条再抛）
   if (index.bad && !rawMode) throw experienceCorrupt(index.bad)
   if (!index.entries.length) return
-  const side = readSide(fileSource(dir), { until, rawMode, allowSealCorrupt })
+  const side = readSide(fileSource(dir), { until, rawMode, allowSealCorrupt, dir })
   resolveLegacy(index)
   const cross = indexCrossRef(index, side)
 
@@ -663,7 +695,7 @@ export async function page(dir, { limit = 50, after = null, asOf = null, backend
   const selected = index.entries.slice(start, start + size)
   const total = index.entries.length
   if (!selected.length) return { rows: [], next: null, hasMore: false, total }
-  const side = readSide(fileSource(dir), { until, rawMode, allowSealCorrupt })
+  const side = readSide(fileSource(dir), { until, rawMode, allowSealCorrupt, dir })
   resolveLegacy(index)
   const cross = indexCrossRef(index, side)
   const rows = await readEntries(dir, selected, side, cross)

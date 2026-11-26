@@ -143,3 +143,27 @@ test('共用旧 id：擦掉其中一条时，墓碑记下这个旧 id', (t) => {
   assert.equal(res.removed.records, 1)
   assert.equal(exp.loadAll(dir).length, 1, '乙还在')
 })
+
+test('共用旧 id：擦掉甲之后，写给甲的旧后记不会挂到乙名下（读路径）', (t) => {
+  const dir = NEW(t)
+  const at = '2020-01-01T10:00:00.000Z'
+  fs.writeFileSync(path.join(dir, 'self-experience.jsonl'),
+    JSON.stringify({ at, text: '甲DELTA' }) + '\n' +
+    JSON.stringify({ at, text: '乙EPSILON' }) + '\n', 'utf8')
+  const former = 'exp_legacy_' + at.replace(/\D/g, '').slice(0, 12)
+  laterEvents.append(dir, { id: former, thought: '写给甲的旧后记GAMMA' })
+
+  const rows = exp.loadAll(dir)
+  assert.equal(rows.length, 2)
+  // 擦除前：两条共用旧 id，谁都认领不了 → 后记两边都不显示（对不上）
+  assert.deepEqual(rows.map((r) => r.later.length), [0, 0])
+
+  eraseExperience(dir, { id: rows[0].id, reason: '只撤甲', actor: 'self' })
+
+  const left = exp.loadAll(dir)
+  assert.equal(left.length, 1, '乙还在')
+  assert.deepEqual(left[0].later, [], '写给甲的旧后记不该挂到乙名下')
+  assert.equal(JSON.stringify(left).includes('GAMMA'), false)
+  // 事件本身还在盘上（旧 id 上的东西不归乙，也不该被乙的撤回带走）
+  assert.equal(fs.readFileSync(path.join(dir, 'later-events.jsonl'), 'utf8').includes('GAMMA'), true)
+})
