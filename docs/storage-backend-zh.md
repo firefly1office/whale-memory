@@ -107,7 +107,9 @@ markRecalled(dir, id, { backend: 'sqlite', query: '码头' })
 recall(dir, '码头', { backend: 'sqlite', mark: true })                          // mark:true 解禁
 ```
 
-- **默认 file，零行为变化**：不传 `backend` 走的是原来那条路，一个字没改（原有 769 条用例一条没动、全过）。
+- **默认 file，零行为变化**：不传 `backend` 走的是原来那条路，一个字没改。原有用例只改了一条断言
+  （"sqlite 下不能 mark"那条，本单就是来解禁的，改成"能 mark、但没迁移照样 fail closed"；没放宽），其余 769 条未动；
+  全量 775/775。
 - **双写写的是同一行**：先 `buildRow` 造一行，JSONL 与库各存这一行——不是各写各的。所以两边读出来逐字段相同；
   对拍测试在 8 个动作 × 2 个后端上逐字段比过（唯一不同的是随机生成的 `exp_` id，测试按出现顺序归一）。
 - **一次写入 = 一个事务**：记录 / 事件 / JSONL 追加 / `sources` 刷新全在一个事务里，任何一步失败整组回滚
@@ -117,8 +119,25 @@ recall(dir, '码头', { backend: 'sqlite', mark: true })                        
 - **崩在两步之间**：事务提交前进程被杀，留下的是"JSONL 多一行、库没这一行、`sources` 没刷新"。
   之后读库报 `STORAGE_STALE`（fail closed），移走 `memory.sqlite` 重新迁移即可；file 后端一直读得到那一行。
 - **封存的 noop 口径不变**：同一个动作重复（已封存又封存、没封存却解封）还是 `noop: true`，不写第二条。
-- **独写（`dualWrite: false`）的代价**：这份记忆只剩库里有，JSONL 里没有——库丢了就等于丢了。
-  要用就自己给 `memory.sqlite` 做备份；库和 JSONL 不再互为备份。
+- **独写（`dualWrite: false`）的代价**：这份记忆只剩库里有，JSONL 里没有。
+  ⚠️ **不要按"删库重迁"来恢复**：迁移只从 JSONL 重建，独写进去的那些行会**一起消失**（复审实测过）。
+  真遇到 `STORAGE_STALE`，先把库里的东西导出来（`loadAll(dir,{backend:'sqlite'})` / `exportMemory`），
+  再决定是删库重迁还是补一次迁移。备份也要做在库上，不能只做 JSONL。
+- **独写的行被撤回时照样写墓碑**（S4 复审后修）：`eraseExperience` 现在会先问一次库——
+  JSONL 里没有、库里有的记录，按真删处理并写墓碑（哈希取库里那一行 JSON），不再是"删了却没墓碑"。
+- **多写者仍然不承诺**：两个进程同时写时，SQLite 会等 `busy_timeout`（3 秒）再报错；
+  file 后端靠文件锁串行。两个后端在"并发撞上"时的表现不同（一个 noop、一个报错），
+  这是既有取舍，宿主别拿并发写当能力。
+- **`markRecalled` 返回 false 就是没记上**：它吞掉所有错误（file 与 sqlite 一样），
+  sqlite 下库过期（`STORAGE_STALE`）或锁住都会返回 false，宿主/召回不会因此中断。
+- **写事务里的对账有 TOCTOU 窗口**（推断，单写者假设下不会发生）：`checkFresh` 读 JSONL 字节数之后、
+  `writeSources` 之前，如果另一个 file 后端写者插进来，`sources` 会记下"包含那一行"的尺寸而库里没有——
+  读路径会以为库是新的。要彻底解决得把整段加锁或改成"每次提交都取一次尺寸并与行数对账"，
+  这一轮按契约的"单写者"假设接受它，写在这里。
+- **`packages/core/lib/storage/` 那套后端层和这里的同步写面并存**：异步那套（`appendEvent` /
+  `appendWithEvents` / `transaction`，带 SAVEPOINT、mustExist）给的是"事务化的后端对象"；
+  这里必须是同步的（`loadAll`/`recall` 都是同步 API），所以另起了 `appendToStore`。两套都只写 JSON 原样行，
+  口径一致；将来若要合并，先把"要不要 async API"定下来再说。
 - **还没切的写**：`setUnfinishedState`（结案）、`linkExperiences`（联想）、章节事件、抽屉、提示词与设置，
   仍然只写 JSONL。迁移之后用它们，库就会过期（`STORAGE_STALE`，fail closed，不会悄悄少读）。
 

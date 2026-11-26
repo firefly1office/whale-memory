@@ -354,8 +354,12 @@ test('未知后端名报错；sqlite 下 recall 可以 mark（S4 起解禁），
   const dir = tmp()
   const row = addExperience(dir, { text: '海边' })
   assert.throws(() => loadAll(dir, { backend: 'postgres' }), /未知的存储后端/)
-  // 读路径先挂：没有 memory.sqlite 就是 STORAGE_NOT_MIGRATED，不会"读一半、记一半"
-  assert.throws(() => recall(dir, '海边', { backend: 'sqlite', mark: true }), (e) => e.code === 'STORAGE_NOT_MIGRATED')
+  // 读路径先挂：没迁移是 STORAGE_NOT_MIGRATED；Node 20 上拿不到 node:sqlite 是 SQLITE_UNAVAILABLE。
+  // 两种都是 fail closed，都要算"不许只记一半"。
+  assert.throws(
+    () => recall(dir, '海边', { backend: 'sqlite', mark: true }),
+    (e) => e.code === 'STORAGE_NOT_MIGRATED' || e.code === 'SQLITE_UNAVAILABLE'
+  )
   assert.equal(markRecalled(dir, row.id, { backend: 'sqlite' }), false, '库没迁移时记不上就是 false，不假装记了')
   assert.equal(fs.existsSync(path.join(dir, 'recall-events.jsonl')), false, '拒绝时不许已经记了一笔')
 })

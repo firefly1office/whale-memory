@@ -1,4 +1,4 @@
-// S4 · 写路径切 SQLite（阶段 1 的尾巴）
+﻿// S4 · 写路径切 SQLite（阶段 1 的尾巴）
 //
 // 验收口径（缺一不可）：
 // 1. 同一组操作，file 与 sqlite 两个后端读出来**逐字段相同**（对拍：loadAll / 当前视图 / 召回 id 序列）；
@@ -23,6 +23,9 @@ import {
   loadAll, recall, addExperience, reviseExperience, setSealed, markRecalled
 } from '../packages/core/lib/self-experience.js'
 import { appendToStore, DB_FILE } from '../packages/core/lib/sqlite-store.js'
+import { eraseExperience } from '../packages/core/lib/erase.js'
+import * as tombstones from '../packages/core/lib/tombstones.js'
+import * as audit from '../packages/core/lib/audit.js'
 
 const HAS_SQLITE = typeof process.getBuiltinModule === 'function' && Boolean(process.getBuiltinModule('node:sqlite'))
 const sq = HAS_SQLITE ? test : (name, fn) => test(name, { skip: '这个 Node 没有 node:sqlite' }, fn)
@@ -218,4 +221,38 @@ sq('S4 recall({mark:true}) 在 sqlite 下能用：次数两边一致，JSONL 也
   assert.equal(fs.readFileSync(path.join(dir, 'recall-events.jsonl'), 'utf8').trim().split('\n').length, 1)
   assert.equal(markRecalled(dir, sqlRow.id, { backend: 'sqlite' }), true)
   assert.equal(Number(loadAll(dir, { backend: 'sqlite' })[0].recalls), 2)
+})
+sq('S4 复审修正：dualWrite:false 的记录被撤回时照样写墓碑（不许"删了却没墓碑"）', (t) => {
+  useClock(t)
+  const dir = NEW(t)
+  addExperience(dir, { text: '先写一条，让它能迁移' })
+  mock.timers.tick(1500)
+  migrate(dir)
+  // 只进库、不进 JSONL 的那一条
+  const only = addExperience(dir, { text: '只在库里的那条' }, { backend: 'sqlite', dualWrite: false })
+  assert.equal(loadAll(dir).some((r) => r.id === only.id), false, '前提：JSONL 里没有它')
+
+  const result = eraseExperience(dir, { id: only.id, reason: '这条也不要了', actor: 'leo' })
+  assert.equal(result.ok, true)
+  assert.equal(result.alreadyGone, false, '库里真的删掉了一条，不算 alreadyGone')
+  assert.equal(result.tombstone, true, '撤回必留墓碑')
+  assert.ok(result.hash, '墓碑要带删除前那一行的哈希')
+  const marks = tombstones.readAll(dir).rows
+  assert.equal(marks.length, 1)
+  assert.equal(marks[0].id, only.id)
+  assert.equal(marks[0].reason, '这条也不要了')
+  assert.equal(loadAll(dir, { backend: 'sqlite' }).some((r) => r.id === only.id), false, '库里也要真的没了')
+  assert.ok(audit.read(dir, { action: 'erase' }).length >= 1, '审计里要有一条 erase')
+})
+
+sq('S4 复审修正：dualWrite:false 之后的并发/锁不再抛原始 database is locked（最多等 3 秒）', (t) => {
+  useClock(t)
+  const dir = NEW(t)
+  addExperience(dir, { text: '一条能迁移的' })
+  migrate(dir)
+  // 同一个进程里两个连接抢写：busy_timeout 生效时不该直接把 SQLITE_BUSY 冒到调用方
+  const first = addExperience(dir, { text: '第一条', }, { backend: 'sqlite', dualWrite: false })
+  const second = addExperience(dir, { text: '第二条' }, { backend: 'sqlite', dualWrite: false })
+  assert.ok(first.id && second.id)
+  assert.equal(loadAll(dir, { backend: 'sqlite' }).length, 3)
 })

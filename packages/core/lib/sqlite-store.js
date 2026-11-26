@@ -126,6 +126,9 @@ export function openDatabaseFile(file, { create = false } = {}) {
   if (!create && !fs.existsSync(file)) return null
   if (create) fs.mkdirSync(path.dirname(file), { recursive: true })
   const db = new DatabaseSync(file)
+  // 另一个进程正拿着写锁时等一会儿，而不是立刻抛原始的 "database is locked"（S4 复审抓到的）。
+  // 契约仍不承诺多写者；这条只是把"两次写入撞上"从难看的原文错误变成"最多等 3 秒"。
+  try { db.exec('PRAGMA busy_timeout = 3000') } catch { }
   if (create) {
     try {
       db.exec('PRAGMA journal_mode = WAL')
@@ -291,6 +294,30 @@ export function lastSealOfStore(db, id) {
     note: last ? String(last.note || '') : '',
     bad
   }
+}
+
+/**
+ * 库里这条记录的**原始那一行 JSON**（给擦除用）；库里没有 / 打不开 / 没迁移 都返回 ''。
+ * 为什么擦除要问库：`dualWrite:false` 时记录只在库里，JSONL 里根本没有这一行——
+ * 只看 JSONL 会把它当成"已经没了"，于是库里的行被删掉、墓碑却不写（S4 复审抓到的）。
+ */
+export function storeRecordJson(dir, ids) {
+  const wanted = [...new Set((Array.isArray(ids) ? ids : [ids]).map((x) => String(x || '')).filter(Boolean))]
+  if (!wanted.length) return ''
+  let db
+  try {
+    if (!statDatabase(dir)) return ''
+    db = openDatabase(dir)
+  } catch { return '' }
+  if (!db) return ''
+  try {
+    const stmt = db.prepare('SELECT json FROM records WHERE id = ?')
+    for (const id of wanted) {
+      const row = stmt.get(id)
+      if (row && row.json) return String(row.json)
+    }
+    return ''
+  } catch { return '' } finally { try { db.close() } catch { } }
 }
 
 // ---------------------------------------------------------------- 读
