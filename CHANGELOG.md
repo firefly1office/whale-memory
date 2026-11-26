@@ -2,6 +2,18 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### Added
+
+- **真向量接入通路（Ollama bge-m3，默认关）**：`recall({ ranker:'embed', embed, embedKind })` 可以注入
+  同步向量函数；每条命中带 `embedKind` 自报家门（默认 `stub:char-ngram-hash`，一眼看出是桩）。
+  新增 `tools/ollama-embed.mjs`（零依赖）：`probe` / `warm`（批量喂 Ollama、向量落磁盘缓存、原子替换）/
+  `makeCachedEmbedder`（同步只查缓存，缺了抛 `EMBED_CACHE_MISS`，**不偷偷退回桩**）。
+  `tools/eval-v2.mjs` 加 `--embed-cache`/`--embed-model`，报告首行明写"真向量"还是"桩——未接入真模型"。
+  **本机没有 Ollama**：HTTP 通路只用本地假服务验过，真模型的三组数没有（见 `docs/embed-zh.md`）。
+  评测里的 embed 仍是桩（452 条 recall@10 77.1% / MRR 0.761），**不能当语义效果**。
+
 ## [0.27.0] - 2026-11-26
 
 ### Added
