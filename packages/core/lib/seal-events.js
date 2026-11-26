@@ -1,6 +1,6 @@
 // 她选择的遗忘：封存 / 解封。一行一个 { id, at, day, action, note? }，只追加
 // 封存不是删除：原文、后记、选择都还在；只是不再被主动想起（召回、醒来、别的回想里的摘要都避开它）
-// 要真的抹掉，仍然只有 purge 整库删除
+// 要真的抹掉一条，用 eraseExperience（阶段 4：整条撤回 + 墓碑）；封存事件本身不删
 import fs from 'node:fs'
 import path from 'node:path'
 import { withFileLock } from './file-lock.js'

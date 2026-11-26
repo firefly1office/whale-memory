@@ -23,6 +23,8 @@ import * as recallEvents from '../packages/core/lib/recall-events.js'
 import * as unfinishedEvents from '../packages/core/lib/unfinished-events.js'
 import * as linkEvents from '../packages/core/lib/link-events.js'
 import * as chapterEvents from '../packages/core/lib/chapter-events.js'
+import * as tombstones from '../packages/core/lib/tombstones.js'
+import * as audit from '../packages/core/lib/audit.js'
 import { DB_FILE } from '../packages/core/lib/sqlite-store.js'
 
 export const VERSION = 1
@@ -140,7 +142,7 @@ function checkLines(files, dirOk = true) {
   return check('行数', true, '经历 ' + records.lines + ' 行 · 六类事件 ' + eventTotal + ' 行（' + shown + '；— = 还没出现）')
 }
 
-function checkBad(files) {
+function checkBad(files, dir) {
   const broken = files.filter((f) => f.error)
   const bad = files.filter((f) => f.bad > 0)
   if (bad.length) {
@@ -148,6 +150,19 @@ function checkBad(files) {
   }
   if (broken.length) {
     return check('坏行', false, broken.map((f) => f.name + ' 读不出来（' + f.error + '）').join('；'))
+  }
+  // 墓碑与审计不在上面 7 个文件里（是阶段 4 新加的），但坏了同样要报出来：
+  // 墓碑坏了说不清"哪条撤回过"，审计坏了这份留痕就不完整。
+  try {
+    const badTombs = tombstones.badLines(dir)
+    if (badTombs > 0) return check('坏行', false, 'tombstones.jsonl ' + badTombs + ' 行无法解析或不合格')
+  } catch (error) {
+    return check('坏行', false, 'tombstones.jsonl 读不出来（' + String((error && (error.code || error.message)) || error) + '）')
+  }
+  try {
+    audit.read(dir)
+  } catch (error) {
+    return check('坏行', false, 'audit.jsonl 读不出来或不完整（' + String((error && (error.code || error.message)) || error) + '）')
   }
   return check('坏行', true, '没有坏行（' + files.filter((f) => f.exists).length + ' 个文件读完了）')
 }
@@ -159,7 +174,18 @@ function checkSeal(dir, files) {
   const sealFile = files.find((f) => f.name === 'seal-events.jsonl')
   if (!sealFile || sealFile.error) return check('封存一致性', false, 'seal-events.jsonl 读不出来，无法核对封存状态')
   const rows = sealFile.rows || []
-  if (!rows.length) return check('封存一致性', true, '没有封存事件（没有经历被封存过）')
+
+  // 墓碑（阶段 4）：撤回过的 id 也算"指向一条存在的经历"，否则每撤回一条封存过的经历，
+  // 体检就会永远亮红灯。同时反着核对一遍：已撤回的 id 不许又出现在经历文件里（撤回没生效或被恢复）。
+  let tombs
+  try {
+    tombs = tombstones.readAll(dir)
+  } catch (error) {
+    return check('封存一致性', false, 'tombstones.jsonl 读不出来，无法核对撤回记录：' + String((error && (error.code || error.message)) || error))
+  }
+  if (tombs.bad) return check('封存一致性', false, 'tombstones.jsonl ' + tombs.bad + ' 行无法解析或不合格')
+  const withdrawn = new Set(tombs.rows.map((r) => r.id))
+  const tombNote = withdrawn.size ? '；' + withdrawn.size + ' 条经历已整条撤回（墓碑在）' : ''
 
   // 经历一条都读不出来时不能当成"封存全指向不存在"：那是两件事，先报读失败。
   // allowCorrupt / allowSealCorrupt：坏行已由「坏行」那一项负责报，这里只核对指向。
@@ -174,6 +200,15 @@ function checkSeal(dir, files) {
     known.add(r.id)
     if (r.formerId) known.add(r.formerId) // 0.10 之前的旧 id：封存可能挂在它上面
   }
+  const resurrected = [...withdrawn].filter((id) => known.has(id))
+  if (resurrected.length) {
+    return check('封存一致性', false, resurrected.length + ' 个已撤回的 id 又出现在经历文件里（撤回没生效或被恢复）：' + resurrected.slice(0, 3).join('、'))
+  }
+
+  if (!rows.length) {
+    return check('封存一致性', true, withdrawn.size ? '没有封存事件' + tombNote : '没有封存事件（没有经历被封存过）')
+  }
+  for (const id of withdrawn) known.add(id)
 
   const orphan = []
   const repeated = []
@@ -197,7 +232,7 @@ function checkSeal(dir, files) {
   if (repeated.length) problems.push(repeated.length + ' 个 id 连续写了两条同样的动作（' + repeated.slice(0, 3).join('、') + '）')
   if (earlyUnseal.length) problems.push(earlyUnseal.length + ' 个 id 没封就先解封（' + earlyUnseal.slice(0, 3).join('、') + '）')
   if (problems.length) return check('封存一致性', false, problems.join('；'))
-  return check('封存一致性', true, '封存 ' + seals + ' 条 / 解封 ' + (rows.length - seals) + ' 条，指向的经历都在，动作顺序正常')
+  return check('封存一致性', true, '封存 ' + seals + ' 条 / 解封 ' + (rows.length - seals) + ' 条，指向的经历都在，动作顺序正常' + tombNote)
 }
 
 // 为什么某个码会失败：直接说清要做什么，别只丢一个错误码
@@ -240,7 +275,7 @@ export function runDoctor(dir) {
     // 目录本身读不出来（路径写错、盘没挂上）时，"文件都不在"不是全新目录，是没法判断
     checkFiles(files, dirCheck.ok),
     checkLines(files, dirCheck.ok),
-    checkBad(files),
+    checkBad(files, target),
     checkSeal(target, files),
     checkStorage(target, files)
   ]

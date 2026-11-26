@@ -301,3 +301,88 @@ export function readEvents(db, kind) {
 export function readRecords(db) {
   return parseColumn(db.prepare('SELECT json FROM records ORDER BY rowid').all().map((r) => r.json))
 }
+
+// ---------------------------------------------------------------- 擦除（阶段 4）
+//
+// 撤回一条经历时，SQLite 副本里也得把它删掉——不然 JSONL 里没了、库里还留着，等于没删干净。
+// 两件事必须分开：
+//   1. eraseReadiness()：动手之前先确认"库在不在、结构全不全、和 JSONL 对不对得上"。
+//      拿不到 node:sqlite / 库缺表 → 直接抛（不许只删一半：一边删了、另一边删不了最糟）。
+//      "过期"不算错——照样能删，但**不能刷新 sources**，否则会把"库缺了最近的记录"伪装成"库是新的"。
+//   2. eraseFromStore()：一个事务里删 records + events（seal 留着），提交后按需刷新 sources。
+//      墓碑写失败不回滚删除，这个取舍写在 docs/erase-audit-zh.md 里。
+//
+// 注意：SQLite 删除行之后，旧字节可能还留在文件页里（没有 VACUUM / secure_delete）。
+// 这不是"没擦掉"，是"磁盘上的碎片不追溯"——和备份里的历史副本一样，文档里写明不承诺。
+
+/** 擦除前的体检：库不存在 = { present:false }；存在但打不开/不全 = 抛；过期 = fresh:false。 */
+export function eraseReadiness(dir) {
+  const file = path.join(dir, DB_FILE)
+  let exists = false
+  try { exists = fs.existsSync(file) } catch { exists = false }
+  // 没有库就不碰 node:sqlite：Node 20 上擦一个只用 file 后端的目录必须照常能跑
+  if (!exists) return { present: false, fresh: false }
+  const db = openDatabase(dir)
+  if (!db) return { present: false, fresh: false }
+  try {
+    let tables
+    try { tables = tablesOf(db) } catch (error) { throw unreadable(error) }
+    if (!tables.has('records') || !tables.has('events')) {
+      throw coded(DB_FILE + ' 缺表（' + ['records', 'events'].filter((t) => !tables.has(t)).join('、') + '）：结构不全的库不能拿来擦，先移走它重新迁移。', 'STORAGE_INCOMPLETE')
+    }
+    let fresh = true
+    try { checkFresh(db, dir, tables.has('sources')) } catch (error) {
+      if (error && error.code === 'STORAGE_STALE') fresh = false
+      else throw unreadable(error)
+    }
+    return { present: true, fresh }
+  } finally {
+    try { db.close() } catch { }
+  }
+}
+
+/**
+ * 从 SQLite 副本里删掉这些 id 的经历与关联事件（seal 保留，章节不指向经历所以不动）。
+ * @param {string} dir
+ * @param {string[]} ids 要删的经历 id
+ * @param {{ refreshSources?: boolean }} opts refreshSources：删完把 sources 的字节数刷成现在 JSONL 的大小
+ *   （只有擦除前库和 JSONL 对得上时才该这么做；否则会让一个缺记录的库看起来是新的）
+ */
+export function eraseFromStore(dir, ids, { refreshSources = false } = {}) {
+  const file = path.join(dir, DB_FILE)
+  let exists = false
+  try { exists = fs.existsSync(file) } catch { exists = false }
+  if (!exists) return { present: false, records: 0, events: 0 }
+  const wanted = [...new Set((Array.isArray(ids) ? ids : []).map(String).filter(Boolean))]
+  const db = openDatabase(dir)
+  if (!db) return { present: false, records: 0, events: 0 }
+  try {
+    let records = 0
+    let events = 0
+    db.exec('BEGIN IMMEDIATE')
+    try {
+      const delRecord = db.prepare('DELETE FROM records WHERE id = ?')
+      for (const id of wanted) records += Number(delRecord.run(id).changes || 0)
+      // 按 exp_id 删；seal 事件留着（封存状态不是正文）
+      const delEvent = db.prepare("DELETE FROM events WHERE exp_id = ? AND kind <> 'seal'")
+      for (const id of wanted) events += Number(delEvent.run(id).changes || 0)
+      // 联想：exp_id 只存 from，to 那一头要自己看
+      const delSeq = db.prepare('DELETE FROM events WHERE seq = ?')
+      for (const row of db.prepare("SELECT seq, json FROM events WHERE kind = 'link'").all()) {
+        let link
+        try { link = JSON.parse(row.json) } catch { continue }
+        if (wanted.includes(String(link.from)) || wanted.includes(String(link.to))) {
+          events += Number(delSeq.run(row.seq).changes || 0)
+        }
+      }
+      db.exec('COMMIT')
+    } catch (error) {
+      try { db.exec('ROLLBACK') } catch { }
+      throw error
+    }
+    if (refreshSources) writeSources(db, sourceSizes(dir))
+    return { present: true, records, events }
+  } finally {
+    try { db.close() } catch { }
+  }
+}

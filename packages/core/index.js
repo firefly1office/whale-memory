@@ -29,3 +29,8 @@ export * as changed from './lib/changed.js'
 export * as selfActions from './lib/self-actions.js'
 export * as actionSource from './lib/action-source.js'
 export * as injection from './lib/injection.js'
+// 阶段 4：整条撤回（+ 墓碑）、审计、导出
+export * as tombstones from './lib/tombstones.js'
+export * as audit from './lib/audit.js'
+export { eraseExperience } from './lib/erase.js'
+export { exportMemory } from './lib/export-memory.js'

@@ -1153,7 +1153,8 @@ export function renderTwoPart(entry, { now = new Date(), lang = 'zh' } = {}) {
   return lines.join('\n')
 }
 
-export const internals = { WEIGHTS, FILE }
+// 给擦除（阶段 4）复用的内部口径：一行原样 → 她的一条经历（含旧格式的 id 推导）
+export const internals = { WEIGHTS, FILE, normalize, legacyId }
 // 兼容旧调用：只要一句摘要的地方仍可用
 // 宿主拿用户的原话直接来召回、再自动塞进提示词：默认走 strict 的新口径（cover）。
 // 旧口径（legacy）在同批用例上编造率 27.8%（见 docs/eval.md），自动递回不能默认用它；

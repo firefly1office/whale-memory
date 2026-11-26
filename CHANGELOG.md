@@ -2,6 +2,31 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.26.0] - 2026-11-26
+
+### Added
+
+- **整条撤回 `eraseExperience(dir, { id, reason, actor })`（阶段 4，方案 A）**：把一条经历连同挂在它身上的 `later` / `recall` / `unfinished` / `link` 事件**物理删除**；目录里有 `memory.sqlite` 时同一个事务里删 `records` + `events`（联想两头都看）。`seal-events.jsonl` 留着（封存是"别再主动提起"的状态记录，不是正文），`chapter-events.jsonl` 不指向经历所以不动。每写一个文件都是「读全量 → 过滤 → 写 `.tmp` → rename」，不会出现写了一半的经历文件。**幂等**：第二次调用返回 `{ ok: true, alreadyGone: true }`，不再写第二条墓碑。参数不全、经历/事件文件有坏行、墓碑文件有坏行、SQLite 副本打不开或缺表、旧 id 被几条旧经历共用——**整次拒绝，一个字节都不改**。
+- `packages/core/lib/tombstones.js` + `tombstones.jsonl`：撤回成功后只留一块墓碑 `{ v: 1, id, at, reason, actor, hash }`；`hash` = 删除前那一行**原样字节**的 sha256（不含行尾换行）。**不含正文、不可恢复**；只追加，库内没有删除/清空 API。
+- `packages/core/lib/audit.js` + `audit.jsonl`：只追加的审计 `{ at, actor, action, ids, note }`，三类动作 `read` / `recall` / `erase`。**只记 id 与动作，不记正文**；召回只写 `note: "qsha256:<hex>"`（查询的 sha256）与命中 id；擦除的 `reason` 也不进审计。`audit.read({ since, until, action, actor })` 只读查询；`audit.readRecord` / `audit.recall` 是宿主边界用的「读了就留痕」包装。库内 API 删不掉审计；有坏行时 `audit.read` 抛 `AUDIT_CORRUPT`，不返一份看起来没问题的审计。
+- `packages/core/lib/export-memory.js`：`exportMemory(dir, { personId?, from?, to?, includeSealed? })` → JSONL 文本，只读、不写回任何数据文件。每一行就是 `loadAll` 在同条件下返回的那一条，唯一差别是封存状态记成 `sealed: true`（不导出封存理由）；`includeSealed: false` 时完全排除。`personId` 匹配 `then.state.personId`（v1 记录本身不带 person 字段）。
+- `tools/doctor.mjs`：封存一致性现在把**墓碑里的 id 当成「存在」**（否则每撤回一条封存过的经历体检就永远红灯），并反着核对「已撤回的 id 不许又出现在经历文件里」；坏行项额外检查 `tombstones.jsonl` 与 `audit.jsonl`。仍然是六项、仍然只读、仍然不记正文。
+- 测试：`tests/erase-audit-export.test.mjs`（8 条）——擦除后 `loadAll` / `recall`（字面 / 混合 / 旧门槛 loose）/ `recallForContext` / `page` / `exportMemory` / `doctor` 都查不到；其它记录的原始行一个字节没动；墓碑只有 id/时间/原因/哈希且哈希对得上；幂等；参数不全、坏行、事件文件读不出来都整次拒绝；审计三次动作各一条且正文关键词 0 命中（含查询原文不进审计）；导出与同条件全量读逐条一致；SQLite 副本一起删且刷新 `sources` 后仍可读。
+- `docs/erase-audit-zh.md`：能力、三个文件的格式、拒绝 / 崩溃 / SQLite 的取舍、显眼写出的做不到（加密 / 多写者 / 备份不追溯 / SQLite 页内残留 / 引用悬空）、没验的部分。
+
+### Changed
+
+- `docs/contract-v1-zh.md`：第一节加「整条撤回」与「墓碑」两条根原则（"记录不可变"的含义不变：改内容仍然永远不许）；§3.6 加数据导出 `exportMemory` 的封存口径（整份数据口径默认带 `sealed: true`，展示型导出仍默认不写封存正文）；第六节第一条从「不承诺单条物理删除」改为「v1.1 起提供 `erase`；备份 / 快照里的历史副本不追溯」。其余条款一条未动。
+- `docs/limits.md` / `docs/pitfalls.md` / `seal-events.js` 的注释：删掉「真正的删除只有整库 purge」的旧说法，改为单条 `eraseExperience` + 整库 `purge`，并写明备份不追溯。
+
+### Fixed
+
+- 体检会在撤回一条**封存过的**经历后报「N 个 id 指向不存在的经历」而永远红灯（`seal-events.jsonl` 里的 id 按契约保留）：现在墓碑里的 id 算存在，同时核对「已撤回的 id 又出现」这种相反的错误。
+
+### 没验什么
+
+- 没在真实数据目录上跑过擦除（只跑临时目录）；没验杀进程正好落在「记录已删、墓碑未写」那一瞬的重跑；没验十万条规模下擦除的耗时与内存；没验 SQLite 已过期时擦除后的重迁移；没验备份恢复与墓碑同时存在时的完整流程。细节见 [擦除与审计 §八](docs/erase-audit-zh.md)。
+
 ## [0.25.0] - 2026-11-26
 
 ### Added

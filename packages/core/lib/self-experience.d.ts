@@ -213,4 +213,11 @@ export interface RecallContextItem {
 /** 宿主拿用户原话自动召回用；默认 gate 为 cover（0.17 起），升级不改变自动递回的行为 */
 export function recallForContext(dir: string, query: string, opts?: { max?: number; gate?: 'cover' | 'legacy' }): RecallContextItem[]
 
-export const internals: { WEIGHTS: Set<Weight>; FILE: string }
+export const internals: {
+  WEIGHTS: Set<Weight>
+  FILE: string
+  /** 一行原样 → 归一化后的经历（旧格式补 id / formerId）；给擦除复用同一套口径 */
+  normalize: (row: unknown) => Experience | null
+  /** 0.10 之前没有 id 的旧行，按内容推出稳定 id */
+  legacyId: (row: Record<string, unknown>) => string
+}

@@ -65,6 +65,7 @@ node adapters/cli/memory-cli.mjs read --id <id> --as-of 2026-11-14
 | 让她自己写的那一页能改、能读回、能翻回过去 | [作品稿本](packages/drafts/README.md)（`whale-drafts`）：一行一版、旧基线拒写、幂等重试；设计记录见 [docs/drafts-zh.md](docs/drafts-zh.md) |
 | 记录存在哪可以换 | [存储后端](docs/storage-backend-zh.md)：file（JSONL）与 sqlite 两个后端，同一份契约；记录与六类事件都能进 sqlite 且同事务写，`loadAll` / `recall` 可选 `backend`（默认 file，零行为变化）；2 万条实测写入差 600 倍，全量读 sqlite 反而慢 |
 | 库变大之后还能不能读 | [规模与观测](docs/scale-zh.md)：`iterate` 逐条读、`page` 游标分页，与 `loadAll` 逐条相同；十万条实测 `loadAll` 要 128 MB 堆、`iterate` 80 MB |
+| 一条记忆要真的拿掉 | [擦除与审计](docs/erase-audit-zh.md)：`eraseExperience` 整条撤回（记录 + 关联事件物理删除），只留墓碑（id/时间/原因/哈希）；`audit` 只记 id 与动作、不记正文；`exportMemory` 只读导出 |
 | 出了事怎么知道 | `node tools/doctor.mjs <目录> --json`：六项检查、退出码 0/1、不记正文；运行时指标走 `metrics.snapshot()`（[说明](docs/scale-zh.md)） |
 | 宿主能依赖什么、库不做什么 | [v1 契约](docs/contract-v1-zh.md)：记录不可变、封存是事件、兼容承诺与五条「不承诺」；配套 [schema](schemas/record.v1.json) 与契约测试 |
 | 别用「主人」的身份对她说话 | [一次内部测试的复盘](docs/no-impersonation-zh.md)：本机注入入口要有闸，验证走夹具或真实回合，出了事不删不瞒 |

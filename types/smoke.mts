@@ -124,4 +124,18 @@ const hybridTokens: string[] = hybridRecall.tokensOf('外婆家的桂花树')
 const hybridIndex = hybridRecall.buildIndex(['外婆家的桂花树'])
 const hybridBm: number[] = hybridRecall.bm25Scores(hybridIndex, hybridTokens)
 const hybridMinCover: number = hybridRecall.HYBRID_MIN_COVER
+
+// 阶段 4：整条撤回（+ 墓碑）、审计、导出
+import { eraseExperience, exportMemory, tombstones, audit } from '../packages/core/index.js'
+const erased = eraseExperience('/tmp/whale', { id: made.id, reason: '她要求撤回', actor: 'self' })
+const gone: boolean = erased.alreadyGone
+const goneHash: string | undefined = erased.hash
+const mark: tombstones.Tombstone | null = tombstones.byId('/tmp/whale', made.id)
+const withdrawnIds: Set<string> = tombstones.ids('/tmp/whale')
+const auditRows: audit.AuditRow[] = audit.read('/tmp/whale', { action: 'erase', actor: 'self' })
+const auditHash: string = audit.queryHash('外婆家的树')
+const readBack2 = audit.readRecord('/tmp/whale', made.id, { actor: 'self' })
+const recalledWithAudit = audit.recall('/tmp/whale', '围巾', { actor: 'self', limit: 1 })
+const exported: string = exportMemory('/tmp/whale', { includeSealed: false, from: '2026-11-01' })
+console.log(gone, goneHash?.length, mark?.id, withdrawnIds.size, auditRows.length, auditHash.length, readBack2?.id, recalledWithAudit.length, exported.length, hybridHits.length, hybridVariants.length, hybridTokens.length, hybridBm.length, hybridMinCover)
 console.log(hybridHits.length, hybridVariants.length, hybridBm.length, hybridMinCover)
