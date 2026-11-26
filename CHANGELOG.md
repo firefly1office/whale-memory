@@ -6,6 +6,7 @@
 
 ### Added
 
+<<<<<<< HEAD
 - **`factKey`：事实键式取代（默认关，只做数据层）**：`packages/core/lib/fact-key.js` + `fact-events.jsonl`。
   同一个 `对象.方面` 再记一次就是取代上一代——旧的只标 `supersededBy`、不进"现行事实"，但**东西留着能撤销**；
   不同键互不影响；坏行 fail closed。**这一版不接召回、不进注入、不进 SQLite、不自动抽取**。
@@ -17,6 +18,16 @@
   不传 `enabled: true` 返回空串，宿主不用加分支。
 - **`docs/discipline-zh.md`：三档纪律**（可数 7 / 半可数 4 / 不可数 6，共 17 条）——按"机制能不能查"
   把我们说过要守的规矩分档，避免把"希望"写成"系统保证"。三档写法借自 dsh-xiaoyu-wake 的 `DISCIPLINE.md`。
+=======
+- **写路径切 SQLite（阶段 1 的尾巴）**：`addExperience` / `reviseExperience` / `setSealed` / `markRecalled`
+  收可选参数 `{ backend: 'sqlite', dualWrite }`——记录与事件进 `memory.sqlite`，一次写入一个事务，
+  提交前刷新 `sources`；`dualWrite: false` 时只写库、JSONL 一个字节不动；`recall({ backend: 'sqlite', mark: true })`
+  解禁。默认仍是 `file`，不传参数行为与 0.27.0 逐字相同。
+  **对拍**：同一串 8 个动作在 file / sqlite 两个后端读出来逐字段相同（唯一不同的是随机 `exp_` id）。
+  **崩在两步之间**：JSONL 多一行、库没提交 → 读库报 `STORAGE_STALE`（fail closed），移走库重新迁移即恢复。
+  `setUnfinishedState` / `linkExperiences` / 章节仍只写 JSONL，迁移后用它们会让库过期（同样 fail closed）。
+  见 `docs/storage-backend-zh.md` §3.1。
+>>>>>>> feat/s4-sqlite
 
 ## [0.27.0] - 2026-11-26
 

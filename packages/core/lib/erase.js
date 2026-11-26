@@ -27,7 +27,7 @@ import { readLines } from './jsonl-stream.js'
 import * as tombstones from './tombstones.js'
 import * as audit from './audit.js'
 import { internals as expInternals } from './self-experience.js'
-import { eraseReadiness, eraseFromStore } from './sqlite-store.js'
+import { eraseReadiness, eraseFromStore, storeRecordJson } from './sqlite-store.js'
 
 const RECORDS = 'self-experience.jsonl'
 // 挂在这条经历上的事件文件：撤回了就一起删。
@@ -228,6 +228,11 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
   const tombIds = [...new Set([key, ...analysed.target, ...formerIds])]
     const eventIds = new Set(tombIds)
 
+    // 独写（dualWrite:false）的记录只在库里、JSONL 里没有：先问一次库。
+    // 不然库里把它删了、这里却按"已经没了"返回、墓碑不写——撤回必留墓碑的保证就破了（S4 复审抓到的）。
+    const storeJson = doomed.length ? '' : storeRecordJson(dir, tombIds)
+    if (!hash && storeJson) hash = crypto.createHash('sha256').update(storeJson, 'utf8').digest('hex')
+
     const journal = []
     let tombstoned = false
     try {
@@ -246,8 +251,8 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
       if (sq.present) { removed.sqliteRecords = sq.records; removed.sqliteEvents = sq.events }
       removed.sqlite = Boolean(sq.present)
 
-      // 7) 记录一条都没找到：这次是"已经没了"（崩溃后重跑也走这里：顺手把残留事件清掉）
-      if (!doomed.length) {
+      // 7) 记录一条都没找到（JSONL 与库都没有）：这次是"已经没了"（崩溃后重跑也走这里：顺手把残留事件清掉）
+      if (!doomed.length && !storeJson) {
       // 记录行已经没了、但这次确实清掉了残留事件（崩溃后重跑会走这里）：
       // 既然真的删了东西，就要在审计里留一条，否则事后查不到任何痕迹（验收抓到的）。
       const cleaned = Number(removed.records || 0) + Number(removed.sqliteRecords || 0) + Number(removed.sqliteEvents || 0) +

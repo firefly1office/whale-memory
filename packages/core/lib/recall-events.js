@@ -18,7 +18,8 @@ function ensureDir(memDir) {
 
 
 
-export function append(memDir, { id, query = '', chatKey = '', backfilled = false } = {}, opts = {}) {
+// 造一行想起事件，但**不落盘**（写路径切 sqlite 时两边存同一行，见 later-events.buildRow）
+export function buildRow({ id, query = '', chatKey = '', backfilled = false } = {}) {
   if (!String(id || '').trim()) throw new Error('id cannot be empty（id 不能为空）')
   const row = {
     id: String(id),
@@ -27,7 +28,12 @@ export function append(memDir, { id, query = '', chatKey = '', backfilled = fals
     chatKey: String(chatKey || '').slice(0, 120)
   }
   if (backfilled) row.backfilled = true
+  return row
+}
 
+// 追加一行**已经造好**的事件（双写用）
+export function appendRow(memDir, row, opts = {}) {
+  if (!isValid(row)) throw new Error('recall 事件不合格（缺 id），拒绝写入')
   ensureDir(memDir)
   return withFileLock(eventsFile(memDir) + '.lock', () => {
     const file = eventsFile(memDir)
@@ -45,6 +51,10 @@ export function append(memDir, { id, query = '', chatKey = '', backfilled = fals
     fs.appendFileSync(file, prefix + JSON.stringify(row) + '\n', 'utf8')
     return row
   }, opts)
+}
+
+export function append(memDir, payload = {}, opts = {}) {
+  return appendRow(memDir, buildRow(payload), opts)
 }
 
 export function readAll(memDir) {

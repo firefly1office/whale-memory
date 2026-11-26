@@ -27,4 +27,9 @@ export function isValid(row: unknown): boolean
 
 export function list(memDir: string, opts?: { id?: string; limit?: number }): RecallEvent[]
 
+/** 造一行但**不落盘**（S4：写路径切 sqlite 时，JSONL 与库存同一行） */
+export function buildRow(event: { id: string; query?: string; chatKey?: string; backfilled?: boolean }): RecallEvent
+/** 追加一行**已经造好**的事件（双写用） */
+export function appendRow(memDir: string, row: RecallEvent, opts?: { timeoutMs?: number }): RecallEvent
+
 export const internals: { FILE: string }

@@ -12,7 +12,9 @@ export function eventsFile(memDir) {
   return path.join(memDir, FILE)
 }
 
-export function append(memDir, { id, thought, reason = '', feeling = [] } = {}, opts = {}) {
+// 造一行后记事件，但**不落盘**。写路径切 sqlite 时，JSONL 与库必须存同一行（逐字段相同），
+// 所以"造行"和"写行"拆开：append = buildRow + appendRow。
+export function buildRow({ id, thought, reason = '', feeling = [] } = {}) {
   if (!String(id || '').trim()) throw new Error('id cannot be empty（id 不能为空）')
   if (!String(thought || '').trim()) throw new Error('thought cannot be empty（thought 不能为空）')
   const now = new Date()
@@ -24,7 +26,16 @@ export function append(memDir, { id, thought, reason = '', feeling = [] } = {}, 
     reason: String(reason || '')
   }
   if (Array.isArray(feeling) && feeling.length) row.feeling = feeling.map(String)
+  return row
+}
 
+export function append(memDir, payload = {}, opts = {}) {
+  return appendRow(memDir, buildRow(payload), opts)
+}
+
+// 追加一行**已经造好**的事件（双写用：同一行同时进 JSONL 与库）
+export function appendRow(memDir, row, opts = {}) {
+  if (!isValid(row)) throw new Error('later 事件不合格（缺 id / thought），拒绝写入')
   fs.mkdirSync(memDir, { recursive: true })
   return withFileLock(eventsFile(memDir) + '.lock', () => {
     const file = eventsFile(memDir)

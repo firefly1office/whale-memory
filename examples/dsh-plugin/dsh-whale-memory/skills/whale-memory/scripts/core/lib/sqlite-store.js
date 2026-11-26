@@ -126,6 +126,9 @@ export function openDatabaseFile(file, { create = false } = {}) {
   if (!create && !fs.existsSync(file)) return null
   if (create) fs.mkdirSync(path.dirname(file), { recursive: true })
   const db = new DatabaseSync(file)
+  // 另一个进程正拿着写锁时等一会儿，而不是立刻抛原始的 "database is locked"（S4 复审抓到的）。
+  // 契约仍不承诺多写者；这条只是把"两次写入撞上"从难看的原文错误变成"最多等 3 秒"。
+  try { db.exec('PRAGMA busy_timeout = 3000') } catch { }
   if (create) {
     try {
       db.exec('PRAGMA journal_mode = WAL')
@@ -173,6 +176,148 @@ export function recordExists(db, id) {
 export function writeSources(db, sizes, at = new Date().toISOString()) {
   const stmt = db.prepare('INSERT OR REPLACE INTO sources (file, size, migrated_at) VALUES (?, ?, ?)')
   for (const [file, size] of Object.entries(sizes)) stmt.run(file, Number(size) || 0, at)
+}
+
+// ---------------------------------------------------------------- 同步写入（阶段 5 · S4：写路径切 sqlite）
+//
+// 读早就能走 sqlite，写原来只在 JSONL 上——库一旦落后于 JSONL，读路径就报 STORAGE_STALE。
+// 这一节把写也接上，规矩和读一样：宁可报错，不许把"库缺了旧行"洗成"库是新的"。
+//   · 一次写入 = 一个事务：记录 / 事件 / 文件副作用 / sources 刷新全在里面，失败整组回滚；
+//   · 进来先对账（checkFresh）：库和 JSONL 对不上就拒绝，让调用方重新迁移，而不是往上叠；
+//   · 双写时 JSONL 在事务里写（appendToStore 的 fileWrite）：崩在"写了 JSONL、还没提交"之间，
+//     库里没有这一行、sources 也没刷新 → 读路径 fail closed，重新迁移即可，不会读出半条；
+//   · 独写（不进 JSONL）时 JSONL 不动，sources 刷成同一批字节数（等于没变），读路径照样对得上。
+
+function storeNotMigrated() {
+  return coded('这个目录还没有 ' + DB_FILE + '：先用 tools/migrate-storage.mjs 迁移，或者继续用 file 后端（不会替你建一个空库，也不会静默退回 file）。（store is not migrated）', 'STORAGE_NOT_MIGRATED')
+}
+
+// 写 / 读之前：库在不在（调用方已开）、表齐不齐、和目录里的 JSONL 对不对得上。任意一条不成立就抛。
+function assertStoreReady(db, dir) {
+  let tables
+  try { tables = tablesOf(db) } catch (error) { throw unreadable(error) }
+  if (!tables.has('records') || !tables.has('events')) {
+    throw coded(DB_FILE + ' 缺表（' + ['records', 'events'].filter((t) => !tables.has(t)).join('、') + '）：结构不全的库不能写，先移走它重新迁移。', 'STORAGE_INCOMPLETE')
+  }
+  if (!tables.has('sources')) {
+    throw coded(DB_FILE + ' 缺 sources 表（阶段 1 早期建的库）：没法判断库和 JSONL 对不对得上，先移走它重新迁移。', 'STORAGE_INCOMPLETE')
+  }
+  checkFresh(db, dir, true)
+}
+
+/**
+ * 同步写入：一次调用 = 一个事务。
+ * @param {string} dir
+ * @param {{ record?: object|null, events?: {kind: string, row: object}[], fileWrite?: null|(() => void) }} writes
+ *   record    要插的记录（原样整行 JSON）；null 表示这次不写记录
+ *   events    要插的事件（kind 见 EVENT_KINDS；同一层事务里逐一校验）
+ *   fileWrite 双写时把同一批东西追加进 JSONL。在事务里、sources 刷新之前跑；抛了就整组回滚
+ * @param {{ refreshSources?: boolean }} opts 默认刷新（双写与独写都刷；独写时字节数不变）
+ * @returns {{ record: boolean, events: number }}
+ */
+export function appendToStore(dir, { record = null, events = [], fileWrite = null } = {}, { refreshSources = true } = {}) {
+  const db = openDatabase(dir)
+  if (!db) throw storeNotMigrated()
+  try {
+    db.exec('BEGIN IMMEDIATE')
+    try {
+      assertStoreReady(db, dir)
+      if (record) insertRecord(db, record)
+      for (const e of events || []) insertEvent(db, e && e.kind, e && e.row)
+      if (typeof fileWrite === 'function') fileWrite()
+      if (refreshSources) writeSources(db, sourceSizes(dir))
+      db.exec('COMMIT')
+      return { record: Boolean(record), events: (events || []).length }
+    } catch (error) {
+      try { db.exec('ROLLBACK') } catch { }
+      throw error
+    }
+  } finally {
+    try { db.close() } catch { }
+  }
+}
+
+/**
+ * 同步读事务：fn(db) 里读。进来先对账（没迁移 / 缺表 / 库过期都抛），
+ * 给写路径做"这条经历在不在""上次封存动作是什么"这类判断用——和写用同一套口径。
+ */
+export function readFromStore(dir, fn) {
+  const db = openDatabase(dir)
+  if (!db) throw storeNotMigrated()
+  try {
+    db.exec('BEGIN')
+    try {
+      assertStoreReady(db, dir)
+      const out = fn(db)
+      db.exec('COMMIT')
+      return out
+    } catch (error) {
+      try { db.exec('ROLLBACK') } catch { }
+      throw error
+    }
+  } finally {
+    try { db.close() } catch { }
+  }
+}
+
+/** 库里的一条记录（原样 JSON）；没有就是 null，坏 JSON 也当 null（写路径只拿它认 id） */
+export function recordOfStore(db, id) {
+  const row = db.prepare('SELECT json FROM records WHERE id = ?').get(String(id))
+  if (!row) return null
+  try { return JSON.parse(row.json) } catch { return null }
+}
+
+/** 0.10 之前的旧 id 认领表：formerId → [当前 id...]（写路径认旧 id 用） */
+export function legacyOwnersOfStore(db) {
+  const owners = new Map()
+  for (const r of db.prepare('SELECT json FROM records ORDER BY rowid').all()) {
+    let row
+    try { row = JSON.parse(r.json) } catch { continue }
+    const former = row && row.formerId ? String(row.formerId) : ''
+    if (!former) continue
+    const list = owners.get(former)
+    if (list) list.push(String(row.id))
+    else owners.set(former, [String(row.id)])
+  }
+  return owners
+}
+
+/** 这条经历在库里的最后一次封存动作：{ action:'seal'|'unseal'|'', at, day, note, bad }。bad>0 表示封存事件有坏行。 */
+export function lastSealOfStore(db, id) {
+  const { rows, bad } = readEvents(db, 'seal')
+  const mine = rows.filter((r) => String(r.id) === String(id))
+  const last = mine[mine.length - 1] || null
+  return {
+    action: last ? String(last.action) : '',
+    at: last ? String(last.at || '') : '',
+    day: last ? String(last.day || '') : '',
+    note: last ? String(last.note || '') : '',
+    bad
+  }
+}
+
+/**
+ * 库里这条记录的**原始那一行 JSON**（给擦除用）；库里没有 / 打不开 / 没迁移 都返回 ''。
+ * 为什么擦除要问库：`dualWrite:false` 时记录只在库里，JSONL 里根本没有这一行——
+ * 只看 JSONL 会把它当成"已经没了"，于是库里的行被删掉、墓碑却不写（S4 复审抓到的）。
+ */
+export function storeRecordJson(dir, ids) {
+  const wanted = [...new Set((Array.isArray(ids) ? ids : [ids]).map((x) => String(x || '')).filter(Boolean))]
+  if (!wanted.length) return ''
+  let db
+  try {
+    if (!statDatabase(dir)) return ''
+    db = openDatabase(dir)
+  } catch { return '' }
+  if (!db) return ''
+  try {
+    const stmt = db.prepare('SELECT json FROM records WHERE id = ?')
+    for (const id of wanted) {
+      const row = stmt.get(id)
+      if (row && row.json) return String(row.json)
+    }
+    return ''
+  } catch { return '' } finally { try { db.close() } catch { } }
 }
 
 // ---------------------------------------------------------------- 读

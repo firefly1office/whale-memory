@@ -13,7 +13,7 @@ import { queryTerms, requiredOverlap, matchedTerms, normalizeText, contentUnits,
 import { hybridRank } from './hybrid-recall.js'
 import { embedRank } from './embed-recall.js'
 import { parseAsOf, before, dayOf } from './as-of.js'
-import { readSnapshot } from './sqlite-store.js'
+import { readSnapshot, appendToStore, readFromStore, recordOfStore, legacyOwnersOfStore, lastSealOfStore } from './sqlite-store.js'
 import { readLines, readLinesAsync } from './jsonl-stream.js'
 import * as metrics from './metrics.js'
 
@@ -254,6 +254,12 @@ function backendName(backend) {
   const name = backend === undefined || backend === null || backend === '' ? 'file' : String(backend)
   if (!BACKENDS.has(name)) throw new Error('未知的存储后端：' + name + '（支持 file / sqlite）')
   return name
+}
+
+// 写路径的后端选项：backend 与读路径同一个名字；dualWrite=JSONL 还写不写（默认写）。
+// 双写的意思是"同一行同时进 JSONL 和库"——不是各写各的，所以两边读出来逐字段相同。
+function writeTarget(opts) {
+  return { backend: backendName(opts && opts.backend), dualWrite: !(opts && opts.dualWrite === false) }
 }
 
 function fileSource(dir) {
@@ -768,15 +774,29 @@ export function linkExperiences(dir, { from, to, reason = '' } = {}) {
 
 // 封存 / 解封：她不想再被这件事主动提醒了，或者又愿意了
 // 不删除任何东西；重复同一个动作不写第二条
-export function setSealed(dir, { id, sealed = true, note = '' } = {}) {
+// backend='sqlite' 时事件进库（dualWrite 默认还写 JSONL，两边是同一行）；重复动作照样是 noop
+export function setSealed(dir, { id, sealed = true, note = '' } = {}, opts = {}) {
   if (!String(id || '').trim()) return { ok: false, error: 'Missing id（需要 id）' }
   try {
-    const target = resolveId(dir, String(id))
-    if (target.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + id + '. Use the current id listed by `read`.（这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id。）' }
-    if (!target.id) return { ok: false, error: 'Experience not found: ' + id + '. Run `read` to check the id.（找不到这条经历：' + id + '。先用 read 看一下 id。）' }
+    const target = writeTarget(opts)
+    const hit = target.backend === 'sqlite' ? resolveIdInStore(dir, String(id)) : resolveId(dir, String(id))
+    if (hit.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + id + '. Use the current id listed by `read`.（这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id。）' }
+    if (!hit.id) return { ok: false, error: 'Experience not found: ' + id + '. Run `read` to check the id.（找不到这条经历：' + id + '。先用 read 看一下 id。）' }
     const action = sealed ? 'seal' : 'unseal'
-    const decided = sealEvents.decide(dir, { id: target.id, action, note: tooLong('note', note, 200) })
-    return { ok: true, id: target.id, sealed: Boolean(sealed), at: decided.row ? decided.row.at : '', noop: decided.noop }
+    const safeNote = tooLong('note', note, 200)
+    if (target.backend === 'file') {
+      const decided = sealEvents.decide(dir, { id: hit.id, action, note: safeNote })
+      return { ok: true, id: hit.id, sealed: Boolean(sealed), at: decided.row ? decided.row.at : '', noop: decided.noop }
+    }
+    // sqlite：先看库里最后一次动作，重复就是 noop——和文件后端同一条判据（有坏行时不合并，按她的请求追加）
+    const last = readFromStore(dir, (db) => lastSealOfStore(db, hit.id))
+    const sealedNow = last.action === 'seal'
+    if (!last.bad && ((action === 'seal' && sealedNow) || (action === 'unseal' && !sealedNow))) {
+      return { ok: true, id: hit.id, sealed: Boolean(sealed), at: last.at, noop: true }
+    }
+    const row = sealEvents.buildRow({ id: hit.id, action, note: safeNote })
+    appendToStore(dir, { events: [{ kind: 'seal', row }], fileWrite: target.dualWrite ? () => sealEvents.appendRow(dir, row) : null })
+    return { ok: true, id: hit.id, sealed: Boolean(sealed), at: row.at, noop: false }
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) }
   }
@@ -808,11 +828,17 @@ function resolveId(dir, id) {
   return { id: '', ambiguous: (owners.get(id) || []).length > 1 }
 }
 
+// 出处的清单：逗号分隔的字符串或数组都收，去重前先校验条数上限
+function refList(refs) {
+  const list = (Array.isArray(refs) ? refs : String(refs || '').split(/[,，\s]+/)).map((s) => String(s || '').trim()).filter(Boolean)
+  if (list.length > LIMITS.refs) throw new Error(`refs allows at most ${LIMITS.refs} entries; got ${list.length}. Pick the most important ones.（出处最多 ${LIMITS.refs} 条，现在是 ${list.length} 条。挑最主要的几件写。）`)
+  return list
+}
+
 // 出处：回想只能引用已经写下的经历。找不到、或旧 id 有歧义，就整条不写，并说清是哪一个
 function resolveRefs(dir, refs) {
-  const list = (Array.isArray(refs) ? refs : String(refs || '').split(/[,，\s]+/)).map((s) => String(s || '').trim()).filter(Boolean)
+  const list = refList(refs)
   if (!list.length) return []
-  if (list.length > LIMITS.refs) throw new Error(`refs allows at most ${LIMITS.refs} entries; got ${list.length}. Pick the most important ones.（出处最多 ${LIMITS.refs} 条，现在是 ${list.length} 条。挑最主要的几件写。）`)
   const { rows, owners } = identify(dir)
   const out = []
   for (const x of list) {
@@ -824,17 +850,65 @@ function resolveRefs(dir, refs) {
   return out
 }
 
+// 同上，但从库里认（写路径切 sqlite、或 JSONL 不双写时，文件里可能没有这条）
+function resolveRefsFromStore(dir, refs) {
+  const list = refList(refs)
+  if (!list.length) return []
+  return readFromStore(dir, (db) => {
+    const owners = legacyOwnersOfStore(db)
+    const out = []
+    for (const x of list) {
+      if (recordOfStore(db, x)) {
+        if (!out.includes(x)) out.push(x)
+        continue
+      }
+      const candidates = owners.get(x) || []
+      if (candidates.length > 1) throw new Error('A legacy id in refs is shared by several experiences: ' + x + '. Use the current id listed by `read`.（出处里的旧 id 有几条经历共用：' + x + '。用 read 里列出的当前 id。）')
+      if (!candidates.length) throw new Error('refs points to an experience that does not exist: ' + x + '. A look-back can only cite experiences already written.（出处里有找不到的经历：' + x + '。回想只能引用已经写下的经历。）')
+      if (!out.includes(candidates[0])) out.push(candidates[0])
+    }
+    return out
+  })
+}
+
+// 把调用方给的 id 落到库里一条现存经历上（与 resolveId 同一套口径：认当前 id，也认唯一对应的旧 id）
+function resolveIdInStore(dir, id) {
+  return readFromStore(dir, (db) => {
+    if (recordOfStore(db, id)) return { id }
+    const candidates = legacyOwnersOfStore(db).get(id) || []
+    if (candidates.length > 1) return { id: '', ambiguous: true }
+    if (candidates.length === 1) return { id: candidates[0] }
+    return { id: '' }
+  })
+}
+
 // 写下时的"当时"：她写的 + 系统能自动带的状态（情绪/时间/场合）
 // refs：这条是从哪几件事想到的（回想、归纳时用）。写入时就校验，引用不存在的经历直接拒绝
-export function addExperience(dir, input = {}) {
+export function addExperience(dir, input = {}, opts = {}) {
   // 指标：写入延迟（含 refs 的存在性校验，那是这条路径真实的一部分）
   const t0 = process.hrtime.bigint()
-  const row = addExperienceInner(dir, input)
+  const target = writeTarget(opts)
+  const row = target.backend === 'sqlite' ? addExperienceToStore(dir, input, target) : addExperienceInner(dir, input)
   metrics.recordWrite({ ms: Number(process.hrtime.bigint() - t0) / 1e6 })
   return row
 }
 
-function addExperienceInner(dir, { text, scene = '', feeling = [], thought = '', unfinished = '', quote = null, weight = 'normal', kind = '其它', state = null, source = 'own-time', refs = [] }) {
+// file 后端（默认）：一个字都没改，还是"造好行 → 追加进 JSONL"
+function addExperienceInner(dir, input) {
+  const row = buildExperienceRow(dir, input, 'file')
+  appendRecordLine(dir, row)
+  return row
+}
+
+// sqlite 后端：记录进库（事务里），双写时同一行也追进 JSONL。
+// 默认双写：JSONL 是"无论如何都留着"的那一份，库随时能从它重建。
+function addExperienceToStore(dir, input, { dualWrite }) {
+  const row = buildExperienceRow(dir, input, 'sqlite')
+  appendToStore(dir, { record: row, fileWrite: dualWrite ? () => appendRecordLine(dir, row) : null })
+  return row
+}
+
+function buildExperienceRow(dir, { text, scene = '', feeling = [], thought = '', unfinished = '', quote = null, weight = 'normal', kind = '其它', state = null, source = 'own-time', refs = [] }, backend = 'file') {
   if (!String(text || '').trim()) throw new Error('text cannot be empty.（text 不能是空的。）')
   const safeText = tooLong('text', text, LIMITS.text)
   const safeScene = tooLong('scene', scene, LIMITS.scene)
@@ -843,9 +917,8 @@ function addExperienceInner(dir, { text, scene = '', feeling = [], thought = '',
   const safeKind = tooLong('kind', kind || '其它', LIMITS.kind)
   // 和 revise 同一套：逗号分隔的字符串或数组都收、去重；写入时不限单个词的长度（旧宿主可能写过短句）
   const feelings = feelingList(feeling, { name: 'feeling' })
-  const refIds = resolveRefs(dir, refs)
+  const refIds = backend === 'sqlite' ? resolveRefsFromStore(dir, refs) : resolveRefs(dir, refs)
 
-  fs.mkdirSync(dir, { recursive: true })
   const now = new Date()
   const id = 'exp_' + now.getTime().toString(36) + Math.random().toString(36).slice(2, 6)
   const row = {
@@ -869,6 +942,12 @@ function addExperienceInner(dir, { text, scene = '', feeling = [], thought = '',
     status: 'kept'
   }
   if (refIds.length) row.then.refs = refIds
+  return row
+}
+
+// 追加一条经历（只追加；必要时补换行）。原来的写入逻辑原样搬出来，file 与 sqlite 双写共用这一份
+function appendRecordLine(dir, row) {
+  fs.mkdirSync(dir, { recursive: true })
   const fd = fs.openSync(path.join(dir, FILE), 'a+')
   try {
     const size = fs.fstatSync(fd).size
@@ -885,17 +964,24 @@ function addExperienceInner(dir, { text, scene = '', feeling = [], thought = '',
 // 改主意 / 回头想：只追加一条 later 事件，不重写经历文件
 // 先确认这条经历真的在：id 抄错时明说找不到，不留一条谁也看不见的后记
 // feeling：她现在再想起这件事的感觉。当时的感觉留在 then.feeling 里不动；系统从不替她"淡化"
-export function reviseExperience(dir, { id, thought, reason = '', feeling = [] }) {
+// backend='sqlite' 时事件进库（dualWrite 默认还写 JSONL，两边是同一行）
+export function reviseExperience(dir, { id, thought, reason = '', feeling = [] }, opts = {}) {
   if (!String(id || '').trim()) return { ok: false, error: 'Missing id（需要 id）' }
   if (!String(thought || '').trim()) return { ok: false, error: 'thought cannot be empty.（thought 不能是空的。）' }
   try {
     const safeThought = tooLong('thought', thought, LIMITS.laterThought)
     const safeReason = tooLong('reason', reason, LIMITS.laterReason)
     const feelings = feelingList(feeling, { name: 'feeling', perWord: true })
-    const target = resolveId(dir, String(id))
-    if (target.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + id + '. Use the current id listed by `read` to revise it.（这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id 来改。）' }
-    if (!target.id) return { ok: false, error: 'Experience not found: ' + id + '. Run `read` or `recall` to check the id.（找不到这条经历：' + id + '。先用 read 或 recall 看一下 id。）' }
-    const row = laterEvents.append(dir, { id: target.id, thought: safeThought, reason: safeReason, feeling: feelings })
+    const target = writeTarget(opts)
+    const hit = target.backend === 'sqlite' ? resolveIdInStore(dir, String(id)) : resolveId(dir, String(id))
+    if (hit.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + id + '. Use the current id listed by `read` to revise it.（这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id 来改。）' }
+    if (!hit.id) return { ok: false, error: 'Experience not found: ' + id + '. Run `read` or `recall` to check the id.（找不到这条经历：' + id + '。先用 read 或 recall 看一下 id。）' }
+    if (target.backend === 'file') {
+      const row = laterEvents.append(dir, { id: hit.id, thought: safeThought, reason: safeReason, feeling: feelings })
+      return { ok: true, id: row.id, at: row.at, ...(feelings.length ? { feeling: feelings } : {}) }
+    }
+    const row = laterEvents.buildRow({ id: hit.id, thought: safeThought, reason: safeReason, feeling: feelings })
+    appendToStore(dir, { events: [{ kind: 'later', row }], fileWrite: target.dualWrite ? () => laterEvents.appendRow(dir, row) : null })
     return { ok: true, id: row.id, at: row.at, ...(feelings.length ? { feeling: feelings } : {}) }
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) }
@@ -930,12 +1016,22 @@ function rowsById(dir, id) {
   return rows.find((r) => r.id === id) || rows.find((r) => r.formerId === id) || null
 }
 
-// 想起时记一笔：往 recall-events.jsonl 追加一条事件，不动经历正文
+// 想起时记一笔：往 recall-events 追加一条事件，不动经历正文
 // 不做存在性检查：孤儿事件在 loadAll 合并时自然被忽略
-export function markRecalled(dir, id) {
+// backend='sqlite' 时事件进库（dualWrite 默认还写 JSONL，两边是同一行）
+export function markRecalled(dir, id, opts = {}) {
   if (!String(id || '').trim()) return false
-  try { recallEvents.append(dir, { id: String(id) }) } catch { return false }
-  return true
+  try {
+    const target = writeTarget(opts)
+    const query = (opts && opts.query) || ''
+    if (target.backend === 'file') {
+      recallEvents.append(dir, { id: String(id), query })
+      return true
+    }
+    const row = recallEvents.buildRow({ id: String(id), query })
+    appendToStore(dir, { events: [{ kind: 'recall', row }], fileWrite: target.dualWrite ? () => recallEvents.appendRow(dir, row) : null })
+    return true
+  } catch { return false }
 }
 
 // asOf：看那天的这一条（那之后的后记、选择、想起都不算）；那天还没写下就返回 null
@@ -954,8 +1050,8 @@ export function currentView(dir, id, { asOf = null, backend = 'file' } = {}) {
 // 她封存了的经历不会被召回；includeSealed=true 只给"她自己要翻"这种明确场景用
 // gate：strict 下用哪套门槛。'cover'（默认，0.17 起）= 至少对上一个词 + 意思至少 70% 被接住；
 //       'legacy' = 0.16 及以前的口径（长查询要 60% 的两字词对上），排序也照旧。宿主想保持旧行为时用
-// backend：读哪个容器（默认 file，见 loadAll）。写路径还没切到 sqlite：sqlite 下 mark=true 会把想起记到 JSONL、
-// 库里看不见，所以直接拒绝，不留一笔两边对不上的账
+// backend：读哪个容器（默认 file，见 loadAll）；写路径（mark=true）同样认这个参数，
+// dualWrite=false 时只写库、不碰 JSONL（S4 起）；两边是同一行，读出来一样
 // ranker：'literal'（默认，0.23.0 及以前的行为一个字都没改）或 'hybrid'（BM25 + 字符 n-gram + 小同义词表，
 //         见 hybrid-recall.js）。实验性：指标没显著提升就不切默认，默认仍是字面检索。
 // context：上一轮查询（字符串或数组）。宿主做多轮追问时把上下文一起递进来；字面检索把它拼到查询前面，
@@ -970,9 +1066,8 @@ export function recall(dir, query, opts = {}) {
   return hits
 }
 
-function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover', backend = 'file', ranker = 'literal', context = null } = {}) {
+function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover', backend = 'file', ranker = 'literal', context = null, dualWrite = true } = {}) {
   if (mark && asOf !== null && asOf !== undefined && asOf !== '') throw new Error('Looking back at an earlier day does not record a recall: mark and asOf cannot be used together.（翻回旧日子时不记「想起」：mark 和 asOf 不能一起用。）')
-  if (mark && backendName(backend) !== 'file') throw new Error('mark=true only works with the file backend for now: recalls are still written to JSONL.（写路径还没切到 sqlite：mark=true 目前只能配 file 后端。）')
   if (ranker !== 'literal' && ranker !== 'hybrid' && ranker !== 'embed') {
     if (ranker === null || ranker === undefined) ranker = 'literal'
     else throw new Error('ranker must be "literal", "hybrid" or "embed"（ranker 只能是 literal / hybrid / embed）')
@@ -987,7 +1082,7 @@ function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minR
     if (!mark || !hits.length) return hits
     const at = new Date().toISOString()
     for (const r of hits) {
-      try { recallEvents.append(dir, { id: r.id, query: q0 }) } catch { /* 坏文件时不阻断召回 */ }
+      markRecalled(dir, r.id, { backend, dualWrite, query: q0 })
     }
     return hits.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at }))
   }
@@ -998,7 +1093,7 @@ function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minR
     if (!mark || !hits.length) return hits
     const at = new Date().toISOString()
     for (const r of hits) {
-      try { recallEvents.append(dir, { id: r.id, query: q0 }) } catch { /* 坏文件时不阻断召回 */ }
+      markRecalled(dir, r.id, { backend, dualWrite, query: q0 })
     }
     return hits.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at }))
   }
@@ -1055,7 +1150,7 @@ function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minR
   // 记完就地 +1，不回读全量；下一次读取自然会对上
   const at = new Date().toISOString()
   for (const r of picked) {
-    try { recallEvents.append(dir, { id: r.id, query: q }) } catch { /* 坏文件时不阻断召回 */ }
+    markRecalled(dir, r.id, { backend, dualWrite, query: q })
   }
   return picked.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at }))
 }

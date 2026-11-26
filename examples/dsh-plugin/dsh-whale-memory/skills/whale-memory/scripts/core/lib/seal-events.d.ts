@@ -26,4 +26,8 @@ export function sealedByExp(memDir: string, opts?: { until?: number | null; stri
 export function sealedFrom(read: { rows: SealEvent[]; bad: number }, opts?: { until?: number | null; strict?: boolean }): Map<string, SealedInfo>
 /** 一行算不算合格的封存事件（文件与 SQLite 同一条判据） */
 export function isValid(row: unknown): boolean
+/** 造一行但**不落盘**（S4：写路径切 sqlite 时，JSONL 与库存同一行） */
+export function buildRow(event: { id: string; action: SealAction; note?: string }): SealEvent
+/** 追加一行**已经造好**的事件（双写用） */
+export function appendRow(memDir: string, row: SealEvent, opts?: { timeoutMs?: number }): SealEvent
 export const internals: { FILE: string }

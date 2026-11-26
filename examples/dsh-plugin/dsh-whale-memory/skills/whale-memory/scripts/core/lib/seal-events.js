@@ -13,7 +13,20 @@ export function eventsFile(memDir) {
   return path.join(memDir, FILE)
 }
 
-function makeRow({ id, action, note }) {
+// 造一行封存事件，但**不落盘**（写路径切 sqlite 时两边存同一行，见 later-events.buildRow）
+export function buildRow({ id, action, note = '' } = {}) {
+  if (!String(id || '').trim()) throw new Error('id cannot be empty（id 不能为空）')
+  if (!ACTIONS.has(action)) throw new Error('action must be seal / unseal（action 只能是 seal / unseal）')
+  return makeRow({ id, action, note })
+}
+
+// 追加一行**已经造好**的事件（双写用）
+export function appendRow(memDir, row, opts = {}) {
+  if (!isValid(row)) throw new Error('seal 事件不合格（缺 id / action），拒绝写入')
+  fs.mkdirSync(memDir, { recursive: true })
+  return withFileLock(eventsFile(memDir) + '.lock', () => appendUnlocked(memDir, row), opts)
+}
+  function makeRow({ id, action, note }) {
   const now = new Date()
   return { id: String(id), at: now.toISOString(), day: now.toLocaleDateString('sv-SE'), action, note: String(note || '').slice(0, 200) }
 }
