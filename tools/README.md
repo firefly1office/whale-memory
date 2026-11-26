@@ -20,6 +20,7 @@
 | 脚本 | 做什么 |
 | --- | --- |
 | `metrics.mjs` | 她有没有在长：`node tools/metrics.mjs --data=<dir>` |
+| `star-map.mjs` | 记忆星图：经历当节点、refs/link 当连线、想起次数定大小，出一张自包含 HTML（只读，不联网）；`node tools/star-map.mjs --data=<dir> --out=<file.html>` |
 | `migrate-later-events.mjs` | 把旧格式的 `later` 数组迁移成 `later-events.jsonl`；默认 dry-run |
 | `migrate-recall-events.mjs` | 把旧格式的 `recalls` 迁移成 `recall-events.jsonl`；默认 dry-run |
 
