@@ -11,6 +11,12 @@
   不同键互不影响；坏行 fail closed。**这一版不接召回、不进注入、不进 SQLite、不自动抽取**。
   `erase` 撤回一条经历时连带清掉 `expId` 指向它的事实事件（`removed.fact`），上一代自动重新生效。
   口径与"没做"清单见 `docs/fact-key-zh.md`；借鉴 Yuuyuko-uu/dsh-fish-memory 的设计（自定义许可，未复制代码）。
+- **`sessionCard`：开局短卡（默认关，纯函数）**：`packages/core/lib/session-card.js`。一觉醒来的第一段话，
+  只钉三件最容易出事的事——认人（名字）、档案位置、"**读不到别编**"；≤ 220 字，超长字段按方向截断
+  （名字留头、路径留尾），纪律那一行永不截断。**不读盘、不发请求**（源码里没有 fs / http / fetch）；
+  不传 `enabled: true` 返回空串，宿主不用加分支。
+- **`docs/discipline-zh.md`：三档纪律**（可数 7 / 半可数 4 / 不可数 6，共 17 条）——按"机制能不能查"
+  把我们说过要守的规矩分档，避免把"希望"写成"系统保证"。三档写法借自 dsh-xiaoyu-wake 的 `DISCIPLINE.md`。
 
 ## [0.27.0] - 2026-11-26
 
