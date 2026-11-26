@@ -12,6 +12,7 @@
 //   node tools/eval-v2.mjs --tune             只打开发集（调参时用；留出集最后再跑一次）
 //   node tools/eval-v2.mjs --split=holdout    只看留出集
 //   node tools/eval-v2.mjs --ranker=literal   只跑字面检索
+//   node tools/eval-v2.mjs --graph-expand     打开图扩展（默认关；用来量 T10 的前后数字）
 //   node tools/eval-v2.mjs --json             机器读
 //   node tools/eval-v2.mjs --check            检安全边界（负例 / 封存 / 抽屉 / 标记外露）与指标回归线，不达标退出 1
 //
@@ -30,6 +31,8 @@ const arg = (name, fallback) => {
 }
 const asJson = args.includes('--json')
 const check = args.includes('--check')
+// 图扩展默认关：这个开关只影响评测，不改默认行为（T10）
+const graphExpand = args.includes('--graph-expand')
 const split = arg('split', args.includes('--tune') ? 'dev' : 'all')
 const rankerArg = arg('ranker', 'both')
 const rankers = rankerArg === 'both' ? ['literal', 'hybrid'] : [rankerArg]
@@ -55,6 +58,7 @@ function evaluate(ranker, list, { useContext = true } = {}) {
   const started = performance.now()
   const results = list.map((c) => {
     const opts = { limit: 10, ranker }
+    if (graphExpand) opts.graphExpand = true
     if (useContext && c.prev) opts.context = [c.prev]
     const hits = exp.recall(memoryDir, c.query, opts)
     return {
@@ -229,7 +233,7 @@ const num = (x) => (x === null || x === undefined ? '—' : x.toFixed(3))
 if (asJson) {
   console.log(JSON.stringify(out, null, 2))
 } else {
-  console.log(`评测集 v2 · ${out.corpus.experiences} 条经历 / ${out.corpus.cases} 条用例 · 本次跑 ${out.corpus.casesInSplit} 条（${split}）· ${out.corpus.operations} 个操作`)
+  console.log(`评测集 v2 · ${out.corpus.experiences} 条经历 / ${out.corpus.cases} 条用例 · 本次跑 ${out.corpus.casesInSplit} 条（${split}）· ${out.corpus.operations} 个操作` + (graphExpand ? ' · 图扩展=开' : ''))
   console.log('')
   console.log('                       recall@10     MRR      误召回率   边界漏出   标记外露')
   for (const ranker of rankers) {

@@ -1,0 +1,106 @@
+{
+  "about": "T10 图扩展的基线快照：默认关（不传 graphExpand）时的 ids，须与 main @ 7dc17fa 逐条相同",
+  "root": "eval/corpus.json",
+  "queries": {
+    "灯塔": {
+      "literal": [
+        "e19",
+        "e01",
+        "e13",
+        "e08",
+        "e04",
+        "e33"
+      ],
+      "hybrid": [
+        "e08",
+        "e19",
+        "e01",
+        "e13",
+        "e04",
+        "e33"
+      ]
+    },
+    "外婆": {
+      "literal": [
+        "e16"
+      ],
+      "hybrid": [
+        "e16"
+      ]
+    },
+    "校刊": {
+      "literal": [
+        "e29"
+      ],
+      "hybrid": [
+        "e29"
+      ]
+    },
+    "雨": {
+      "literal": [],
+      "hybrid": []
+    },
+    "毛笔": {
+      "literal": [
+        "e03"
+      ],
+      "hybrid": [
+        "e03"
+      ]
+    },
+    "修东西": {
+      "literal": [],
+      "hybrid": []
+    },
+    "阿禾": {
+      "literal": [
+        "e20",
+        "e11",
+        "e31",
+        "e33"
+      ],
+      "hybrid": [
+        "e20",
+        "e11",
+        "e31",
+        "e33"
+      ]
+    },
+    "退稿": {
+      "literal": [
+        "e22"
+      ],
+      "hybrid": [
+        "e22"
+      ]
+    },
+    "宿舍": {
+      "literal": [],
+      "hybrid": []
+    },
+    "考试": {
+      "literal": [],
+      "hybrid": []
+    },
+    "深海": {
+      "literal": [
+        "e19",
+        "e26"
+      ],
+      "hybrid": [
+        "e19",
+        "e26"
+      ]
+    },
+    "回家": {
+      "literal": [
+        "e18",
+        "e33"
+      ],
+      "hybrid": [
+        "e18",
+        "e33"
+      ]
+    }
+  }
+}
