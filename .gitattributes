@@ -1,0 +1,4 @@
+# 评测夹具按字节比对（tests/eval-v2-corpus.test.mjs 会拿生成结果与磁盘逐字节对拍），
+# Windows 上 core.autocrlf=true 会把它们检出成 CRLF，导致测试和 CI 红。
+# 只钉这几个文件，不动其它文件的换行策略。
+eval/*.json text eol=lf
