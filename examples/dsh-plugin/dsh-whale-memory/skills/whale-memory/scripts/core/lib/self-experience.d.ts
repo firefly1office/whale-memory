@@ -75,6 +75,15 @@ export interface Experience {
   }
   /** recall 返回：是哪几条后记让这条被想起 */
   matchedLater?: LaterEntry[]
+  /** recall({ graphExpand: true }) 补进来的条目才有：因为哪几条种子、什么关系想到它（基础命中不带） */
+  via?: {
+    /** 指到它的基础命中 id，最多 5 条 */
+    seeds: string[]
+    /** 一共几条种子指到它 */
+    seedCount: number
+    /** 最强的那个关系（refs > link > chapter） */
+    kind: 'refs' | 'link' | 'chapter'
+  }
   /** 0.10.0 之前的旧 id（只在唯一对应时出现）；用它也能 revise / currentView */
   formerId?: string
   status?: string
@@ -171,6 +180,9 @@ export function recall(dir: string, query: string, opts?: {
   ranker?: 'literal' | 'hybrid' | null
   /** 上一轮查询（字符串或数组），给多轮追问用；字面检索拼到查询前面，混合检索只用它排序 */
   context?: string | string[] | null
+  /** 图扩展（1 跳），默认 false：不传时结果与以前逐条相同。打开后只填 limit 剩下的名额，
+   * 补进来的排在基础命中之后（不插队），带 via；封存 / asOf 同样生效 */
+  graphExpand?: boolean
 }): Experience[]
 
 /** 事后联想：两条都必须存在、必须写理由；同一对（不分方向）只连一次 */
