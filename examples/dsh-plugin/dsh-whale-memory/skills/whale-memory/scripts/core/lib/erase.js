@@ -33,7 +33,9 @@ const RECORDS = 'self-experience.jsonl'
 // 挂在这条经历上的事件文件：撤回了就一起删。
 // seal-events 不删：封存是"别再主动提起"的状态记录，不是正文；删了反而让"曾经封存过"这段历史断掉。
 // chapter-events 不删：章节按日子命名一段时间，不指向某一条经历（见 link/chapter 的事件格式）。
-const EVENT_FILES = ['later-events.jsonl', 'recall-events.jsonl', 'unfinished-events.jsonl', 'link-events.jsonl']
+// fact-events 要删：事实事件用 expId 指着它依据的那条经历（见 fact-key.js），那条被撤回了，
+// 还留着"她喜欢拿铁"就会读出一件已经被要求别留的事。别的事实键不受影响。
+const EVENT_FILES = ['later-events.jsonl', 'recall-events.jsonl', 'unfinished-events.jsonl', 'link-events.jsonl', 'fact-events.jsonl']
 const LIMIT_REASON = 500
 
 const coded = (message, code, extra = {}) => Object.assign(new Error(message), { code }, extra)
@@ -69,11 +71,11 @@ function recordOf(row) {
   return normalized && normalized.then && normalized.then.text ? normalized : null
 }
 
-// 事件行指向了哪些经历 id：联想是 from/to，其余三类是 id
+// 事件行指向了哪些经历 id：联想是 from/to，事实事件是 expId，其余几类是 id
 function eventIdsOf(row) {
   if (!row || typeof row !== 'object') return []
   const out = []
-  for (const key of ['id', 'from', 'to']) if (row[key] !== undefined && row[key] !== null) out.push(String(row[key]))
+  for (const key of ['id', 'from', 'to', 'expId']) if (row[key] !== undefined && row[key] !== null) out.push(String(row[key]))
   return out
 }
 
@@ -292,7 +294,7 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
 }
 
 function emptyRemoved() {
-  return { records: 0, later: 0, recall: 0, unfinished: 0, link: 0, sqlite: false, sqliteRecords: 0, sqliteEvents: 0 }
+  return { records: 0, later: 0, recall: 0, unfinished: 0, link: 0, fact: 0, sqlite: false, sqliteRecords: 0, sqliteEvents: 0 }
 }
 
 const shortName = (file) => file.replace(/-events\.jsonl$/, '')

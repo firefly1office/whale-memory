@@ -23,6 +23,8 @@ export * as conversationPrivacy from './lib/conversation-privacy.js'
 export * as factCard from './lib/fact-card.js'
 export * as factStore from './lib/fact-store.js'
 export * as factJudge from './lib/fact-judge.js'
+// 阶段 5（S1）：事实键式取代（只做数据层，默认关）
+export * as factKey from './lib/fact-key.js'
 export * as changed from './lib/changed.js'
 export * as injection from './lib/injection.js'
 export * as selfActions from './lib/self-actions.js'

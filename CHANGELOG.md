@@ -2,6 +2,16 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### Added
+
+- **`factKey`：事实键式取代（默认关，只做数据层）**：`packages/core/lib/fact-key.js` + `fact-events.jsonl`。
+  同一个 `对象.方面` 再记一次就是取代上一代——旧的只标 `supersededBy`、不进"现行事实"，但**东西留着能撤销**；
+  不同键互不影响；坏行 fail closed。**这一版不接召回、不进注入、不进 SQLite、不自动抽取**。
+  `erase` 撤回一条经历时连带清掉 `expId` 指向它的事实事件（`removed.fact`），上一代自动重新生效。
+  口径与"没做"清单见 `docs/fact-key-zh.md`；借鉴 Yuuyuko-uu/dsh-fish-memory 的设计（自定义许可，未复制代码）。
+
 ## [0.27.0] - 2026-11-26
 
 ### Added

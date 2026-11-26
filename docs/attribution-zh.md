@@ -22,6 +22,16 @@
   `DISCIPLINE.md` 的"可数 / 半可数 / 不可数"三档写法。
 - 落点：路线图 T11 / T12 / T13（尚未落地）。
 
+## 自定义许可 / 未声明标准许可（只学设计，不抄代码）
+
+### [Yuuyuko-uu/dsh-fish-memory](https://github.com/Yuuyuko-uu/dsh-fish-memory)
+
+- 许可：GitHub 元数据是 NOASSERTION（自定义条款，**会传染**：再分发要保留许可、衍生作品沿用同许可）。
+  所以这里只学设计，实现自写，**一行代码都没有拷进来**。
+- 借鉴内容：**事实键（对象.方面）**——同一个键只留最新，旧的标成已被取代、不再被想起，但东西留着能撤销。
+  粒度比"整条封存"细。
+- 落点：`packages/core/lib/fact-key.js`、`docs/fact-key-zh.md`（0.28.0 起，默认关，只做数据层、不进召回）。
+
 ## AGPL-3.0（只学设计，不抄代码）
 
 ### [Lingximo/Lysmor](https://github.com/Lingximo/Lysmor)
