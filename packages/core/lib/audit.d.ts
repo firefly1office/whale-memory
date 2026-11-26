@@ -18,6 +18,8 @@ export function isValid(r: unknown): r is AuditRow
 export function queryHash(query: unknown): string
 export function record(memDir: string, row: { at?: string; actor: string; action: string; ids?: string[]; note?: string }): AuditRow
 export function read(dir: string, opts?: { since?: string | Date | null; until?: string | Date | null; action?: string; actor?: string }): AuditRow[]
+/** 坏行数（只数，不把整份读进内存） */
+export function badLines(dir: string): number
 /** 读一条并留 read 审计（找不到也留；返回 null） */
 export function readRecord(dir: string, id: string, opts?: { actor: string; note?: string; backend?: StorageBackendName; asOf?: AsOf }): Experience | null
 /** 召回一次并留 recall 审计（只留查询哈希 + 命中 id） */

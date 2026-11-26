@@ -53,6 +53,10 @@ eraseExperience('/path/to/memory-dir', {
     `ERASE_TOMBSTONE_FAILED`，消息里明说"记录已删、墓碑没写"。
   - 擦除前库和 JSONL 对得上 → 删完刷新 `sources` 的字节数，库继续可读；本来就过期 → 照删，但**不刷新**，
     库继续保持过期（读路径 fail closed），不让一个缺记录的库看起来是新的。
+- **审计追加上失败**：墓碑写完之后审计追加失败会抛 `ERASE_AUDIT_FAILED`；重跑是 `alreadyGone`，
+  不会再补这一条（避免每次重试都堆一行审计）。要补齐只能人拿编辑器核对。
+- **record 已经不在、事件还在**（崩溃后重跑）：返回 `alreadyGone: true`，顺手清掉残留事件；
+  **不写墓碑**——我们从没看见过那条记录，写不出它的哈希。
 
 ## 三、墓碑 `tombstones.jsonl`
 

@@ -79,6 +79,32 @@ export function recall(dir, query, { actor, note = '', ...opts } = {}) {
   return hits
 }
 
+// 坏行数（给 doctor / 诊断用）：只数，不返回任何一行——审计可能很长，体检不该把整份读进内存
+export function badLines(dir) {
+  let fd
+  try {
+    fd = fs.openSync(eventsFile(dir), 'r')
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return 0
+    const wrapped = new Error('审计文件读不出来（' + FILE + '）：' + String(error && error.message ? error.message : error))
+    wrapped.code = 'AUDIT_UNREADABLE'
+    wrapped.cause = error
+    throw wrapped
+  }
+  let bad = 0
+  try {
+    for (const line of readLines(fd)) {
+      if (!line.text.trim()) continue
+      let row
+      try { row = JSON.parse(line.text) } catch { bad += 1; continue }
+      if (!isValid(row)) bad += 1
+    }
+  } finally {
+    fs.closeSync(fd)
+  }
+  return bad
+}
+
 // 只读查询：按动作 / 按人 / 按时间（ISO 或 Date，左闭右开），按追加顺序返回
 export function read(dir, { since = null, until = null, action = '', actor = '' } = {}) {
   const from = since === null || since === undefined || since === '' ? null : ms(since, 'since')

@@ -160,9 +160,10 @@ function checkBad(files, dir) {
     return check('坏行', false, 'tombstones.jsonl 读不出来（' + String((error && (error.code || error.message)) || error) + '）')
   }
   try {
-    audit.read(dir)
+    const badAudit = audit.badLines(dir)
+    if (badAudit > 0) return check('坏行', false, 'audit.jsonl ' + badAudit + ' 行无法解析或不合格')
   } catch (error) {
-    return check('坏行', false, 'audit.jsonl 读不出来或不完整（' + String((error && (error.code || error.message)) || error) + '）')
+    return check('坏行', false, 'audit.jsonl 读不出来（' + String((error && (error.code || error.message)) || error) + '）')
   }
   return check('坏行', true, '没有坏行（' + files.filter((f) => f.exists).length + ' 个文件读完了）')
 }
