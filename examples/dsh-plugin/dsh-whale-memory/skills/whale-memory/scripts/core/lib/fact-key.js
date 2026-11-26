@@ -20,7 +20,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { withFileLock } from './file-lock.js'
-import { before } from './as-of.js'
+import { before, parseAsOf } from './as-of.js'
 import { createLog } from './event-log.js'
 
 const FILE = 'fact-events.jsonl'
@@ -173,13 +173,15 @@ export function derive(rows, { until = null } = {}) {
 /**
  * 读事实：{ all, current, byKey, bad }。
  * 坏行默认 fail closed（抛 FACT_EVENTS_CORRUPT）；allowCorrupt 只给备份/计数这类"不对外展示"的用途。
+ * until：毫秒时间戳，或 `2026-11-15` 这样的日期（走 as-of 同一套解析）；看不懂就抛，不静默返回空。
  */
 export function readFacts(memDir, { until = null, allowCorrupt = false } = {}) {
+  const at = checkUntil(until)
   const { rows, bad } = readAll(memDir)
   if (bad > 0 && !allowCorrupt) {
     throw coded('事实文件有 ' + bad + ' 行无法解析：读不出"现在哪条才算数"。（fact events are corrupt）', 'FACT_EVENTS_CORRUPT', { bad })
   }
-  return { ...derive(rows, { until }), bad }
+  return { ...derive(rows, { until: at }), bad }
 }
 
 /** 现行事实（每个 key 一条）。默认 fail closed。 */
@@ -193,13 +195,33 @@ export function historyOf(memDir, key, { until = null } = {}) {
   return readFacts(memDir, { until }).all.filter((r) => r.key === target)
 }
 
-/** 某条经历带出来的事实（撤回前核对用）：每条带 isCurrent，方便说清"删了之后哪条会重新生效" */
-export function factsForExp(memDir, expId) {
+/**
+ * 某条经历带出来的事实（撤回前核对用）：每条带 isCurrent，方便说清"删了之后哪条会重新生效"。
+ * **默认 fail closed**：这个函数的用途是"撤回前核对"，最不该在坏行时给一份残缺清单。
+ * 只要计数、不要判断的用途传 { allowCorrupt: true }。
+ */
+export function factsForExp(memDir, expId, { allowCorrupt = false } = {}) {
   const id = String(expId || '').trim()
   if (!id) return []
-  const { all, current } = readFacts(memDir, { allowCorrupt: true })
+  const { all, current } = readFacts(memDir, { allowCorrupt })
   const live = new Set(current.map((r) => r.id))
   return all.filter((r) => String(r.expId || '') === id).map((r) => ({ ...r, isCurrent: live.has(r.id) }))
+}
+
+// until：null / 毫秒时间戳 / 日期字符串（与 as-of 同一套解析）。看不懂就抛，不静默返回空。
+function checkUntil(until) {
+  if (until === null || until === undefined || until === '') return null
+  if (typeof until === 'number') {
+    if (!Number.isFinite(until)) throw coded('until 看不懂：' + String(until) + '（用毫秒时间戳，或 2026-11-15 这样的日期）。（bad until）', 'FACT_BAD_UNTIL')
+    return until
+  }
+  try {
+    const t = parseAsOf(until)
+    if (!Number.isFinite(t)) throw new Error('not finite')
+    return t
+  } catch (error) {
+    throw coded('until 看不懂：' + String(until) + '（用毫秒时间戳，或 2026-11-15 这样的日期）。（bad until）', 'FACT_BAD_UNTIL', { cause: error })
+  }
 }
 
 export const internals = { FILE, KEY_LIMIT, VALUE_LIMIT, NOTE_LIMIT }

@@ -17,6 +17,9 @@ import * as sealEvents from '../../packages/core/lib/seal-events.js'
 import * as recapLib from '../../packages/core/lib/recap.js'
 import * as linkEvents from '../../packages/core/lib/link-events.js'
 import * as chapterEvents from '../../packages/core/lib/chapter-events.js'
+// 事实事件（S1 起）：doctor 也要看得见它的坏行——否则 erase 因它整次拒绝时，体检还会说"没有坏行"。
+// 文件不存在时 readAll 返回 { rows: [], bad: 0 }，老目录照常体检。
+import * as factKey from '../../packages/core/lib/fact-key.js'
 import * as book from '../../packages/core/lib/book.js'
 import * as archive from '../../packages/core/lib/archive.js'
 import * as unsaid from '../../packages/core/lib/unsaid.js'
@@ -103,7 +106,7 @@ function doDoctor() {
 
   add('事件文件可解析', () => {
     if (!fs.existsSync(MEM_DIR)) return { ok: true, detail: '没有数据目录，跳过' }
-    const bad = [laterEvents, recallEvents, unfinishedEvents, sealEvents, linkEvents, chapterEvents].reduce((n, m) => n + m.readAll(MEM_DIR).bad, 0) + unsaid.badLines(MEM_DIR)
+    const bad = [laterEvents, recallEvents, unfinishedEvents, sealEvents, linkEvents, chapterEvents, factKey].reduce((n, m) => n + m.readAll(MEM_DIR).bad, 0) + unsaid.badLines(MEM_DIR)
     return { ok: bad === 0, detail: bad === 0 ? '没有坏行' : '有 ' + bad + ' 行解析失败' }
   })
 

@@ -35,7 +35,16 @@ const RECORDS = 'self-experience.jsonl'
 // chapter-events 不删：章节按日子命名一段时间，不指向某一条经历（见 link/chapter 的事件格式）。
 // fact-events 要删：事实事件用 expId 指着它依据的那条经历（见 fact-key.js），那条被撤回了，
 // 还留着"她喜欢拿铁"就会读出一件已经被要求别留的事。别的事实键不受影响。
-const EVENT_FILES = ['later-events.jsonl', 'recall-events.jsonl', 'unfinished-events.jsonl', 'link-events.jsonl', 'fact-events.jsonl']
+//
+// **每个文件只认自己的归属字段**（复审抓到的）：早先这里对五个文件用同一张键表（含 expId），
+// 于是一条后记只要多带一个 `expId: A.id`，撤回 A 时就会把这条后记一起删掉。
+const EVENT_FILES = [
+  { name: 'later-events.jsonl', keys: ['id'] },
+  { name: 'recall-events.jsonl', keys: ['id'] },
+  { name: 'unfinished-events.jsonl', keys: ['id'] },
+  { name: 'link-events.jsonl', keys: ['from', 'to'] },
+  { name: 'fact-events.jsonl', keys: ['expId'] }
+]
 const LIMIT_REASON = 500
 
 const coded = (message, code, extra = {}) => Object.assign(new Error(message), { code }, extra)
@@ -71,11 +80,11 @@ function recordOf(row) {
   return normalized && normalized.then && normalized.then.text ? normalized : null
 }
 
-// 事件行指向了哪些经历 id：联想是 from/to，事实事件是 expId，其余几类是 id
-function eventIdsOf(row) {
+// 这一行事件指向了哪些经历 id：只按**这个文件自己的**键表取（联想是 from/to，事实是 expId，其余是 id）
+function eventIdsOf(row, keys) {
   if (!row || typeof row !== 'object') return []
   const out = []
-  for (const key of ['id', 'from', 'to', 'expId']) if (row[key] !== undefined && row[key] !== null) out.push(String(row[key]))
+  for (const key of keys) if (row[key] !== undefined && row[key] !== null) out.push(String(row[key]))
   return out
 }
 
@@ -184,7 +193,7 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
     // 2) 读全量 + 预检：坏行 / 读不出来都整次拒绝，一个字节都不改
     const records = readLinesOf(dir, RECORDS)
     if (records.bad > 0) throw coded('经历文件有 ' + records.bad + ' 行无法解析：撤回没法保证删干净，先修好或先备份。（records are corrupt）', 'ERASE_RECORDS_CORRUPT', { bad: records.bad })
-    const events = EVENT_FILES.map((name) => ({ name, ...readLinesOf(dir, name) }))
+    const events = EVENT_FILES.map((spec) => ({ ...spec, ...readLinesOf(dir, spec.name) }))
     const badEvent = events.find((e) => e.bad > 0)
     if (badEvent) throw coded('事件文件 ' + badEvent.name + ' 有 ' + badEvent.bad + ' 行无法解析：撤回没法保证删干净，先修好再撤回。（events are corrupt）', 'ERASE_EVENTS_CORRUPT', { file: badEvent.name, bad: badEvent.bad })
 
@@ -225,7 +234,7 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
       // 5) 先删事件、再删经历：万一进程在中间被杀，记录还在，重跑还能把墓碑补出来。
       //    每一步写之前都把原文记进 journal；任何一步失败就整体放回去（墓碑写下之前）。
       for (const file of events) {
-        removed[shortName(file.name)] = rewriteTracked(dir, file.name, file.lines, (line) => !eventIdsOf(line.row).some((x) => eventIds.has(x)), journal)
+        removed[shortName(file.name)] = rewriteTracked(dir, file.name, file.lines, (line) => !eventIdsOf(line.row, file.keys).some((x) => eventIds.has(x)), journal)
       }
       removed.records = rewriteTracked(dir, RECORDS, records.lines, (line) => {
         const row = recordOf(line.row)
@@ -242,7 +251,7 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
       // 记录行已经没了、但这次确实清掉了残留事件（崩溃后重跑会走这里）：
       // 既然真的删了东西，就要在审计里留一条，否则事后查不到任何痕迹（验收抓到的）。
       const cleaned = Number(removed.records || 0) + Number(removed.sqliteRecords || 0) + Number(removed.sqliteEvents || 0) +
-        EVENT_FILES.reduce((n, name) => n + Number(removed[shortName(name)] || 0), 0)
+        EVENT_FILES.reduce((n, spec) => n + Number(removed[shortName(spec.name)] || 0), 0)
       let auditFailed = false
       if (cleaned > 0) {
         try { audit.record(dir, { actor: actorText, action: 'erase', ids: [key], note: 'already-gone-cleanup' }) } catch { auditFailed = true }
@@ -299,4 +308,4 @@ function emptyRemoved() {
 
 const shortName = (file) => file.replace(/-events\.jsonl$/, '')
 
-export const internals = { RECORDS, EVENT_FILES }
+export const internals = { RECORDS, EVENT_FILES, EVENT_FILE_NAMES: EVENT_FILES.map((f) => f.name) }

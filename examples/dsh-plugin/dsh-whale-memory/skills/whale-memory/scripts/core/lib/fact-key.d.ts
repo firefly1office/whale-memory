@@ -44,9 +44,10 @@ export function setFact(
 ): FactSetResult
 /** 纯函数：事件行 → 每一代 + 现行（until = 毫秒时间戳，按那一刻重放） */
 export function derive(rows: FactEvent[], opts?: { until?: number | null }): FactDerived
-/** { all, current, byKey, bad }；坏行默认 fail closed */
-export function readFacts(memDir: string, opts?: { until?: number | null; allowCorrupt?: boolean }): FactDerived & { bad: number }
-export function currentFacts(memDir: string, opts?: { until?: number | null; allowCorrupt?: boolean }): FactEvent[]
-export function historyOf(memDir: string, key: string, opts?: { until?: number | null }): FactEvent[]
-export function factsForExp(memDir: string, expId: string): Array<FactEvent & { isCurrent: boolean }>
+/** { all, current, byKey, bad }；坏行默认 fail closed；until 可传毫秒时间戳或 `2026-11-15`（看不懂就抛） */
+export function readFacts(memDir: string, opts?: { until?: number | string | null; allowCorrupt?: boolean }): FactDerived & { bad: number }
+export function currentFacts(memDir: string, opts?: { until?: number | string | null; allowCorrupt?: boolean }): FactEvent[]
+export function historyOf(memDir: string, key: string, opts?: { until?: number | string | null }): FactEvent[]
+/** 撤回前核对用；坏行默认 fail closed（这个函数的用途最不该给残缺清单） */
+export function factsForExp(memDir: string, expId: string, opts?: { allowCorrupt?: boolean }): Array<FactEvent & { isCurrent: boolean }>
 export const internals: { FILE: string; KEY_LIMIT: number; VALUE_LIMIT: number; NOTE_LIMIT: number }

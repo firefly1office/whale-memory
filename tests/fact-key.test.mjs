@@ -149,6 +149,58 @@ test('S1：事实文件有坏行时，擦除整次拒绝（不许"尽量删"）'
   assert.ok(exp.loadAll(dir).some((r) => r.id === a.id), '拒绝了就得一条都没删')
 })
 
+test('S1：别的文件里多带的 expId 不算归属（复审抓到的跨文件误删）', (t) => {
+  const dir = NEW(t)
+  const a = exp.addExperience(dir, { text: 'A 的经历' })
+  const b = exp.addExperience(dir, { text: 'B 的经历' })
+  // B 的一条合法后记，但多带一个 expId 指着 A：撤回 A 时不许把它当 A 的东西删掉
+  fs.appendFileSync(path.join(dir, 'later-events.jsonl'), JSON.stringify({
+    id: b.id, at: new Date().toISOString(), day: new Date().toLocaleDateString('sv-SE'),
+    thought: 'B 的后记', reason: '', expId: a.id
+  }) + '\n', 'utf8')
+
+  const r = eraseExperience(dir, { id: a.id, reason: '只撤 A', actor: 'self' })
+  assert.equal(r.ok, true)
+  const laterLines = fs.readFileSync(path.join(dir, 'later-events.jsonl'), 'utf8').split('\n').filter(Boolean)
+  assert.equal(laterLines.length, 1, 'B 的后记必须还在（只有事实事件用 expId 当归属）')
+  assert.equal(JSON.parse(laterLines[0]).id, b.id)
+  assert.equal(exp.loadAll(dir).find((x) => x.id === b.id).later.length, 1)
+})
+
+test('S1：factsForExp 默认 fail closed（撤回前核对不该给残缺清单）', (t) => {
+  const dir = NEW(t)
+  const a = exp.addExperience(dir, { text: '一条经历' })
+  facts.setFact(dir, { key: '她.咖啡', value: '拿铁', expId: a.id })
+  assert.equal(facts.factsForExp(dir, a.id).length, 1)
+  fs.appendFileSync(fileOf(dir), 'broken json\n', 'utf8')
+  assert.throws(() => facts.factsForExp(dir, a.id), (error) => error.code === 'FACT_EVENTS_CORRUPT')
+  assert.equal(facts.factsForExp(dir, a.id, { allowCorrupt: true }).length, 1, '只计数时才允许跳过坏行')
+})
+
+test('S1：until 传日期字符串与传毫秒时间戳等价；看不懂就抛，不静默返回空', (t) => {
+  const dir = NEW(t)
+  const first = facts.setFact(dir, { key: '她.咖啡', value: '喜欢拿铁', now: '2026-11-01T10:00:00+08:00' })
+  facts.setFact(dir, { key: '她.咖啡', value: '戒了', now: '2026-11-20T10:00:00+08:00' })
+  const byDay = facts.currentFacts(dir, { until: '2026-11-10' })
+  const byMs = facts.currentFacts(dir, { until: Date.parse('2026-11-10T23:59:59.999+08:00') })
+  assert.deepEqual(byDay.map((r) => r.id), [first.event.id])
+  assert.deepEqual(byDay.map((r) => r.id), byMs.map((r) => r.id))
+  assert.throws(() => facts.currentFacts(dir, { until: '不是时间' }), (error) => error.code === 'FACT_BAD_UNTIL')
+})
+
+test('S1：erase 返回的 removed.fact 计数对得上（CHANGELOG 里承诺过）', (t) => {
+  const dir = NEW(t)
+  const a = exp.addExperience(dir, { text: '被撤回的经历' })
+  const b = exp.addExperience(dir, { text: '留下的经历' })
+  facts.setFact(dir, { key: '她.咖啡', value: '拿铁', expId: a.id })
+  facts.setFact(dir, { key: '她.茶', value: '乌龙', expId: a.id })
+  facts.setFact(dir, { key: '地点.常去', value: '码头', expId: b.id })
+  const r = eraseExperience(dir, { id: a.id, reason: '撤两条事实', actor: 'self' })
+  assert.equal(r.removed.fact, 2, '少一个都是账对不上')
+  assert.equal(facts.currentFacts(dir).length, 1)
+  assert.equal(facts.currentFacts(dir)[0].value, '码头')
+})
+
 test('S1：until 按那一刻重放（早于取代那一条时看到的是旧的一代）', (t) => {
   const dir = NEW(t)
   const first = facts.setFact(dir, { key: '她.咖啡', value: '喜欢拿铁', now: '2026-11-01T10:00:00+08:00' })

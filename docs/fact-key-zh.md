@@ -101,3 +101,30 @@ factKey.derive(rows, { until })      // 纯函数：事件行 → 现行（将�
 **变异验证**（手工做过，记录在这里）：把 `derive()` 里标 `supersededBy` 的两行注释掉 →
 `同一个键写两次……` 立刻红；把 `erase.js` 的 `EVENT_FILES` 去掉 `fact-events.jsonl` →
 `erase 撤回一条经历时……` 红。改回后全绿。
+
+## 九、复审后补的（2026-11-27 夜）
+
+独立复审抓了几处，已修（同一分支的第二个提交）：
+
+1. **跨文件误删（真 bug，已修）**：`erase` 原来对五个事件文件用同一张归属键表（含 `expId`），于是一条后记只要多带
+   一个 `expId: A.id`，撤回 `A` 时这条后记会被一起删掉。现在**每个文件只认自己的键**：`later` / `recall` /
+   `unfinished` → `id`，`link` → `from` / `to`，`fact` → `expId`。用例：「别的文件里多带的 expId 不算归属」。
+2. **`factsForExp` 默认 fail closed**：它的用途是"撤回前核对"，坏行时不许给一份残缺清单；只要计数时传
+   `{ allowCorrupt: true }`。
+3. **`until` 会校验**：毫秒时间戳、`2026-11-15` 这样的日期都收，看不懂抛 `FACT_BAD_UNTIL`——此前传日期字符串会
+   **静默返回空**。
+4. **`doctor` 看得见事实文件的坏行**：`事件文件可解析` 这一步把 `fact-events.jsonl` 也算进去，否则 `erase` 因它
+   拒绝时，体检还会说"没有坏行"。
+5. **用例补了三处**：`removed.fact` 计数（之前改坏不会红）、跨文件 `expId`、`until` 字符串与毫秒等价。
+   测试数 9 → 13。
+
+### 仍然存在的边界（写清楚，不当 bug）
+
+- **`value` 里抄的原话不会跟着清**：宿主把记录原句写进 `value`、`expId` 指另一条时，撤回后按字节扫目录
+  **仍搜得到那句话**。这不是记录正文，但确实是"以为删干净了却还能读到"的现实走法——撤回前先用
+  `factsForExp` 看有哪些事实指向它。
+- **erase 判坏只看能不能 parse**，`fact-key` 还按 `isValid` 判：可能出现"`erase` 删得动、`currentFacts` 却抛"
+  的不一致（方向保守：读路径更严）。
+- **并发**：`erase` 不拿 `fact-events.jsonl.lock`（与其它事件文件同样的既有限制）；与 `setFact` 同时跑，
+  最后一次 rename 胜出。
+- **value 不做 trim**：`'拿铁'` 与 `'  拿铁  '` 算两代（存原样），noop 判定按原样比较。
