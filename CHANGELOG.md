@@ -2,6 +2,26 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.26.2] - 2026-11-26
+
+### Fixed
+
+验收（`交接/验收-阶段4-擦除与审计-20261126.md`）里的三条必修 + 一条需要拍的，全部修掉，并补了会红的测试
+（`tests/erase-audit-fixes.test.mjs`，4 条；5 处变异都能被它抓住）：
+
+- **恢复「擦除之前」的备份会悄悄撤销擦除**：`importArchive` 整目录替换时，把现有目录的 `tombstones.jsonl` 与
+  `audit.jsonl` 并进新目录。记录按备份回来，但墓碑和擦除审计不会被抹掉，`doctor` 的「已撤回的 id 又出现」才真的会亮。
+- **有 `memory.sqlite` 时擦除后正文还留在库文件里**：`eraseFromStore` 在事务前开 `PRAGMA secure_delete = ON`。
+  新增一条按**原始字节扫整个目录**的测试：正文、当时的想法、没弄完的事、后记、结案备注、联想理由六样，擦完都搜不到。
+- **记录行已不在、但清掉了残留事件时没有审计**：`alreadyGone` 且 `removed` 非零时补一条
+  `action: "erase", note: "already-gone-cleanup"`。文档同步改口（原来只说"不写墓碑"）。
+- **共用旧 id**（两条 0.10 前的记录同一分钟、共用一个旧 id）：擦掉其中一条时，墓碑新增可选 `ambiguousIds`
+  记下这个旧 id；`doctor` 在「封存一致性」里提示"N 个共用旧 id 仍有别的记录在用"。读路径维持"对不上就不归任何人"，
+  文档写清这是已知限制与绕法（先迁移再撤回）。
+
+文档 `docs/erase-audit-zh.md` 第六节改了两处口径：备份恢复（库自己导入会并入账本）、SQLite 残留字节
+（擦除路径承诺按字节搜不到；其余删除路径不保证）。
+
 ## [0.26.1] - 2026-11-26
 
 ### Fixed

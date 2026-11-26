@@ -358,6 +358,17 @@ export function importArchive(fromDir, memDir, { force = false } = {}) {
         throw new Error('Export changed during import: ' + f.name + '（导入期间备份内容发生变化）')
       }
     }
+    // 恢复旧备份会把擦除"撤销"：备份是擦除前打的，里面没有墓碑。导入时把现有目录的
+    // 墓碑与审计账本并进新目录，否则记录回来了、撤回记录没了（验收抓到的）。
+    for (const name of ['tombstones.jsonl', 'audit.jsonl']) {
+      const live = path.join(target, name)
+      if (!fs.existsSync(live)) continue
+      const readLines = (file) => fs.readFileSync(file, 'utf8').split('\n').filter((line) => line.trim())
+      const staged = fs.existsSync(path.join(stage, name)) ? readLines(path.join(stage, name)) : []
+      const seen = new Set(staged)
+      const merged = staged.concat(readLines(live).filter((line) => !seen.has(line)))
+      fs.writeFileSync(path.join(stage, name), merged.join('\n') + (merged.length ? '\n' : ''), 'utf8')
+    }
     const loaded = loadAll(stage, { allowSealCorrupt: true })
 
     // 动手改目录之前先落盘日志：从这一刻起任何崩溃都能自动找回旧数据

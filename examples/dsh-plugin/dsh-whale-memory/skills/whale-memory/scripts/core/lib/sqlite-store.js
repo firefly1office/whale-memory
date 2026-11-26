@@ -312,7 +312,8 @@ export function readRecords(db) {
 //   2. eraseFromStore()：一个事务里删 records + events（seal 留着），提交后按需刷新 sources。
 //      墓碑写失败不回滚删除，这个取舍写在 docs/erase-audit-zh.md 里。
 //
-// 注意：SQLite 删除行之后，旧字节可能还留在文件页里（没有 VACUUM / secure_delete）。
+// 注意：SQLite 删除行之后，旧字节可能还留在文件页里。擦除路径会先开 secure_delete（见 eraseFromStore）；
+// 其余删除路径不保证，所以"按原始字节能不能搜到正文"只对擦除做承诺。
 // 这不是"没擦掉"，是"磁盘上的碎片不追溯"——和备份里的历史副本一样，文档里写明不承诺。
 
 // 库文件本身的存在性/形状：不存在 = null；是目录 / 0 字节 = 抛（不能当"没有库"糊弄过去）
@@ -388,6 +389,8 @@ export function eraseFromStore(dir, ids, { refreshSources = false } = {}) {
   try {
     let records = 0
     let events = 0
+    // 擦除要把旧页里的字节也抹掉：否则被删的正文还留在库文件里（验收抓到的）
+    db.exec('PRAGMA secure_delete = ON')
     db.exec('BEGIN IMMEDIATE')
     try {
       const delRecord = db.prepare('DELETE FROM records WHERE id = ?')

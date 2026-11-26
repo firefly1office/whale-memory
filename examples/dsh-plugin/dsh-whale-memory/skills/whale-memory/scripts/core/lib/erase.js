@@ -203,7 +203,17 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
     const formerIds = [...new Set(doomed.map((i) => (i.row && i.row.formerId ? String(i.row.formerId) : '')).filter(Boolean))]
     // 墓碑记下这一条用过的所有 id（当前 id / 旧 id）：按旧 id 撤回时，封存事件挂在当前 id 上，
     // 体检要靠 ids 把两边对上（复审抓到的：只记 key 会让 doctor 永远红灯）。
-    const tombIds = [...new Set([key, ...analysed.target, ...formerIds])]
+    // 共用旧 id：同一个旧 id 被两条以上经历用过，擦掉其中一条之后，剩下那条会"独占"这个旧 id，
+  // 旧后记就可能被算到它头上。旧数据里没有区分手段，所以这里把这种情况记进墓碑，让 doctor 提示。
+  const legacyCount = new Map()
+  for (const info of analysed.infos) {
+    if (!info.row || !info.rawFormerId) continue
+    legacyCount.set(info.rawFormerId, (legacyCount.get(info.rawFormerId) || 0) + 1)
+  }
+  const ambiguousIds = [...new Set(doomed.map((i) => i.rawFormerId).filter(Boolean))]
+    .filter((oldId) => (legacyCount.get(oldId) || 0) > 1)
+
+  const tombIds = [...new Set([key, ...analysed.target, ...formerIds])]
     const eventIds = new Set(tombIds)
 
     const journal = []
@@ -225,12 +235,21 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
       removed.sqlite = Boolean(sq.present)
 
       // 7) 什么都没找到：这次是"已经没了"（崩溃后重跑也走这里：顺手把残留事件清掉）
-      if (!doomed.length) return { ok: true, id: key, alreadyGone: true, at: '', tombstone: false, removed }
+      if (!doomed.length) {
+      // 记录行已经没了、但这次确实清掉了残留事件（崩溃后重跑会走这里）：
+      // 既然真的删了东西，就要在审计里留一条，否则事后查不到任何痕迹（验收抓到的）。
+      const cleaned = Number(removed.records || 0) + Number(removed.sqliteRecords || 0) + Number(removed.sqliteEvents || 0) +
+        EVENT_FILES.reduce((n, name) => n + Number(removed[shortName(name)] || 0), 0)
+      if (cleaned > 0) {
+        try { audit.record(dir, { actor: actorText, action: 'erase', ids: [key], note: 'already-gone-cleanup' }) } catch { /* 审计失败不改变"已经删掉了"这个事实 */ }
+      }
+      return { ok: true, id: key, alreadyGone: true, at: '', tombstone: false, removed }
+    }
 
       // 8) 墓碑：删除成功之后才写（墓碑不会早于删除出现，谎报"已撤回"）
       //    ids 记下"这一条经历在库里用过的所有 id"（当前 id + 旧 id），体检核对封存事件时用
       try {
-        tombstones.append(dir, { v: 1, id: key, ids: tombIds, at, reason: String(reason).trim(), actor: actorText, hash })
+        tombstones.append(dir, { v: 1, id: key, ids: tombIds, at, reason: String(reason).trim(), actor: actorText, hash, ...(ambiguousIds.length ? { ambiguousIds } : {}) })
       } catch (error) {
         throw coded('墓碑写失败：' + String(error && error.message ? error.message : error) + '。（tombstone write failed）', 'ERASE_TOMBSTONE_FAILED', { cause: error })
       }

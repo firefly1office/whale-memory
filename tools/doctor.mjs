@@ -206,13 +206,16 @@ function checkSeal(dir, files) {
     known.add(r.id)
     if (r.formerId) known.add(r.formerId) // 0.10 之前的旧 id：封存可能挂在它上面
   }
+  // 共用旧 id（阶段 4 复审）：擦掉共用旧 id 里的一条后，旧后记可能归到剩下那条名下。
+  // 旧数据里没有区分手段，这里只提示，不算失败。
+  const sharedLegacy = tombs.rows.flatMap((r) => (Array.isArray(r.ambiguousIds) ? r.ambiguousIds : [])).filter((id) => known.has(id))
   const resurrected = [...withdrawn].filter((id) => known.has(id))
   if (resurrected.length) {
     return check('封存一致性', false, resurrected.length + ' 个已撤回的 id 又出现在经历文件里（撤回没生效或被恢复）：' + resurrected.slice(0, 3).join('、'))
   }
 
   if (!rows.length) {
-    return check('封存一致性', true, withdrawn.size ? '没有封存事件' + tombNote : '没有封存事件（没有经历被封存过）')
+    return check('封存一致性', true, (withdrawn.size ? '没有封存事件' + tombNote : '没有封存事件（没有经历被封存过）') + (sharedLegacy.length ? '；' + sharedLegacy.length + ' 个共用旧 id 仍有别的记录在用，旧后记可能归错人（见文档）' : ''))
   }
   for (const id of withdrawn) known.add(id)
 
