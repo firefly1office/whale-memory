@@ -175,8 +175,9 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
     // 1) 账本先看一遍：墓碑文件坏了就不知道撤回没撤回，宁可不猜
     const marks = tombstones.readAll(dir)
     if (marks.bad > 0) throw coded('墓碑文件有 ' + marks.bad + ' 行无法解析：先修好再撤回，不然没法确认这条是不是已经撤回过。（tombstones are corrupt）', 'ERASE_TOMBSTONES_CORRUPT', { bad: marks.bad })
-    const old = marks.rows.find((r) => r.id === key || (Array.isArray(r.ids) && r.ids.includes(key)))
-    if (old) return { ok: true, id: key, alreadyGone: true, at: old.at, reason: old.reason, actor: old.actor, hash: old.hash, tombstone: true, removed: emptyRemoved() }
+    // 这条以前撤回过没有：有墓碑不代表"现在一定不在"——恢复旧备份会把记录带回来（复审抓到的：
+    // 恢复之后再撤，返回已撤回却没删，正文还读得到）。所以先记下墓碑，真正判断放到读完记录之后。
+    const oldMark = marks.rows.find((r) => r.id === key || (Array.isArray(r.ids) && r.ids.includes(key)))
 
     // 2) 读全量 + 预检：坏行 / 读不出来都整次拒绝，一个字节都不改
     const records = readLinesOf(dir, RECORDS)
@@ -234,35 +235,46 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
       if (sq.present) { removed.sqliteRecords = sq.records; removed.sqliteEvents = sq.events }
       removed.sqlite = Boolean(sq.present)
 
-      // 7) 什么都没找到：这次是"已经没了"（崩溃后重跑也走这里：顺手把残留事件清掉）
+      // 7) 记录一条都没找到：这次是"已经没了"（崩溃后重跑也走这里：顺手把残留事件清掉）
       if (!doomed.length) {
       // 记录行已经没了、但这次确实清掉了残留事件（崩溃后重跑会走这里）：
       // 既然真的删了东西，就要在审计里留一条，否则事后查不到任何痕迹（验收抓到的）。
       const cleaned = Number(removed.records || 0) + Number(removed.sqliteRecords || 0) + Number(removed.sqliteEvents || 0) +
         EVENT_FILES.reduce((n, name) => n + Number(removed[shortName(name)] || 0), 0)
+      let auditFailed = false
       if (cleaned > 0) {
-        try { audit.record(dir, { actor: actorText, action: 'erase', ids: [key], note: 'already-gone-cleanup' }) } catch { /* 审计失败不改变"已经删掉了"这个事实 */ }
+        try { audit.record(dir, { actor: actorText, action: 'erase', ids: [key], note: 'already-gone-cleanup' }) } catch { auditFailed = true }
       }
-      return { ok: true, id: key, alreadyGone: true, at: '', tombstone: false, removed }
+      // 以前撤回过（有墓碑）：这次确实什么都没删，如实说"已撤回"
+      return {
+        ok: true, id: key, alreadyGone: true,
+        at: oldMark ? oldMark.at : '', reason: oldMark ? oldMark.reason : '', actor: oldMark ? oldMark.actor : '',
+        hash: oldMark ? oldMark.hash : undefined,
+        tombstone: Boolean(oldMark), cleaned, auditFailed, removed
+      }
     }
 
       // 8) 墓碑：删除成功之后才写（墓碑不会早于删除出现，谎报"已撤回"）
       //    ids 记下"这一条经历在库里用过的所有 id"（当前 id + 旧 id），体检核对封存事件时用
-      try {
-        tombstones.append(dir, { v: 1, id: key, ids: tombIds, at, reason: String(reason).trim(), actor: actorText, hash, ...(ambiguousIds.length ? { ambiguousIds } : {}) })
-      } catch (error) {
-        throw coded('墓碑写失败：' + String(error && error.message ? error.message : error) + '。（tombstone write failed）', 'ERASE_TOMBSTONE_FAILED', { cause: error })
+      //    已经撤回过、这次是恢复备份带回来的记录：不再写第二条墓碑（同一条只留一份），
+      //    删完照旧算"已撤回"，审计里记一笔 erase-resurrected。
+      if (!oldMark) {
+        try {
+          tombstones.append(dir, { v: 1, id: key, ids: tombIds, at, reason: String(reason).trim(), actor: actorText, hash, ...(ambiguousIds.length ? { ambiguousIds } : {}) })
+        } catch (error) {
+          throw coded('墓碑写失败：' + String(error && error.message ? error.message : error) + '。（tombstone write failed）', 'ERASE_TOMBSTONE_FAILED', { cause: error })
+        }
       }
       tombstoned = true
 
       // 9) 审计：只记 id 与动作，不记正文（reason 里有人的话，不往审计里抄）
       try {
-        audit.record(dir, { actor: actorText, action: 'erase', ids: [key], note: 'tombstone' })
+        audit.record(dir, { actor: actorText, action: 'erase', ids: [key], note: oldMark ? 'erase-resurrected' : 'tombstone' })
       } catch (error) {
         throw coded('记录与墓碑都在，但审计追加失败：' + String(error && error.message ? error.message : error) + '。（audit write failed after erase）', 'ERASE_AUDIT_FAILED', { cause: error, erased: true })
       }
 
-      return { ok: true, id: key, alreadyGone: false, at, hash, tombstone: true, actor: actorText, reason: String(reason).trim(), removed }
+      return { ok: true, id: key, alreadyGone: false, at, hash, tombstone: true, resurrected: Boolean(oldMark), actor: actorText, reason: String(reason).trim(), removed }
     } catch (error) {
       // 墓碑还没写下 = 这次撤回不算数：把改过的文件按原样放回去（SQLite 的事务自己回滚；
       // 万一删除已经在库里提交过，回滚后库会判为过期、读路径 fail closed，重新迁移即可）

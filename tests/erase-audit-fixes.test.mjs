@@ -88,20 +88,22 @@ test('恢复"擦除之前"的备份：撤回记录与审计不能被抹掉', (t)
   eraseExperience(dir, { id: a.id, reason: '她要求忘掉', actor: 'self' })
   assert.equal(tombstones.readAll(dir).rows.length, 1, '擦除后有一条墓碑')
 
-  importArchive(archiveDir, dir, { force: true })
+  const imported = importArchive(archiveDir, dir, { force: true })
+  assert.equal(imported.skippedTombstoned, 1, '恢复时应剔掉 1 条已撤回记录')
 
+  // 恢复"擦除之前"的备份，不该把撤回过的经历带回来：她要求忘掉的，不能靠翻旧备份复活。
+  assert.equal(exp.loadAll(dir).some((r) => r.id === a.id), false, '已撤回的记录不能被恢复带回来')
   const after = tombstones.readAll(dir)
-  assert.equal(after.rows.length, 1, '恢复旧备份之后，墓碑不能被换掉')
+  assert.equal(after.rows.length, 1, '墓碑不能被换掉')
   assert.equal(after.rows[0].id, a.id)
-  assert.equal(exp.loadAll(dir).some((r) => r.id === a.id), true, '记录按备份确实回来了')
 
   const erases = audit.read(dir, { action: 'erase' })
   assert.ok(erases.length >= 1, '审计里的擦除记录也要留着')
 
-  // doctor 靠墓碑 + 记录对得上才会亮灯
+  // 记录没回来，体检不该报"已撤回的 id 又出现"
   const report = runDoctor(dir)
   const check = report.checks.find((c) => c.name === '封存一致性')
-  assert.equal(check.ok, false, '记录回来了而墓碑还在，体检应当报出来')
+  assert.equal(check.ok, true, '没有复活记录，体检应当全绿：' + JSON.stringify(check))
 })
 
 test('记录行已不在、但清掉了残留事件：审计要留一条', (t) => {
@@ -166,4 +168,26 @@ test('共用旧 id：擦掉甲之后，写给甲的旧后记不会挂到乙名�
   assert.equal(JSON.stringify(left).includes('GAMMA'), false)
   // 事件本身还在盘上（旧 id 上的东西不归乙，也不该被乙的撤回带走）
   assert.equal(fs.readFileSync(path.join(dir, 'later-events.jsonl'), 'utf8').includes('GAMMA'), true)
+})
+
+test('已经撤回过、又被带回来的记录，还能再撤掉（不能返回"已撤回"却不删）', (t) => {
+  const dir = NEW(t)
+  const a = exp.addExperience(dir, { text: '会被带回来的一条BETA' })
+  const raw = fs.readFileSync(path.join(dir, 'self-experience.jsonl'), 'utf8')
+
+  eraseExperience(dir, { id: a.id, reason: '第一次撤回', actor: 'self' })
+  assert.equal(exp.loadAll(dir).length, 0)
+
+  // 模拟一份"擦除之前"的备份被手工恢复（不走 import，那条路现在会剔掉撤回记录）
+  fs.writeFileSync(path.join(dir, 'self-experience.jsonl'), raw, 'utf8')
+  assert.equal(exp.loadAll(dir).length, 1, '记录确实被带回来了')
+
+  const again = eraseExperience(dir, { id: a.id, reason: '再撤一次', actor: 'self' })
+  assert.equal(again.resurrected, true, '这次是复活后重撤')
+  assert.equal(again.alreadyGone, false, '不能谎报已撤回')
+  assert.equal(exp.loadAll(dir).length, 0, '记录必须真的没了')
+  assert.equal(fs.readFileSync(path.join(dir, 'self-experience.jsonl'), 'utf8').includes('BETA'), false)
+  assert.equal(tombstones.readAll(dir).rows.length, 1, '墓碑仍只有一份')
+  const notes = audit.read(dir, { action: 'erase' }).map((r) => String(r.note || ''))
+  assert.ok(notes.includes('erase-resurrected'), '审计要记下这次是复活后重撤：' + JSON.stringify(notes))
 })

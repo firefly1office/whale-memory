@@ -334,25 +334,17 @@ function readSide(src, { until, rawMode, allowSealCorrupt, dir = null }) {
   const linkMap = src.links(until, onEventError)
   const chapterList = src.chapters(until, rawMode ? () => [] : null)
 
-  // 共用旧 id：这些 id 上的事件不归任何人（见 ambiguousLegacyIds 的注释）。
-  // rawMode 是按字节备份/计数用的，不动它，免得备份统计和读出来的不一样。
-  if (!rawMode && dir) {
-    const ambiguous = ambiguousLegacyIds(dir)
-    if (ambiguous.size) {
-      for (const id of ambiguous) {
-        laterMap.delete(id)
-        unfinishedMap.delete(id)
-        counts.delete(id)
-      }
-    }
-  }
-  return { until, rawMode, counts, laterMap, unfinishedMap, sealedMap, sealedNowMap, linkMap, chapterList }
+  // 共用旧 id：这些旧 id 上的事件不在读路径上归给任何人（见 ambiguousLegacyIds）。
+  // 不直接删 map 的键——显式 id 恰好等于那个旧 id 的记录会被误伤（复审抓到的）。
+  // 交给 mergeRow / attachLinks 在"这条记录自己的旧 id"这一层跳过。
+  const ambiguous = (!rawMode && dir) ? ambiguousLegacyIds(dir) : new Set()
+  return { until, rawMode, counts, laterMap, unfinishedMap, sealedMap, sealedNowMap, linkMap, chapterList, ambiguous }
 }
 
 // 封存状态的口径只写这一份：loadAll / iterate / page 共用，不许各自推一遍
 // （entry 和行对象形状一致：都有 id / formerId / sealed，所以两处都能喂进来）
 function sealedOf(r, side) {
-  const keys = r.formerId ? [r.id, r.formerId] : [r.id]
+  const keys = r.formerId && !(side.ambiguous && side.ambiguous.has(String(r.formerId))) ? [r.id, r.formerId] : [r.id]
   let sealed = r.sealed
   for (const k of keys) {
     const s = side.sealedMap.get(k)
@@ -370,7 +362,7 @@ function sealedOf(r, side) {
 // 一条记录 + 事件 → 读出来的那条经历。三条读路径共用这一份，保证逐字段相同。
 function mergeRow(r, side) {
   const until = side.until
-  const keys = r.formerId ? [r.id, r.formerId] : [r.id]
+  const keys = r.formerId && !(side.ambiguous && side.ambiguous.has(String(r.formerId))) ? [r.id, r.formerId] : [r.id]
   // 同一个 id 出现两次时，事件只回填到最先写下的那条（duplicateOf）：一次想起不该挂两条
   const duplicate = Boolean(r.duplicateOf)
   const extra = duplicate ? [] : keys.flatMap((k) => side.laterMap.get(k) || [])
@@ -461,7 +453,7 @@ function attachRefs(row, seq, cross) {
 
 // 事后联想（两头都看得见）与人生章节（按 day 落进她起过名字的那段日子）
 function attachLinks(row, seq, cross, side) {
-  const keys = row.formerId ? [row.id, row.formerId] : [row.id]
+  const keys = row.formerId && !(side.ambiguous && side.ambiguous.has(String(row.formerId))) ? [row.id, row.formerId] : [row.id]
   const links = !row.duplicateOf && keys.flatMap((k) => side.linkMap.get(k) || [])
     .map((l) => {
       const other = cross.pointers.get(l.other)

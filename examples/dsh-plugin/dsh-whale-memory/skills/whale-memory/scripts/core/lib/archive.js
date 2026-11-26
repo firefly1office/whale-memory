@@ -369,6 +369,37 @@ export function importArchive(fromDir, memDir, { force = false } = {}) {
       const merged = staged.concat(readLines(live).filter((line) => !seen.has(line)))
       fs.writeFileSync(path.join(stage, name), merged.join('\n') + (merged.length ? '\n' : ''), 'utf8')
     }
+
+    // 但"恢复"不该把撤回过的经历带回来：她要求忘掉的东西，不能靠翻出一份旧备份复活。
+    // 这里把已撤回的记录从新目录里剔掉，并把剔掉几条报给调用方。
+    let skippedTombstoned = 0
+    {
+      const tombFile = path.join(stage, 'tombstones.jsonl')
+      const recFile = path.join(stage, 'self-experience.jsonl')
+      if (fs.existsSync(tombFile) && fs.existsSync(recFile)) {
+        const withdrawn = new Set()
+        for (const line of fs.readFileSync(tombFile, 'utf8').split('\n')) {
+          if (!line.trim()) continue
+          try {
+            const row = JSON.parse(line)
+            if (row && row.id) withdrawn.add(String(row.id))
+            if (row && Array.isArray(row.ids)) for (const id of row.ids) withdrawn.add(String(id))
+          } catch { /* 坏行由 doctor 报；这里只认读得出来的 */ }
+        }
+        if (withdrawn.size) {
+          const kept = []
+          for (const line of fs.readFileSync(recFile, 'utf8').split('\n')) {
+            if (!line.trim()) continue
+            let row
+            try { row = JSON.parse(line) } catch { kept.push(line); continue }
+            const ids = [row && row.id, row && row.formerId].filter(Boolean).map(String)
+            if (ids.some((id) => withdrawn.has(id))) { skippedTombstoned += 1; continue }
+            kept.push(line)
+          }
+          fs.writeFileSync(recFile, kept.join('\n') + (kept.length ? '\n' : ''), 'utf8')
+        }
+      }
+    }
     const loaded = loadAll(stage, { allowSealCorrupt: true })
 
     // 动手改目录之前先落盘日志：从这一刻起任何崩溃都能自动找回旧数据
@@ -394,6 +425,7 @@ export function importArchive(fromDir, memDir, { force = false } = {}) {
       restoreTo: memDir,
       backup,
       counts: { experiences: loaded.length },
+      skippedTombstoned,
       recovered: recovery.recovered,
       recoveredFrom: recovery.recovered ? recovery.action : ''
     }
