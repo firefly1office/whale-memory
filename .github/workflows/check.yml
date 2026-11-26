@@ -21,6 +21,13 @@ jobs:
         run: node tools/sync-dsh-core.mjs --check
       - name: tests
         run: node tools/run-tests.mjs
+      # 与 npm run check 同一道闸（S12 收尾）：负例误召回、封存/抽屉外露、标记外露，以及
+      # eval/thresholds-v2.json 里的回归地板。所有矩阵组合都跑（不贵，452 条用例）。
+      # 不用在这里额外模拟"没有 node:sqlite"：Node 20 根本没有（要 >= 22.5），44 条 sqlite 用例
+      # 自己 skip；Node 22 由 setup-node 装到 22.13+，node:sqlite 默认可用，那些用例照跑。
+      # 也就是说这两个 node 版本合起来正好把「有 sqlite / 没 sqlite」两条路都覆盖了。
+      - name: eval-v2 gate (boundaries / regression floor)
+        run: node tools/eval-v2.mjs --check
       # 护栏的白名单要经得起「仓库本身在 /tmp 下」：把仓库复制到 /tmp 再跑一遍测试。
       # 之前那条会把 package.json 当临时文件删掉，正是缺了这一步。
       - name: tests from a /tmp checkout
