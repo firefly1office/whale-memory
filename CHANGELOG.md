@@ -2,6 +2,17 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### Added
+
+- **`sessionCard`：开局短卡（默认关，纯函数）**：`packages/core/lib/session-card.js`。一觉醒来的第一段话，
+  只钉三件最容易出事的事——认人（名字）、档案位置、"**读不到别编**"；≤ 220 字，超长字段按方向截断
+  （名字留头、路径留尾），纪律那一行永不截断。**不读盘、不发请求**（源码里没有 fs / http / fetch）；
+  不传 `enabled: true` 返回空串，宿主不用加分支。
+- **`docs/discipline-zh.md`：三档纪律**（可数 7 / 半可数 4 / 不可数 6，共 17 条）——按"机制能不能查"
+  把我们说过要守的规矩分档，避免把"希望"写成"系统保证"。三档写法借自 dsh-xiaoyu-wake 的 `DISCIPLINE.md`。
+
 ## [0.27.0] - 2026-11-26
 
 ### Added

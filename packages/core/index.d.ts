@@ -23,6 +23,8 @@ export * as conversationPrivacy from './lib/conversation-privacy.js'
 export * as factCard from './lib/fact-card.js'
 export * as factStore from './lib/fact-store.js'
 export * as factJudge from './lib/fact-judge.js'
+// 阶段 5（S3）：开局短卡（默认关，纯函数：不读盘、不发请求）
+export * as sessionCard from './lib/session-card.js'
 export * as changed from './lib/changed.js'
 export * as injection from './lib/injection.js'
 export * as selfActions from './lib/self-actions.js'
