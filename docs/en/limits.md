@@ -77,10 +77,27 @@ It only handles these locations under the data root directory:
 
 **Not handled**: the output directory of `export`. Export packages are wherever you put them; `purge` does not delete them for you, and you need to clean them up yourself.
 
-- **Deleting a single entry is not supported.** `then` is deliberately immutable: if it could be changed, memories could be washed, and the "autobiography" would no longer hold.
-- So the "right to be forgotten" and append-only are in real conflict. The current answer is: **to forget, delete the whole store, and delete the export directory along with it**. Forgetting a single entry requires the host to design its own tombstones or redaction; this project does not provide it.
-- **The unsaid drawer** (since 0.15) is also plain text and also goes along with backups; "discard" only means she herself no longer sees it, and the original text is still in the file. To truly erase it, the only way is still `purge`.
-- **Sealing is not deletion** (since 0.13): `seal --id` means she is no longer actively reminded of this thing. It is not recalled, does not go into the waking block, and its content is not revealed when another recollection cites it. But the original text and later notes are still on disk; `read --id` can still read it by name, and it is in export packages too. Sealing is her choice, not a privacy deletion for the user; to truly erase it, the only way is still `purge`.
+**What `.pre-import-*` is**: `import --force true` does not overwrite the old directory; it **renames** it to `plugin-data/biomimetic-memory.pre-import-<time>` and then installs the new one. That old directory **stays on disk** — with experiences, later notes and events, plain text like the memory directory itself.
+
+- Nothing cleans it automatically: no scheduled task and no in-library API touches it; `eraseExperience` does not either (erasure only touches the current memory directory — see "historical copies are not retroactive" below).
+- Two ways to remove it: ① `purge` — it is on the list above, but that deletes the memory directory too; ② to remove only that copy, **delete the directory by hand** (the prefix is fixed, `ls plugin-data/` finds it at a glance).
+- The recovery-drill usage (wait a few days before cleaning) is in [`archive/runbook.md`](../archive/runbook.md).
+
+- **Deleting a single entry has been supported since v1.1**: `eraseExperience(dir, { id, reason, actor })` deletes that entry together with its related events and leaves only a tombstone (id / time / reason / hash of the content before deletion, no text). See [erase and audit](../erase-audit-zh.md) (Chinese). This is destructive: back up first, and only let the host call it when "she herself or Leo explicitly asks".
+- **Deleting the whole store** is still `purge` (above).
+- `then` is deliberately immutable: if it could be changed, memories could be washed, and the "autobiography" would no longer hold. So the "right to be forgotten" and append-only are resolved like this: **changing content is never allowed; retracting a whole entry is allowed, but it must leave a tombstone**. Historical copies in backups / snapshots are **not retroactive**.
+- **The unsaid drawer** (since 0.15) is also plain text and also goes along with backups; "discard" only means she herself no longer sees it, and the original text is still in the file. Drawer items have no `exp_` id, so they cannot be retracted; to truly erase them, the only way is still `purge` or handling the files by hand.
+- **Sealing is not deletion** (since 0.13): `seal --id` means she is no longer actively reminded of this thing. It is not recalled, does not go into the waking block, and its content is not revealed when another recollection cites it. But the original text and later notes are still on disk; `read --id` can still read it by name, and it is in export packages too. Sealing is her choice, not a privacy deletion for the user; to truly erase the text, use `eraseExperience` (the state row in `seal-events.jsonl` stays, see the erase doc) or `purge` the whole store.
+
+## Does writing create the directory automatically?
+
+**Yes, and every write entry point does** (`mkdirSync(..., recursive: true)`, parents included): writing an experience, a later note, seal / unseal, recall count, closing an unfinished item, links, life chapters, audit, tombstones, the unsaid drawer — all of them; `eraseExperience` too. The reason is that a host should not have to work out which module owns which file on first use: a missing directory only means "there is nothing here yet", not "something failed". **This is allowed behavior, not a bug.**
+
+Three boundaries (verified one by one in `tests/mkdir-behavior.test.mjs`):
+
+- **Reading does not create**: `loadAll` / `recall` / `currentView` / `book` / `exportMemory` / `badLines` return empty for a missing directory (0 rows / `null` / an empty book) and **do not** create it, nor do they create a database.
+- **A wrong target touches nothing**: `reviseExperience` / `setSealed` / `setUnfinishedState` / `linkExperiences` pointing at an entry that does not exist return `{ok: false}` **before** writing anything — no empty directory, no half event.
+- **Two deliberate exceptions** where a target that does not exist still leaves something behind (written down here so they are not mistaken for bugs): `markRecalled(dir, id)` does not check existence (orphan recall events are ignored on read), so it creates the directory and appends one line to `recall-events.jsonl`; and `eraseExperience` retracting an id that never existed returns `{ok: true, alreadyGone: true}` but the directory **has already been created** (empty, no files). If you want it clean, do not call `erase` on an empty directory.
 
 ## Concurrency
 
@@ -89,6 +106,7 @@ Actual behavior:
 - `addExperience` **does not take a file lock**; it uses the operating system's append write (`a+`). For several processes writing at the same time not to lose lines, every write must append a whole line; it is not a transaction and cannot guarantee order.
 - Appends to `later-events` / `recall-events` **go through a file lock** (mkdir mutual exclusion); the mkdir in the lock layer retries on Windows EPERM, **rename does not retry**.
 - Writes to `self-settings` and `prompt` are "lock + temp file + rename".
+- `eraseExperience` takes only one `erase.lock` (a directory lock) and rewrites experience / event files through `writeFileAtomic` (temp file + rename); it **does not take** the `.lock` of each event file — during an erase it holds only its own lock, so it cannot deadlock against the event-append path (`tests/erase-lock-scope.test.mjs`: erasing completes while another process holds `later-events.jsonl.lock`). The cost is that under concurrency an erase may overwrite a line someone just appended; still inside the single-writer assumption (contract section 6).
 - `export` / `import` **do not take a lock**: exporting while the host is still writing may give a snapshot where one file is new and another is old; importing while the host is still writing is not blocked by anything either.
 
 Therefore: **stop the host before export, import or purge**, or accept that the snapshot may be off by a few seconds. Do not let two host processes write to the same directory at the same time.

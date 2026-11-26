@@ -77,11 +77,40 @@ node adapters/cli/memory-cli.mjs purge --data <数据根目录> --yes true  # �
 
 **不处理**：`export` 的输出目录。导出包在你指定的地方，`purge` 不替你删，需要自己清理。
 
+**`.pre-import-*` 是什么**：`import --force true` 不覆盖旧目录，而是把它**改名**成
+`plugin-data/biomimetic-memory.pre-import-<时间>`，再装新目录。那份旧目录就**留在盘上**——
+里面有正文、后记、事件，跟记忆目录一样是明文。
+
+- 它**不会被自动清理**：没有任何定时任务或库内 API 会碰它；`eraseExperience` 也不碰（擦除只动当前记忆目录，
+  见下面「历史副本不追溯」那条）。
+- 要清它有两条路：① `purge` —— 上面那张清单里就有它，但那会连记忆目录一起删；
+  ② 只想删这一份就**手动删目录**（前缀固定，`ls plugin-data/` 一眼能认出来）。
+- 恢复演练里的用法（确认一切正常、过几天再清）见 [`archive/runbook.md`](archive/runbook.md)。
+
 - **单条物理删除自 v1.1 起提供**：`eraseExperience(dir, { id, reason, actor })` 把这一条连同关联事件删掉，只留一块墓碑（id / 时间 / 原因 / 删除前内容的哈希，不含正文）。见 [擦除与审计](erase-audit-zh.md)。这是破坏性操作：先备份，只由宿主在「她本人或 Leo 明确要求」时调用。
 - **整库删除**仍是 `purge`（见上）。
 - `then` 故意不可改：能改就能洗记忆，"自传"也就不成立了。所以"被遗忘权"和 append-only 的冲突这样解：**改内容永远不许；整条撤回允许，但必须留墓碑**。备份 / 快照里的历史副本**不追溯**。
 - **没说出口的抽屉**（0.15 起）同样是明文、同样跟着备份走；"丢掉"只是她自己不再看到，原文仍在文件里。抽屉里的东西没有 `exp_` id，撤不到；要真的抹掉，仍然只能 `purge` 或手工处理文件。
 - **封存不是删除**（0.13 起）：`seal --id` 让她不再被这件事主动提醒——不被召回、不进醒来块、别的回想引用它时不露内容；但原文、后记都还在磁盘上，`read --id` 点名仍能读到，导出包里也有。封存是她的选择，不是给用户的隐私删除；要真的抹掉正文，用 `eraseExperience`（`seal-events.jsonl` 里那条状态记录会留着，见擦除文档）或整库 `purge`。
+
+## 写入会不会自动建目录
+
+**会，而且所有写入口都自动建**（`mkdirSync(..., recursive: true)`，父级一起建）。写经历、后记、
+封存 / 解封、想起、结案、联想、人生章节、审计、墓碑、没说出口的抽屉，全都如此；`eraseExperience` 也会。
+理由是宿主第一次使用时不用先分清"哪个文件属于哪个模块"——目录不存在只表示"还什么都没有"，
+不表示"出错"。**这是允许的行为，不是漏洞。**
+
+三条边界（`tests/mkdir-behavior.test.mjs` 逐条验过）：
+
+- **读不建**：`loadAll` / `recall` / `currentView` / `book` / `exportMemory` / `badLines` 对不存在的目录
+  返回空（0 条 / `null` / 空书），**不会**把目录建出来，也不会顺手建库。
+- **目标错了就不碰**：`reviseExperience` / `setSealed` / `setUnfinishedState` / `linkExperiences`
+  指向不存在的记录时，在写任何东西**之前**就返回 `{ok: false}`——不会留下空目录、也不会留下半条事件。
+- **两个"给不存在的目标也留了东西"的例外**（都是故意的，写在这里免得当成 bug）：
+  `markRecalled(dir, id)` 不做存在性检查（孤儿想起事件在读的时候被忽略），会建目录并追加一条
+  `recall-events.jsonl`；`eraseExperience` 撤回一个根本不存在的 id 会返回
+  `{ok: true, alreadyGone: true}`，但**目录已经被建出来**（空目录，里面没有文件）。
+  要干净就别对空目录调 `erase`。
 
 ## 作品稿本
 
@@ -97,6 +126,10 @@ node adapters/cli/memory-cli.mjs purge --data <数据根目录> --yes true  # �
 - `addExperience` **不加文件锁**，用操作系统的追加写（`a+`）。多进程同时写不丢行的前提是每次都整行追加；它不是事务，不能保证顺序。
 - `later-events` / `recall-events` 的追加**走文件锁**（mkdir 互斥）；锁那一层的 mkdir 遇到 Windows 的 EPERM 会重试，**rename 不重试**。
 - `self-settings` 和 `prompt` 的写是"锁 + 临时文件 + rename"。
+- `eraseExperience` 只拿一把 `erase.lock`（目录锁），重写经历 / 事件文件走 `writeFileAtomic`
+  （临时文件 + rename），**不抢**各事件文件自己的 `.lock`——擦除期间只持自己的锁，避免和事件写入路径
+  互相等锁（`tests/erase-lock-scope.test.mjs` 验过：别的进程正持有某个事件文件的锁时，擦除照常完成）。
+  代价是并发下擦除可能覆盖对方刚追加的那一行；仍然在「单写者」假设里（契约第六节）。
 - `export` / `import` **不加锁**：宿主还在写的时候导出，可能拿到一个文件新、一个文件旧的快照；导入时宿主还在写，也没有人拦。
 
 导入会先在目标旁的 `.import-stage-*` 目录里准备完整副本，再替换目标。复制或校验失败时原目录保留；替换报错时尝试还原 `.pre-import-*` 备份。两步改名之间会写 `<memDir>.import-journal.json`（含 target/backup/stage/phase），下次 `import` / `export` 会先调 `recoverImport()`：崩在两次 rename 之间 → 自动把 `.pre-import-*` 改回记忆目录并清 stage/日志；新目录已装好但日志没删 → 保留新目录与备份、只清日志。**通常不需要人工干预**；只有自动恢复失败时才保留 journal、备份与暂存目录并报错，按 journal 的 `backup` 字段人工改名回去，确认内容后再清理。这套流程没有跨文件系统事务或断电持久性保证。
