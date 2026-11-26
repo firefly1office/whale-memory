@@ -566,11 +566,15 @@ export function currentView(dir, id, { asOf = null, backend = 'file' } = {}) {
 //         见 hybrid-recall.js）。实验性：指标没显著提升就不切默认，默认仍是字面检索。
 // context：上一轮查询（字符串或数组）。宿主做多轮追问时把上下文一起递进来；字面检索把它拼到查询前面，
 //         混合检索只用它排序（追问句本身几乎没有内容词时才用它补足门禁）。不传就是单轮，行为不变。
-// ranker='hybrid' 时 mode / gate / minOverlap / minRatio 不参与（它有自己的覆盖率门槛，见 hybrid-recall.js）。
+// ranker='hybrid' 时 mode / gate / minOverlap / minRatio 都不参与（它有自己的覆盖率门槛，见 hybrid-recall.js）；
+// 空查询在 hybrid 下返回空（字面检索的旧行为不变）。ranker 传 null / undefined 都按 literal 处理。
 export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover', backend = 'file', ranker = 'literal', context = null } = {}) {
   if (mark && asOf !== null && asOf !== undefined && asOf !== '') throw new Error('Looking back at an earlier day does not record a recall: mark and asOf cannot be used together.（翻回旧日子时不记「想起」：mark 和 asOf 不能一起用。）')
   if (mark && backendName(backend) !== 'file') throw new Error('mark=true only works with the file backend for now: recalls are still written to JSONL.（写路径还没切到 sqlite：mark=true 目前只能配 file 后端。）')
-  if (ranker !== 'literal' && ranker !== 'hybrid') throw new Error('ranker must be "literal" or "hybrid"（ranker 只能是 literal 或 hybrid）')
+  if (ranker !== 'literal' && ranker !== 'hybrid') {
+    if (ranker === null || ranker === undefined) ranker = 'literal'
+    else throw new Error('ranker must be "literal" or "hybrid"（ranker 只能是 literal 或 hybrid）')
+  }
   const rows = loadAll(dir, { asOf, backend }).filter((r) => includeSealed || !r.sealed)
   const q0 = String(query || '')
   const ctxText = Array.isArray(context) ? context.filter(Boolean).join(' ') : String(context || '')

@@ -1414,7 +1414,7 @@
       "id": "c199",
       "type": "paraphrase",
       "split": "dev",
-      "query": "看见一台旧收音机",
+      "query": "旧货市场那台没买的收音机",
       "expect": "e195"
     },
     {
@@ -2714,7 +2714,7 @@
       "id": "c384",
       "type": "multiturn",
       "split": "dev",
-      "query": "她说什么了",
+      "query": "她说太满是什么意思",
       "prev": "新故事读给阿禾听",
       "expect": "e91"
     },
@@ -2738,7 +2738,7 @@
       "id": "c387",
       "type": "multiturn",
       "split": "dev",
-      "query": "给外婆买了什么",
+      "query": "第一笔工资给外婆买了什么",
       "prev": "家教工资拿到了",
       "expect": "e112"
     },

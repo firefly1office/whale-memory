@@ -13,7 +13,7 @@
 //   node tools/eval-v2.mjs --split=holdout    只看留出集
 //   node tools/eval-v2.mjs --ranker=literal   只跑字面检索
 //   node tools/eval-v2.mjs --json             机器读
-//   node tools/eval-v2.mjs --check            只检安全边界（负例 / 封存 / 抽屉 / 标记外露），不达标退出 1
+//   node tools/eval-v2.mjs --check            检安全边界（负例 / 封存 / 抽屉 / 标记外露）与指标回归线，不达标退出 1
 //
 // 语料与用例见 eval/corpus-v2.json / eval/cases-v2.json（由 tools/gen-eval-v2.mjs 生成）。
 // 不联网、不调模型；语料写进临时目录，跑完就删。
@@ -21,7 +21,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import * as exp from '../packages/core/lib/self-experience.js'
-import { loadEvalV2, buildCorpus } from './lib/eval-v2-corpus.mjs'
+import { loadEvalV2, buildCorpus, ROOT } from './lib/eval-v2-corpus.mjs'
 
 const args = process.argv.slice(2)
 const arg = (name, fallback) => {
@@ -39,6 +39,7 @@ if (!rankers.every((r) => r === 'literal' || r === 'hybrid')) {
 }
 
 const { corpus, caseFile } = loadEvalV2()
+const thresholds = JSON.parse(fs.readFileSync(path.join(ROOT, 'eval/thresholds-v2.json'), 'utf8'))
 const cases = caseFile.cases.filter((c) => split === 'all' || c.split === split)
 const heldout = caseFile.cases.filter((c) => c.split === 'holdout')
 
@@ -192,7 +193,7 @@ if (rankers.length === 2) {
     const n = onlyLiteral + onlyHybrid
     return { n, both, neither, onlyLiteral, onlyHybrid, p: binomTwoSided(n, Math.min(onlyLiteral, onlyHybrid)), byType }
   }
-  out.paired = { all: paired(cases) }
+  out.paired = { evaluated: paired(cases) }
   if (split === 'all') out.paired.holdout = paired(heldout)
 }
 
@@ -216,7 +217,8 @@ if (split === 'all') {
     const delta = out.holdout.hybrid.recall10 - out.holdout.literal.recall10
     out.verdict = {
       holdoutRecall10Delta: Number(delta.toFixed(4)),
-      switchDefault: delta > 0.03 && out.holdout.hybrid.falseRecallRate <= out.holdout.literal.falseRecallRate
+      // 只是"指标上支持再评估"，不等于现在切默认：阶段 2 的约束是默认行为不变。
+      metricsFavorHybrid: delta > 0.03 && out.holdout.hybrid.falseRecallRate <= out.holdout.literal.falseRecallRate
     }
   }
 }
@@ -265,12 +267,8 @@ if (asJson) {
     const hyb = out.holdout.hybrid
     if (lit && hyb) {
       const delta = hyb.recall10 - lit.recall10
-      out.verdict = {
-        holdoutRecall10Delta: Number(delta.toFixed(4)),
-        switchDefault: delta > 0.03 && hyb.falseRecallRate <= lit.falseRecallRate
-      }
       console.log('')
-      console.log(`切换默认的判断：留出集 recall@10 差 ${(delta * 100).toFixed(1)} 个百分点 → ${out.verdict.switchDefault ? '可以进一步考虑切默认' : '不切默认（默认仍是 literal）'}`)
+      console.log(`指标上的判断：留出集 recall@10 差 ${(delta * 100).toFixed(1)} 个百分点 → ${out.verdict.metricsFavorHybrid ? '支持再评估（本轮默认仍不切）' : '不支持切默认'}`)
       if (out.paired && out.paired.holdout) {
         const p = out.paired.holdout
         console.log(`配对（留出集正例 ${p.both + p.neither + p.n} 条）：两边都中 ${p.both} · 都不中 ${p.neither} · 只有 hybrid 中 ${p.onlyHybrid} · 只有 literal 中 ${p.onlyLiteral} · 符号检验 p = ${p.p === null ? '—' : p.p.toFixed(3)}`)
@@ -288,6 +286,11 @@ if (check) {
     gates.push([`${ranker}：负例误召回 = 0`, m.negatives === 0 || m.falseRecallRate === 0])
     gates.push([`${ranker}：封存 / 抽屉漏出 = 0`, m.boundary.sealed.leaked === 0 && m.boundary.drawer.leaked === 0])
     gates.push([`${ranker}：标记外露 = 0`, m.leaks === 0])
+    // 回归线：低于 eval/thresholds-v2.json 就算退步（不是目标，是地板）
+    const minRecall = thresholds[ranker + 'Recall10']
+    const minMrr = thresholds[ranker + 'Mrr']
+    if (typeof minRecall === 'number' && m.recall10 !== null) gates.push([`${ranker}：recall@10 ≥ ${minRecall}`, m.recall10 >= minRecall])
+    if (typeof minMrr === 'number' && m.mrr !== null) gates.push([`${ranker}：MRR ≥ ${minMrr}`, m.mrr >= minMrr])
   }
   if (!asJson) console.log('')
   for (const [name, ok] of gates) console.log((ok ? '  ✔ ' : '  ✘ ') + name)

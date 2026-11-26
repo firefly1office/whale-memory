@@ -173,6 +173,9 @@ export function hybridRank({ rows, query, context = '', limit = 3, minCover = HY
   // 门禁：查询本身内容词太少（纯代词 / 省略式追问）时，用「上下文 + 追问」补足；
   // 否则只按这一轮问的话算覆盖率 —— 上下文不替它放行。
   const ownUnits = contentUnits(q)
+  // 内容单元 ≤3 的问句按字面检索的门槛（0.7）：三个词里对上两个是 0.667，
+  // 0.65 会放行「桂花糕」「灯塔猫」「去北京」这类少了关键字的句子（独立复审抓到的）。
+  const gateCover = ownUnits.length <= 3 ? Math.max(minCover, 0.7) : minCover
   const gateText = ownUnits.length <= 1 && ctx ? ctx + ' ' + q : q
   const gateVariants = variantsOf(gateText)
   const rankTokens = [...tokensOf(gateVariants.join(' ')), ...tokensOf(ctx)]
@@ -189,7 +192,7 @@ export function hybridRank({ rows, query, context = '', limit = 3, minCover = HY
       const hits = matchedTerms(queryTerms(variant).terms, texts[i]).size
       if (cover > best.cover || (cover === best.cover && hits > best.hits)) best = { cover, hits, variant }
     }
-    if (best.hits < 1 || best.cover < minCover) continue
+    if (best.hits < 1 || best.cover < gateCover) continue
     const score = (0.75 * (bm[i] / maxBm) + 0.25 * best.cover) * (WEIGHT_FACTOR[rows[i].weight] || 1)
     picked.push({ row: rows[i], score, cover: best.cover, variant: best.variant })
   }

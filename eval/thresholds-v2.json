@@ -1,0 +1,7 @@
+{
+  "about": "阶段 2 评测的回归线（不是目标）：低于这些就算退步，`node tools/eval-v2.mjs --check` 会红。看的是本次跑的这批用例（默认 --split=all，452 条）。数字取自 2026-11-26 的第一次完整跑，留了约 2 个百分点余量。",
+  "literalRecall10": 0.69,
+  "literalMrr": 0.68,
+  "hybridRecall10": 0.75,
+  "hybridMrr": 0.74
+}

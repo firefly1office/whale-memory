@@ -50,8 +50,9 @@ test('多轮追问：代词句靠上下文排序，上下文不替它放行', (t
   assert.deepEqual(ids(withPlay), [play.id], '上下文提到话剧社，应当先想起话剧社那条')
   const withForm = exp.recall(dir, q, { ranker: 'hybrid', limit: 1, context: ['报名表'] })
   assert.deepEqual(ids(withForm), [form.id], '换一个上下文，应当先想起另一条')
-  // 有内容词的问句，上下文只影响排序：覆盖率不到门槛仍然返回空
-  assert.deepEqual(ids(exp.recall(dir, '阿禾的生日', { ranker: 'hybrid', context: ['阿禾 吵架 借书'] })), [],
+  // 有内容词的问句，上下文只影响排序：覆盖率不到门槛仍然返回空。
+  // 这里用一句「整段命中另一条经历」的上下文：实现要是让 context 无条件进门槛，这条会返回东西。
+  assert.deepEqual(ids(exp.recall(dir, '阿禾的生日', { ranker: 'hybrid', context: ['阿禾 话剧社 两周假'] })), [],
     '上下文不能替「生日」这个不存在的细节放行')
 })
 
@@ -85,7 +86,32 @@ test('未知的 ranker 直接报错，不静默退回', (t) => {
   assert.throws(() => exp.recall(dir, '灯塔', { ranker: 'vector' }), /ranker/)
 })
 
-test('同义词表只做整词替换，变体数量有上限', () => {
+test('短查询不放宽：三个内容单元只对上两个（0.667）仍然返回空', (t) => {
+  const dir = tmp(t)
+  exp.addExperience(dir, { text: '给外婆打电话，她说院子里的桂花今年开得晚' })
+  exp.addExperience(dir, { text: '开始读《海上灯塔》，第一章写守灯人搬进塔里的第一个晚上' })
+  exp.addExperience(dir, { text: '开始读《慢船去北方》，书页有股旧纸味' })
+  // 这三个都是「少了关键字」的短句：桂花糕没有糕、灯塔猫没有猫、去北京没有北京。
+  // 门禁对 ≤3 个内容单元按 0.7 算，所以不会被 2/3 = 0.667 放行。
+  for (const q of ['桂花糕', '灯塔猫', '去北京']) {
+    assert.deepEqual(ids(exp.recall(dir, q, { ranker: 'hybrid' })), [], q + ' 不该被放行')
+    assert.deepEqual(ids(exp.recall(dir, q, { ranker: 'literal' })), [])
+  }
+  // 对照：整词都在的短查询照常召回
+  assert.equal(exp.recall(dir, '桂花', { ranker: 'hybrid' }).length, 1)
+  assert.equal(exp.recall(dir, '灯塔', { ranker: 'hybrid' }).length, 1)
+})
+
+test('ranker 传 null 按默认 literal 处理；空查询两种排序的差别是写明了的', (t) => {
+  const dir = tmp(t)
+  exp.addExperience(dir, { text: '去花店买了一束小雏菊' })
+  const viaNull = exp.recall(dir, '花店', { ranker: null }).map((r) => r.id)
+  assert.deepEqual(viaNull, exp.recall(dir, '花店').map((r) => r.id), 'null 应当按 literal')
+  assert.deepEqual(ids(exp.recall(dir, '')), ids(exp.recall(dir, '', { limit: 1 })), 'literal 空查询照旧')
+  assert.deepEqual(ids(exp.recall(dir, '', { ranker: 'hybrid' })), [], 'hybrid 空查询返回空')
+})
+
+test('同义词表按字面替换，变体数量有上限', () => {
   assert.ok(SYNONYMS.length >= 20)
   assert.ok(variantsOf('买花那天').includes('花店那天'))
   assert.ok(variantsOf('姥姥在门口等我').includes('外婆在门口等我'))

@@ -1,5 +1,6 @@
 // 混合检索（阶段 2）的类型声明。只有 recall({ ranker: 'hybrid' }) 会用到这些函数，
 // 单独 import 也可以：它们都是纯函数，不读写磁盘。
+import type { Experience } from './self-experience.js'
 
 /** 同义词表：[a, b]，两个方向都试 */
 export const SYNONYMS: Array<[string, string]>
@@ -31,4 +32,4 @@ export function hybridRank(opts: {
   context?: string
   limit?: number
   minCover?: number
-}): Array<Record<string, unknown>>
+}): Array<Experience & { hybridScore: number; hybridCover: number }>

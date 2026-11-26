@@ -84,6 +84,7 @@ node adapters/cli/memory-cli.mjs read --id <id> --as-of 2026-11-14
 ```sh
 npm test      # tests/ 下全部测试，两条 CLI 都跑
 npm run check # 语法 + 副本一致性 + 测试 + 金丝雀 + 召回评测
+npm run eval:v2 # 检索层评测（阶段 2）：200 条语料上字面检索 vs 混合检索
 ```
 
 本仓库采用 [MIT 许可证](LICENSE)。参与贡献前请读 [CONTRIBUTING.md](CONTRIBUTING.md)；变更见 [CHANGELOG.md](CHANGELOG.md)；隐私与安全问题见 [SECURITY.md](SECURITY.md)。

@@ -6,15 +6,16 @@
 
 ### Added
 
-- **混合检索（阶段 2，实验性，默认仍是字面检索）**：`packages/core/lib/hybrid-recall.js`——中文 2–3 字 n-gram + 拉丁整词建索引，BM25（k1=1.2，b=0.75）重排，加一张 40 对的日常同义词表（双向替换，单条查询最多 8 个变体）。零第三方依赖、不调外部 API。放行门槛仍然是防编造那套 `contentUnits` / `coverage`，只从 0.7 放到 0.65；BM25 和上下文都只影响排序，不参与放行。`recall` 新增可选 `ranker: 'literal' | 'hybrid'` 与 `context`（上一轮查询，给多轮追问用）；不传时行为和 0.23.0 逐字相同（`whale-eval` 输出与 0.23.0 提交的工作树对拍一致）。包入口与 `whale-memory-core/hybrid-recall` 子路径都导出。
+- **混合检索（阶段 2，实验性，默认仍是字面检索）**：`packages/core/lib/hybrid-recall.js`——中文 2–3 字 n-gram + 拉丁整词建索引，BM25（k1=1.2，b=0.75）重排，加一张 40 对的日常同义词表（双向替换，单条查询最多 8 个变体）。零第三方依赖、不调外部 API。放行门槛仍然是防编造那套 `contentUnits` / `coverage`：内容单元 ≥4 的问句从 0.7 放到 0.65，**≤3 个内容单元的短问句仍按 0.7**；BM25 和上下文都只影响排序，不参与放行。`recall` 新增可选 `ranker: 'literal' | 'hybrid'`（null 也按 literal）与 `context`（上一轮查询，给多轮追问用）；hybrid 下 `mode` / `gate` / `minOverlap` / `minRatio` 不参与，空查询返回空。不传新参数时行为和 0.23.0 逐字相同（`whale-eval` 输出与 0.23.0 提交的工作树对拍一致）。包入口与 `whale-memory-core/hybrid-recall` 子路径都导出。
 - **评测集 v2**：`tools/gen-eval-v2.mjs` 确定性生成 `eval/corpus-v2.json`（200 条经历 = 旧 33 条 + 新 167 条）与 `eval/cases-v2.json`（452 条：exact 40 / paraphrase 174 / combo 164 / multiturn 23 / none 18 / near 16 / attr 5 / sealed 6 / drawer 6；开发集 342、留出集 110）。旧的 33 条语料与 60 条用例原样保留作回归。
-- `tools/eval-v2.mjs` + `tools/lib/eval-v2-corpus.mjs`：recall@10 / MRR / 多轮（带上下文与裸问）/ 误召回率 / 封存与抽屉边界 / 标记外露，一行一条；带配对符号检验与"切不切默认"的判断。`--tune` 只打开发集，留出集只在最后跑一次。
-- `docs/eval-v2-zh.md`：复跑命令、语料与口径、全部数字、混合检索的取舍、以及没验的部分。留出集上 hybrid recall@10 70.7% → 77.8%（+7.1pp，配对 8:1，p=0.039），误召回与外露仍是 0。
-- `tests/hybrid-recall.test.mjs`（9 项）：默认路径不硬凑、同义词与防编造门槛、封存、上下文只排序不放行、mark 只追加事件、确定性、n-gram/BM25。
+- `tools/eval-v2.mjs` + `tools/lib/eval-v2-corpus.mjs`：recall@10 / MRR / 多轮（带上下文与裸问）/ 误召回率 / 封存与抽屉边界 / 标记外露，一行一条；带配对符号检验与指标回归线（`eval/thresholds-v2.json`，`--check` 会红）。`--tune` 只打开发集，留出集只在最后跑一次。
+- `docs/eval-v2-zh.md`：复跑命令、语料与口径、全部数字、混合检索的取舍、独立复审与修了什么、以及没验的部分。全部 452 条上 hybrid recall@10 71.1% → 77.6%；留出集 70.7% → 77.8%（+7.1pp，配对 8:1，p=0.039；去掉两对只在留出集出现的同义词后是 +5.1pp、6:1、p=0.125，文档里写明了）。误召回与外露仍是 0。
+- `tests/hybrid-recall.test.mjs`（11 项）：默认路径不硬凑、同义词与防编造门槛、短查询不放宽（桂花糕/灯塔猫/去北京）、封存、上下文只排序不放行、ranker=null、空查询、mark 只追加事件、确定性、n-gram/BM25。
 - `tests/eval-v2-corpus.test.mjs`（3 项）：产物与脚本逐字节一致、语料结构、负例与边界在两种排序下都不漏。
 
 ### Fixed
 
+- 按独立只读复审修（复审时在临时副本里比了 4117 组，默认路径差异 0）：内容单元 ≤3 的短问句仍按 0.7 门槛——0.65 会放行「桂花糕」「灯塔猫」「去北京」这类少了关键字的句子；`ranker: null` 按 `literal`（配置读到 null 不再抛错）；「上下文只排序不放行」的测试换成能分辨实现的上下文（原测试变异后仍全过）；`tools/eval-v2.mjs` 的 `switchDefault` 改名为 `metricsFavorHybrid`（指标判断不等于现在切默认）；`--check` 增加 `eval/thresholds-v2.json` 的指标下限；`hybrid-recall.d.ts` 的返回类型改成 `Experience`；文档补上 p 值的尾巴、paraphrase 桶不纯、最近的负例其实只有 0.63。
 - `self-experience.d.ts`：`recallForContext` 的注释还写着"默认 gate 为 legacy"，实现从 0.17 起就是 `cover`；改注。
 
 ## [0.23.0] - 2026-11-25
