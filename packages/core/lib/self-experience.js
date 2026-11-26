@@ -1056,8 +1056,10 @@ export function currentView(dir, id, { asOf = null, backend = 'file' } = {}) {
 //         见 hybrid-recall.js）。实验性：指标没显著提升就不切默认，默认仍是字面检索。
 // context：上一轮查询（字符串或数组）。宿主做多轮追问时把上下文一起递进来；字面检索把它拼到查询前面，
 //         混合检索只用它排序（追问句本身几乎没有内容词时才用它补足门禁）。不传就是单轮，行为不变。
-// ranker='hybrid' 时 mode / gate / minOverlap / minRatio 都不参与（它有自己的覆盖率门槛，见 hybrid-recall.js）；
-// 空查询在 hybrid 下返回空（字面检索的旧行为不变）。ranker 传 null / undefined 都按 literal 处理。
+// ranker='embed' 时 mode / gate / minOverlap / minRatio 都不参与（它有自己的覆盖率门槛，见 embed-recall.js）；
+// embed：向量函数注入（text → Float64Array）。不给就是确定性桩，每条命中带 embedKind='stub:char-ngram-hash'；
+// 给了真模型时必须同时给 embedKind（模型名），否则会用桩的标签——宁可标签错，不许把桩说成语义。
+// 空查询在 hybrid / embed 下返回空（字面检索的旧行为不变）。ranker 传 null / undefined 都按 literal 处理。
 export function recall(dir, query, opts = {}) {
   // 指标：召回延迟、返回条数、后端类型。只记成功返回的那次——抛错由调用方和 doctor 说
   const t0 = process.hrtime.bigint()
@@ -1066,7 +1068,7 @@ export function recall(dir, query, opts = {}) {
   return hits
 }
 
-function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover', backend = 'file', ranker = 'literal', context = null, dualWrite = true } = {}) {
+function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover', backend = 'file', ranker = 'literal', context = null, embed = null, embedKind = null, dualWrite = true } = {}) {
   if (mark && asOf !== null && asOf !== undefined && asOf !== '') throw new Error('Looking back at an earlier day does not record a recall: mark and asOf cannot be used together.（翻回旧日子时不记「想起」：mark 和 asOf 不能一起用。）')
   if (ranker !== 'literal' && ranker !== 'hybrid' && ranker !== 'embed') {
     if (ranker === null || ranker === undefined) ranker = 'literal'
@@ -1089,7 +1091,8 @@ function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minR
 
   // 语义检索（实验）：门禁与 hybrid 同口径，排序用向量；默认桩，不代表语义效果
   if (ranker === 'embed') {
-    const hits = embedRank({ rows, query: q0, context: ctxText, limit })
+    // 真向量由调用方注入（见 tools/ollama-embed.mjs）；不注入就用确定性桩，命中里带 embedKind 标明是桩
+    const hits = embedRank({ rows, query: q0, context: ctxText, limit, ...(embed ? { embed } : {}), ...(embedKind ? { embedKind } : {}) })
     if (!mark || !hits.length) return hits
     const at = new Date().toISOString()
     for (const r of hits) {

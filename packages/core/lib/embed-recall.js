@@ -2,10 +2,13 @@
 //
 // 三条边界：
 //   1. 默认不启用。只有 recall({ ranker: 'embed' }) 才走这里；不传 ranker 的字面检索一个字节没改。
-//   2. **这一版没有真模型**：本机没有 Ollama，所以向量来自确定性的字符 n-gram 哈希（桩）。
-//      它的作用是证明通路（门禁 → 向量打分 → 排序）和给评测跑三组数；
-//      **桩的分数不能当语义效果的证据**——同样的文本永远同样的向量，它只是换了一种相似度。
-//   3. 有 Ollama 时由调用方注入 embed 函数（见 tools/eval-embed.mjs）；core 不联网、不加依赖。
+//   2. **默认向量是桩**：向量来自确定性的字符 n-gram 哈希（`EMBED_KIND`）。它的作用是证明通路
+//      （门禁 → 向量打分 → 排序）和给评测跑三组数；**桩的分数不能当语义效果的证据**。
+//      为了不让人把桩当真模型，每条命中都带 `embedKind`（默认 'stub:char-ngram-hash'）——看见这个
+//      就知道这是桩；真向量要走下面第 3 条的注入通路。
+//   3. 真向量由调用方注入 embed 函数，core 不联网、不加依赖。随仓库给了一个本地 Ollama 适配器
+//      `tools/ollama-embed.mjs`（bge-m3，带磁盘向量缓存 + 同步缓存查询），评测用
+//      `tools/eval-v2.mjs --embed-cache=<file>` 接进来；拿不到 Ollama 时它会老实说"未接入真模型"。
 import { contentUnits, coverage } from './query-match.js'
 import { tokensOf, variantsOf } from './hybrid-recall.js'
 
@@ -52,7 +55,7 @@ export function cosine(a, b) {
  * @param {(text: string) => Float64Array} [options.embed] 向量函数；默认桩
  * @param {Map<string, Float64Array>} [options.vectorCache] 可复用的行向量缓存（key = id + '\n' + 文本）
  */
-export function embedRank({ rows = [], query = '', context = '', limit = 3, minCover = EMBED_MIN_COVER, embed = hashEmbed, vectorCache = null } = {}) {
+export function embedRank({ rows = [], query = '', context = '', limit = 3, minCover = EMBED_MIN_COVER, embed = hashEmbed, vectorCache = null, embedKind = EMBED_KIND } = {}) {
   const q = String(query || '')
   if (!q.trim()) return []
   const ctx = String(context || '')
@@ -87,7 +90,9 @@ export function embedRank({ rows = [], query = '', context = '', limit = 3, minC
   return picked.slice(0, limit).map((p) => ({
     ...p.row,
     embedScore: Number(p.score.toFixed(6)),
-    embedCover: Number(p.cover.toFixed(6))
+    embedCover: Number(p.cover.toFixed(6)),
+    // 这条分数是拿什么向量算出来的：桩就写桩，真模型写模型名——不许让人把桩当成语义效果
+    embedKind: String(embedKind || EMBED_KIND)
   }))
 }
 

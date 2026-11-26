@@ -43,6 +43,16 @@ const thresholds = JSON.parse(fs.readFileSync(path.join(ROOT, 'eval/thresholds-v
 const cases = caseFile.cases.filter((c) => split === 'all' || c.split === split)
 const heldout = caseFile.cases.filter((c) => c.split === 'holdout')
 
+// S5：真向量（可选）。给了 --embed-cache 就用缓存里的 Ollama 向量（bge-m3）；没给就是桩。
+// 桩就是桩：报告里会明写"未接入真模型"，命中里也带 embedKind=stub:char-ngram-hash。
+const embedCache = arg('embed-cache', '')
+const embedModel = arg('embed-model', process.env.OLLAMA_EMBED_MODEL || 'bge-m3')
+let embedder = null
+if (embedCache) {
+  const { makeCachedEmbedder } = await import('./ollama-embed.mjs')
+  embedder = makeCachedEmbedder({ file: embedCache, model: embedModel })
+}
+
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-eval-v2-'))
 const { memoryDir } = buildCorpus(dir, corpus)
 
@@ -55,6 +65,10 @@ function evaluate(ranker, list, { useContext = true } = {}) {
   const started = performance.now()
   const results = list.map((c) => {
     const opts = { limit: 10, ranker }
+    if (embedder && ranker === 'embed') {
+      opts.embed = embedder.embed
+      opts.embedKind = embedder.kind
+    }
     if (useContext && c.prev) opts.context = [c.prev]
     const hits = exp.recall(memoryDir, c.query, opts)
     return {
@@ -149,6 +163,14 @@ function metrics({ results }) {
 
 const out = {
   corpus: { experiences: corpus.experiences.length, operations: corpus.operations.length, cases: caseFile.cases.length, split, casesInSplit: cases.length },
+  embed: {
+    // 这一行是给看数字的人留的：embed 用的是真模型还是桩，必须一眼看得出来
+    kind: embedder ? embedder.kind : 'stub:char-ngram-hash',
+    connected: Boolean(embedder),
+    cache: embedCache || null,
+    cacheSize: embedder ? embedder.size : 0,
+    note: embedder ? '真向量（Ollama 缓存）' : '桩：未接入真模型，embed 的数字不代表语义效果'
+  },
   rankers: {},
   multiturn: {},
   ms: {}
@@ -230,6 +252,11 @@ if (asJson) {
   console.log(JSON.stringify(out, null, 2))
 } else {
   console.log(`评测集 v2 · ${out.corpus.experiences} 条经历 / ${out.corpus.cases} 条用例 · 本次跑 ${out.corpus.casesInSplit} 条（${split}）· ${out.corpus.operations} 个操作`)
+  if (rankers.includes('embed')) {
+    console.log('embed 后端：' + (embedder
+      ? '真向量（' + embedder.kind + '，缓存 ' + embedder.size + ' 条）'
+      : '桩（stub:char-ngram-hash）——未接入真模型，embed 那一行不能当语义效果看'))
+  }
   console.log('')
   console.log('                       recall@10     MRR      误召回率   边界漏出   标记外露')
   for (const ranker of rankers) {
