@@ -33,8 +33,8 @@ const check = args.includes('--check')
 const split = arg('split', args.includes('--tune') ? 'dev' : 'all')
 const rankerArg = arg('ranker', 'both')
 const rankers = rankerArg === 'both' ? ['literal', 'hybrid'] : [rankerArg]
-if (!rankers.every((r) => r === 'literal' || r === 'hybrid')) {
-  console.error('用法：--ranker=literal|hybrid|both')
+if (!rankers.every((r) => r === 'literal' || r === 'hybrid' || r === 'embed')) {
+  console.error('用法：--ranker=literal|hybrid|embed|both')
   process.exit(2)
 }
 

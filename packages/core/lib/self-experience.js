@@ -11,6 +11,7 @@ import * as linkEvents from './link-events.js'
 import * as chapterEvents from './chapter-events.js'
 import { queryTerms, requiredOverlap, matchedTerms, normalizeText, contentUnits, coverage, MIN_COVER } from './query-match.js'
 import { hybridRank } from './hybrid-recall.js'
+import { embedRank } from './embed-recall.js'
 import { parseAsOf, before, dayOf } from './as-of.js'
 import { readSnapshot } from './sqlite-store.js'
 import { readLines, readLinesAsync } from './jsonl-stream.js'
@@ -972,9 +973,9 @@ export function recall(dir, query, opts = {}) {
 function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover', backend = 'file', ranker = 'literal', context = null } = {}) {
   if (mark && asOf !== null && asOf !== undefined && asOf !== '') throw new Error('Looking back at an earlier day does not record a recall: mark and asOf cannot be used together.（翻回旧日子时不记「想起」：mark 和 asOf 不能一起用。）')
   if (mark && backendName(backend) !== 'file') throw new Error('mark=true only works with the file backend for now: recalls are still written to JSONL.（写路径还没切到 sqlite：mark=true 目前只能配 file 后端。）')
-  if (ranker !== 'literal' && ranker !== 'hybrid') {
+  if (ranker !== 'literal' && ranker !== 'hybrid' && ranker !== 'embed') {
     if (ranker === null || ranker === undefined) ranker = 'literal'
-    else throw new Error('ranker must be "literal" or "hybrid"（ranker 只能是 literal 或 hybrid）')
+    else throw new Error('ranker must be "literal", "hybrid" or "embed"（ranker 只能是 literal / hybrid / embed）')
   }
   const rows = loadAll(dir, { asOf, backend }).filter((r) => includeSealed || !r.sealed)
   const q0 = String(query || '')
@@ -983,6 +984,17 @@ function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minR
   // 混合检索：放行门槛仍是防编造那套（覆盖率），BM25 只重排；mark 的行为和字面检索一致
   if (ranker === 'hybrid') {
     const hits = hybridRank({ rows, query: q0, context: ctxText, limit })
+    if (!mark || !hits.length) return hits
+    const at = new Date().toISOString()
+    for (const r of hits) {
+      try { recallEvents.append(dir, { id: r.id, query: q0 }) } catch { /* 坏文件时不阻断召回 */ }
+    }
+    return hits.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at }))
+  }
+
+  // 语义检索（实验）：门禁与 hybrid 同口径，排序用向量；默认桩，不代表语义效果
+  if (ranker === 'embed') {
+    const hits = embedRank({ rows, query: q0, context: ctxText, limit })
     if (!mark || !hits.length) return hits
     const at = new Date().toISOString()
     for (const r of hits) {
