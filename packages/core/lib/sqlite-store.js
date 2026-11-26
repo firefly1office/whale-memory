@@ -74,6 +74,20 @@ export function sqliteAvailable() {
 // ---------------------------------------------------------------- 表结构
 
 export function ensureSchema(db) {
+  // 建表必须一次成。DDL 逐条自动提交的话，第一次建库时进程被杀（或盘满）会留下"有 records、没 events"
+  // 的半截库，之后读路径会永远报缺表。SQLite 的 DDL 在事务里可以整组回滚，包一层就好。
+  db.exec('BEGIN IMMEDIATE')
+  try {
+    createTables(db)
+    db.exec('COMMIT')
+  } catch (error) {
+    // 回滚本身也可能失败（连接已坏）：不能盖掉真正的错误
+    try { db.exec('ROLLBACK') } catch { }
+    throw error
+  }
+}
+
+function createTables(db) {
   db.exec(`CREATE TABLE IF NOT EXISTS records (
     id TEXT PRIMARY KEY,
     day TEXT NOT NULL,

@@ -83,7 +83,9 @@ if (fs.existsSync(targetPath)) fail(DB_FILE + ' 已存在；迁移不覆盖。�
 
 // 先建在临时文件名上：进程被杀、断电时只留下一个临时文件，不会占住 memory.sqlite 挡住下一次迁移，
 // 也不会被当成库读。提交、关库之后才改成正式名字，再按线上读法对拍。
-const tmpPath = path.join(dir, TMP_PREFIX + process.pid)
+// 名字里带随机后缀：只用 pid 的话，pid 被复用时下一次迁移会打开上次那个没删掉的临时库，
+// 直接以「id 已存在」失败一次（crash-drills 实测过这个顺序）。
+const tmpPath = path.join(dir, TMP_PREFIX + process.pid + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8))
 let db = null
 let placed = false
 try {

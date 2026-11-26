@@ -88,6 +88,28 @@ export type StorageBackendName = 'file' | 'sqlite'
 
 export function loadAll(dir: string, opts?: { asOf?: AsOf; allowSealCorrupt?: boolean; allowCorrupt?: boolean; backend?: StorageBackendName }): Experience[]
 
+/**
+ * 逐条读：不建全量数组，内存只跟一份小索引走（id / 日子 / 前 24 字 / 封存），产出的每条与 loadAll 逐字段相同。
+ * 代价是要把经历文件读两遍（跨行字段要看"别处有哪些 id"）。backend='sqlite' 时退回整库快照（结果相同，没有内存收益）。
+ * 遍历期间文件被追加 → 抛 EXPERIENCE_CHANGED（不静默少返一条）。
+ */
+export function iterate(dir: string, opts?: { asOf?: AsOf; backend?: StorageBackendName; allowCorrupt?: boolean; allowSealCorrupt?: boolean }): AsyncGenerator<Experience, void, unknown>
+
+/** 分页游标：after 收上一页最后一个 id，也收 page 自己给的 { id, n }（文件里有重复 id 时才用得上 n） */
+export type PageCursor = string | { id: string; n?: number }
+
+/**
+ * 游标分页：after 给上一页最后一个 id，不给就是第一页。
+ * 每页与 loadAll 的对应切片逐条相同；索引按文件 size+mtime+asOf 认库，连翻同一份文件只建一次。
+ * 游标找不到（库被重建过）抛 PAGE_CURSOR_UNKNOWN，不静默从头开始。
+ */
+export function page(dir: string, opts?: { limit?: number; after?: PageCursor | null; asOf?: AsOf; backend?: StorageBackendName }): Promise<{
+  rows: Experience[]
+  next: { id: string; n: number } | null
+  hasMore: boolean
+  total: number
+}>
+
 /** 经历文件里解析不了的行数：展示路径遇到坏行会 fail closed，这个用于诊断和"先备份再修复" */
 export function badLines(dir: string): number
 

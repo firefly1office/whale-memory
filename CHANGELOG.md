@@ -2,6 +2,30 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.25.0] - 2026-11-26
+
+### Added
+
+- **读路径的规模（阶段 3）**：新增 `packages/core/lib/jsonl-stream.js`——按 64KB 块读、**按字节找换行**（0x0A 不可能出现在多字节 UTF-8 序列内部，所以按字节切行与"先整体解码再按 `\n` 切"得到同一组行），同步与异步共用同一个切行器。`loadAll` 内部改成逐行读 + 收集，**签名与语义一个字没改**（坏行口径、fail closed、报总行数、封存与事件合并全都不变），不再同时占着「文件字符串 + 行数组 + 解析后的对象」三份内存。
+- `iterate(dir, { asOf, backend, allowCorrupt, allowSealCorrupt })`：异步生成器，一条一条产出，内存只跟一份小索引走（id / 日子 / 正文前 24 字 / 封存 / 重复与旧 id 标记 / 行字节位置——**正文不进索引**）。为了填跨行字段（出处、反向引用、联想、章节）要读两遍文件，所以时间约为 `loadAll` 的两倍。遍历期间文件被并发追加 → 抛 `EXPERIENCE_CHANGED`，不静默少返一条。
+- `page(dir, { limit, after, asOf, backend })`：游标分页，返回 `{ rows, next, hasMore, total }`。`after` 收上一页最后一个 id，也收 `page` 自己返回的 `{ id, n }`（`n` = 从这个 id 第一次出现走到这一页末尾的条数，文件里真有重复 id 时才用得上）；游标找不到抛 `PAGE_CURSOR_UNKNOWN`，不静默从头开始。只回读这一页的字节；索引按「经历文件 size + mtime + asOf」认库，连翻同一份没变过的文件只建一次（只留最近一份），不这么做十万条下每页都要重扫全文件、成了 O(n²)。事件文件每次仍现读，封存状态不会停在建索引那一刻。
+- **三条读路径逐条相同**：`loadAll` / `iterate` / `page` 读出来的每一条逐字段相等（出处、反向引用、联想、章节、封存、想起次数、结案状态、重复 id、旧格式 id 的三种认领分支、`asOf`）。合并逻辑只有一份实现（`mergeRow` / `sealedOf` / `buildCrossRef` / `attachRefs` / `attachLinks`），`loadAll` 与索引两条来源共用。
+- `packages/core/lib/metrics.js`（零依赖叶子模块）：写入延迟、召回延迟、召回条数、坏行数、后端类型；`snapshot()` 返回可直接落盘的纯对象，`reset()` 清零。**不记任何正文、查询串或经历 id**，backend 只是 file/sqlite/other 三个固定枚举。库内已接好（`recall` / `addExperience` / `loadAll` / `iterate` / `page`），**宿主侧一个字没改**。实测一次观测 17 ns，一次 recall 多花约 0.2 µs。
+- `tools/doctor.mjs`：可定时跑、机器可读的体检（`--json`），六项——数据目录、文件存在、行数、坏行、封存一致性、迁移状态；退出码 0 全过 / 1 有项没过 / 2 用法错误，读不出来一律算失败。
+- `tools/bench-scale.mjs`：十万条规模基准（写入、全量读、逐条读、分页、召回；每项在独立子进程里量单次峰值 RSS），并支持 `--cap` 用二分找「能跑完的最小堆」。`--text N` 造正文更长的对照组。
+- `docs/scale-zh.md`：十万条的全部数字、堆下限、代价、没验过的部分、复跑命令。
+- 测试：`tests/scale-read.test.mjs`（10 条：三条读路径逐条相同 / 分页翻到底 / 缓存失效 / 坏行 / 截断的最后一行 / 多字节横跨 64KB 块边界 / CRLF / 并发追加 / sqlite 后端）、`tests/jsonl-fuzz.test.mjs`（5 条：1000 轮随机库属性测试 + 200 轮按字节截断 + 并发写 + 写不进去 + 封存日志损坏）、`tests/crash-recovery.test.mjs`（5 条真杀进程的崩溃演练）、`tests/metrics-runtime.test.mjs`（5 条）、`tests/doctor-tool.test.mjs`（11 条）。
+
+### Fixed
+
+- `page` 的游标在**文件里有重复 id** 时会原地打转：`n` 只数了"本页末尾连着几条"，重开时却按"这个 id 第一次出现"算起点。现在 `n` = 从第一次出现走到这一页末尾的条数（`tests/jsonl-fuzz.test.mjs` 的 1000 轮属性测试抓到的，第 0 轮就红）。
+- `iterate` / `page` 的索引里 `explicit`（文件里显式写着某个 id 的记录集合）建反了，导致"旧 id 被一条现代记录显式占着"时旧记录仍然认领了那个旧 id，与 `loadAll` 不一致（`tests/scale-read.test.mjs` 抓到的）。
+- `ensureSchema` 建表不是原子的：5 条 DDL 各自自动提交，第一次建库时进程被杀会留下"有 records、没 events"的半截库，之后 `loadAll(dir, { backend: 'sqlite' })` **永远**报 `STORAGE_INCOMPLETE`。现在整组 DDL 在一个事务里（SQLite 的 DDL 可回滚），失败后重开重建正常。崩溃演练（`tests/crash-recovery.test.mjs`）发现的。
+- `transaction()` / `#group()` 的 catch 里 `ROLLBACK` 没包 try：SQLite 自己已经回滚时（盘满这类）这句会抛「no transaction is active」，把真正的错误盖掉。现在回滚失败不吭声，原错误照抛。
+- 迁移的临时库文件名只用 pid：pid 被复用时下一次迁移会打开上次没删掉的临时库，以「id 已存在」失败一次（可复现）。现在名字带随机后缀（残留检测仍按前缀）。
+- `tools/doctor.mjs` 把"事件文件还没出现"报成故障：事件文件是按需创建的，她真实的数据目录只有 `self-experience.jsonl`，改之前跑出来退出码 1、永远红灯。现在——事件文件不存在 = 这类事件一次都没发生过（通过，detail 写明"还没出现"）；**经历主文件不见了但事件文件还在** = 真丢了（退出 1）；一个文件都没有 = 全新目录（通过）。
+- `page` 现在和 `loadAll` / `iterate` 一样接受 `allowCorrupt` / `allowSealCorrupt`；索引本身永远不抛坏行，由调用方按这次是不是"按字节抢救"决定，缓存的索引不会把 raw 模式的结果漏给展示路径。
+
 ## [0.24.0] - 2026-11-26
 
 ### Added

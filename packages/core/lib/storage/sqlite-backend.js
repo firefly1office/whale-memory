@@ -18,6 +18,12 @@ import path from 'node:path'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { DB_FILE, requireSqlite, openDatabase, insertRecord, insertEvent, recordExists, readEvents, readRecords, kindOf } from '../sqlite-store.js'
 
+// 回滚本身失败时（盘满、连接已坏这类）不能把真正的错误盖掉：包一层，原错误优先。
+// 这是 crash-drills 的复审发现：ROLLBACK 没包 try 时，SQLITE_FULL 之类的二次失败会顶掉原始错误。
+function rollbackQuiet(db, sql = 'ROLLBACK') {
+  try { db.exec(sql) } catch { }
+}
+
 export class SqliteBackend {
   #als = new AsyncLocalStorage()
   #tail = Promise.resolve()
@@ -73,8 +79,8 @@ export class SqliteBackend {
         db.exec('RELEASE ' + sp)
         return result
       } catch (error) {
-        db.exec('ROLLBACK TO ' + sp)
-        db.exec('RELEASE ' + sp)
+        rollbackQuiet(db, 'ROLLBACK TO ' + sp)
+        rollbackQuiet(db, 'RELEASE ' + sp)
         throw error
       }
     }
@@ -84,7 +90,7 @@ export class SqliteBackend {
       db.exec('COMMIT')
       return result
     } catch (error) {
-      db.exec('ROLLBACK')
+      rollbackQuiet(db)
       throw error
     }
   }
@@ -174,8 +180,8 @@ export class SqliteBackend {
         db.exec('RELEASE ' + sp)
         return result
       } catch (error) {
-        db.exec('ROLLBACK TO ' + sp)
-        db.exec('RELEASE ' + sp)
+        rollbackQuiet(db, 'ROLLBACK TO ' + sp)
+        rollbackQuiet(db, 'RELEASE ' + sp)
         throw error
       }
     }
@@ -187,7 +193,7 @@ export class SqliteBackend {
         db.exec('COMMIT')
         return result
       } catch (error) {
-        db.exec('ROLLBACK')
+        rollbackQuiet(db)
         throw error
       }
     })

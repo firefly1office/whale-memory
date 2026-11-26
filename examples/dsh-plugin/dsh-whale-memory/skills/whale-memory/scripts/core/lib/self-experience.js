@@ -1,5 +1,6 @@
 // 她自己的经历 v2：写下时拍下"当时"，回想分「当时 / 现在」两段；重要的写细，次要的简写
 import fs from 'node:fs'
+import fsp from 'node:fs/promises'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import * as recallEvents from './recall-events.js'
@@ -12,26 +13,70 @@ import { queryTerms, requiredOverlap, matchedTerms, normalizeText, contentUnits,
 import { hybridRank } from './hybrid-recall.js'
 import { parseAsOf, before, dayOf } from './as-of.js'
 import { readSnapshot } from './sqlite-store.js'
+import { readLines, readLinesAsync } from './jsonl-stream.js'
+import * as metrics from './metrics.js'
 
 const FILE = 'self-experience.jsonl'
 const WEIGHTS = new Set(['important', 'normal', 'minor'])
 
 // 坏行不再静默跳过：返回解析失败的行数，展示路径（strict）遇到坏行直接拒绝。
 // 写入路径用非 strict：追加一条新记录不会碰坏行，坏行原样留在文件里等人工修复。
-function readAll(dir, { strict = false } = {}) {
-  let raw
+//
+// 逐行读，不整读文件（见 jsonl-stream.js）。坏行口径一个字没改：只跳过 trim 后为空的行，
+// 解析的是**原样那一行**（不先 trim，行首带 BOM 的行照旧算坏行）。
+function* recordLines(dir, { withOffset = false } = {}) {
+  const file = path.join(dir, FILE)
+  let fd
   try {
-    raw = fs.readFileSync(path.join(dir, FILE), 'utf8')
+    fd = fs.openSync(file, 'r')
   } catch (error) {
-    if (error.code === 'ENOENT') return { rows: [], bad: 0 }
+    if (error.code === 'ENOENT') return
     // 只有"还没有这个文件"能当空；权限、是目录、坏盘必须报出来，不能当成 0 条
     throw experienceUnreadable(error)
   }
+  try {
+    for (const line of readLines(fd)) {
+      if (!line.text.trim()) continue
+      let row
+      try { row = JSON.parse(line.text) } catch { row = undefined }
+      if (withOffset) yield row === undefined ? { bad: true, offset: line.offset, bytes: line.bytes } : { row, offset: line.offset, bytes: line.bytes }
+      else yield row === undefined ? { bad: true } : { row }
+    }
+  } finally {
+    fs.closeSync(fd)
+  }
+}
+
+// 同上，异步那份（iterate / page 用）。读不出来的错误同样要报出来。
+// withOffset：分页要把每行在文件里的字节位置一起记下来（之后只回读这一页，不扫全文件）
+async function* recordLinesAsync(dir, { withOffset = false } = {}) {
+  const file = path.join(dir, FILE)
+  let fh
+  try {
+    fh = await fsp.open(file, 'r')
+  } catch (error) {
+    if (error.code === 'ENOENT') return
+    throw experienceUnreadable(error)
+  }
+  try {
+    for await (const line of readLinesAsync(fh)) {
+      if (!line.text.trim()) continue
+      let row
+      try { row = JSON.parse(line.text) } catch { row = undefined }
+      if (withOffset) yield row === undefined ? { bad: true, offset: line.offset, bytes: line.bytes } : { row, offset: line.offset, bytes: line.bytes }
+      else yield row === undefined ? { bad: true } : { row }
+    }
+  } finally {
+    await fh.close()
+  }
+}
+
+function readAll(dir, { strict = false } = {}) {
   const rows = []
   let bad = 0
-  for (const line of raw.split('\n').filter(line => line.trim())) {
-    try { rows.push(JSON.parse(line)) }
-    catch { bad += 1 }
+  for (const rec of recordLines(dir)) {
+    if (rec.bad) bad += 1
+    else rows.push(rec.row)
   }
   if (strict && bad > 0) throw experienceCorrupt(bad)
   return { rows, bad }
@@ -185,10 +230,13 @@ function identifyRaw(raw) {
 }
 
 // 出处的一句话摘要：只用来指路，全文用 read / currentView 看
-const brief = (r) => {
-  const s = String((r.then && r.then.text) || '')
-  return { id: r.id, day: r.day, text: [...s].length > 24 ? [...s].slice(0, 24).join('') + '…' : s }
+// 索引里也存这一份（buildIndex 的 t24），两处必须同一个口径
+const briefText = (s) => {
+  const t = String(s || '')
+  const chars = [...t]
+  return chars.length > 24 ? chars.slice(0, 24).join('') + '…' : t
 }
+const brief = (r) => ({ id: r.id, day: r.day, text: briefText((r.then && r.then.text) || '') })
 
 // asOf：翻回那天的自己。只保留那一刻之前（含）写下的经历、后记、想起和选择；
 // 那之后发生的一律看不见。不传 asOf 就是现在的样子
@@ -237,15 +285,8 @@ function sqliteSource(dir) {
   }
 }
 
-// backend：'file'（默认，零行为变化）或 'sqlite'（读 memory.sqlite，要求 node:sqlite；拿不到就报错，不静默退回 file）
-export function loadAll(dir, { asOf = null, allowSealCorrupt = false, allowCorrupt = false, backend = 'file' } = {}) {
-  const until = parseAsOf(asOf)
-  const rawMode = Boolean(allowSealCorrupt || allowCorrupt)
-  const src = backendName(backend) === 'sqlite' ? sqliteSource(dir) : fileSource(dir)
-  const { rows: all } = identifyRaw(src.records(!rawMode))
-  const rows = until === null ? all : all.filter((r) => before(r, until))
-  if (!rows.length) return rows
-
+// 事件侧：两个后端在这里分开，往上走的是同一套合并逻辑（同一份数据读出来逐字段相同）
+function readSide(src, { until, rawMode, allowSealCorrupt }) {
   // 想起次数：有事件文件就以事件为准；没有事件时才退回旧字段。
   // 读不出来必须报出来（readEvents）：否则会当成"她从没想起过"。
   // rawMode（按字节备份/恢复/计数）不看事件内容，读不出来也不该拦住备份。
@@ -267,98 +308,418 @@ export function loadAll(dir, { asOf = null, allowSealCorrupt = false, allowCorru
   const sealedMap = src.sealed(until, !allowSealCorrupt)
   // 翻回那天时，她**现在**封存着的也不翻出来：封存说的是她现在不想被提起，而翻回那天正是在提起旧事。
   // 那时还没封存的，标成 afterAsOf（后来才封存），各处过滤照常生效；点名读仍然给，并写明是后来封存的
-  let sealedNowMap = sealedMap
-  if (until !== null) sealedNowMap = src.sealed(null, !allowSealCorrupt)
-
-  const viewed = rows.map((r) => {
-    const keys = r.formerId ? [r.id, r.formerId] : [r.id]
-    // 同一个 id 出现两次时，事件只回填到最先写下的那条（duplicateOf）：一次想起不该挂两条
-    const duplicate = Boolean(r.duplicateOf)
-    const extra = duplicate ? [] : keys.flatMap((k) => laterMap.get(k) || [])
-    const merged = [...(r.later || []).filter((l) => before(l, until)), ...extra]
-      .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')))
-    const next = { ...r, later: merged }
-    if (until !== null) {
-      next.viewAsOf = new Date(until).toISOString()
-      // 旧格式行内的 recalls 没有时间，放不到那天的时间线上
-      delete next.recalls
-      delete next.lastRecalledAt
-    }
-    let state = null
-    if (!duplicate) {
-      for (const k of keys) {
-        const st = unfinishedMap.get(k)
-        if (st) state = st
-      }
-    }
-    if (state && next.then && next.then.unfinished) next.unfinishedState = state
-    for (const k of keys) {
-      const s = sealedMap.get(k)
-      if (s) next.sealed = s
-    }
-    if (!next.sealed && until !== null) {
-      for (const k of keys) {
-        const s = sealedNowMap.get(k)
-        if (s) next.sealed = { ...s, afterAsOf: true }
-      }
-    }
-    let count = 0
-    let lastAt = ''
-    if (!duplicate) {
-      for (const k of keys) {
-        const c = counts.get(k)
-        if (!c) continue
-        count += c.count
-        if (c.lastAt > lastAt) lastAt = c.lastAt
-      }
-    }
-    if (count) {
-      next.recalls = count
-      next.lastRecalledAt = lastAt || (until === null ? r.lastRecalledAt : '') || ''
-    }
-    return next
-  })
-
-  // 出处（这条是从哪几件事想到的）和反向引用（后来有哪些回想提到它）：都从 then.refs 派生
-  // 封存了的经历不露摘要：别的回想里只说"一件你封存了的事"，不借着引用把它又提起来
-  const pointer = (r) => r.sealed ? { id: r.id, day: r.day, sealed: true } : brief(r)
-  const byId = new Map()
-  // 重复 id 不覆盖先写下的那条：指路一律指向它
-  for (const r of viewed) {
-    if (r.duplicateOf) continue
-    byId.set(r.id, r)
-    if (r.formerId) byId.set(r.formerId, r)
-  }
-  for (const r of viewed) {
-    const refs = (r.then && Array.isArray(r.then.refs)) ? r.then.refs : []
-    if (!refs.length) continue
-    r.refsInfo = refs.map((id) => { const hit = byId.get(id); return hit ? pointer(hit) : { id, missing: true } })
-    for (const id of refs) {
-      const target = byId.get(id)
-      if (!target || target === r) continue
-      target.citedBy = [...(target.citedBy || []), pointer(r)]
-    }
-  }
+  const sealedNowMap = until === null ? sealedMap : src.sealed(null, !allowSealCorrupt)
 
   // 事后联想（两头都看得见）与人生章节（按 day 落进她起过名字的那段日子）
   const linkMap = src.links(until, onEventError)
   const chapterList = src.chapters(until, rawMode ? () => [] : null)
-  for (const r of viewed) {
-    const keys = r.formerId ? [r.id, r.formerId] : [r.id]
-    const links = !r.duplicateOf && keys.flatMap((k) => linkMap.get(k) || [])
-      .map((l) => {
-        const other = byId.get(l.other)
-        if (!other || other === r) return null
-        // 另一头封存了：只给 id 和日子，连理由也不露，免得借联想又把它提起来
-        if (other.sealed) return { id: other.id, day: other.day, sealed: true, linkDay: l.day }
-        return { ...pointer(other), reason: l.reason, linkDay: l.day }
-      })
-      .filter(Boolean)
-    if (links.length) r.links = links
-    const ch = chapterEvents.chaptersOn(chapterList, r.day || '')
-    if (ch.length) r.chapters = ch.map((c) => ({ id: c.id, name: c.name }))
+
+  return { until, rawMode, counts, laterMap, unfinishedMap, sealedMap, sealedNowMap, linkMap, chapterList }
+}
+
+// 封存状态的口径只写这一份：loadAll / iterate / page 共用，不许各自推一遍
+// （entry 和行对象形状一致：都有 id / formerId / sealed，所以两处都能喂进来）
+function sealedOf(r, side) {
+  const keys = r.formerId ? [r.id, r.formerId] : [r.id]
+  let sealed = r.sealed
+  for (const k of keys) {
+    const s = side.sealedMap.get(k)
+    if (s) sealed = s
   }
+  if (!sealed && side.until !== null) {
+    for (const k of keys) {
+      const s = side.sealedNowMap.get(k)
+      if (s) sealed = { ...s, afterAsOf: true }
+    }
+  }
+  return sealed
+}
+
+// 一条记录 + 事件 → 读出来的那条经历。三条读路径共用这一份，保证逐字段相同。
+function mergeRow(r, side) {
+  const until = side.until
+  const keys = r.formerId ? [r.id, r.formerId] : [r.id]
+  // 同一个 id 出现两次时，事件只回填到最先写下的那条（duplicateOf）：一次想起不该挂两条
+  const duplicate = Boolean(r.duplicateOf)
+  const extra = duplicate ? [] : keys.flatMap((k) => side.laterMap.get(k) || [])
+  const merged = [...(r.later || []).filter((l) => before(l, until)), ...extra]
+    .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')))
+  const next = { ...r, later: merged }
+  if (until !== null) {
+    next.viewAsOf = new Date(until).toISOString()
+    // 旧格式行内的 recalls 没有时间，放不到那天的时间线上
+    delete next.recalls
+    delete next.lastRecalledAt
+  }
+  let state = null
+  if (!duplicate) {
+    for (const k of keys) {
+      const st = side.unfinishedMap.get(k)
+      if (st) state = st
+    }
+  }
+  if (state && next.then && next.then.unfinished) next.unfinishedState = state
+  const sealed = sealedOf(r, side)
+  if (sealed) next.sealed = sealed
+  let count = 0
+  let lastAt = ''
+  if (!duplicate) {
+    for (const k of keys) {
+      const c = side.counts.get(k)
+      if (!c) continue
+      count += c.count
+      if (c.lastAt > lastAt) lastAt = c.lastAt
+    }
+  }
+  if (count) {
+    next.recalls = count
+    next.lastRecalledAt = lastAt || (until === null ? r.lastRecalledAt : '') || ''
+  }
+  return next
+}
+
+// 指路用的摘要：封存了的经历不露摘要，别的回想里只说"一件你封存了的事"，
+// 不借着引用把它又提起来
+function pointerOf(row) {
+  return row.sealed ? { id: row.id, day: row.day, sealed: true } : brief(row)
+}
+
+// 同一个 key 被多行指到时，以文件里靠后那一行为准（和以前 byId.set 覆盖的顺序一致）
+function putPointer(map, key, seq, p) {
+  const cur = map.get(key)
+  if (!cur || cur.seq <= seq) map.set(key, { seq, p })
+}
+
+// 「谁引用了谁」：出处（refsInfo）与反向引用（citedBy）都查这一份
+// seq 是记录在文件里的顺序号：用来判断"引用的其实是它自己"
+function buildCrossRef(pairs) {
+  const pointers = new Map()
+  // 重复 id 不覆盖先写下的那条：指路一律指向它
+  for (const { seq, row } of pairs) {
+    if (row.duplicateOf) continue
+    const p = pointerOf(row)
+    putPointer(pointers, row.id, seq, p)
+    if (row.formerId) putPointer(pointers, row.formerId, seq, p)
+  }
+  const cited = new Map()
+  for (const { seq, row } of pairs) {
+    const refs = (row.then && Array.isArray(row.then.refs)) ? row.then.refs : []
+    if (!refs.length) continue
+    for (const id of refs) {
+      const target = pointers.get(id)
+      if (!target || target.seq === seq) continue
+      const list = cited.get(target.seq)
+      if (list) list.push(pointerOf(row))
+      else cited.set(target.seq, [pointerOf(row)])
+    }
+  }
+  return { pointers, cited }
+}
+
+// 出处（这条是从哪几件事想到的）和反向引用（后来有哪些回想提到它）：都从 then.refs 派生
+function attachRefs(row, seq, cross) {
+  const refs = (row.then && Array.isArray(row.then.refs)) ? row.then.refs : []
+  if (refs.length) {
+    row.refsInfo = refs.map((id) => { const hit = cross.pointers.get(id); return hit ? hit.p : { id, missing: true } })
+  }
+  const cited = cross.cited.get(seq)
+  if (cited && cited.length) row.citedBy = cited
+  return row
+}
+
+// 事后联想（两头都看得见）与人生章节（按 day 落进她起过名字的那段日子）
+function attachLinks(row, seq, cross, side) {
+  const keys = row.formerId ? [row.id, row.formerId] : [row.id]
+  const links = !row.duplicateOf && keys.flatMap((k) => side.linkMap.get(k) || [])
+    .map((l) => {
+      const other = cross.pointers.get(l.other)
+      if (!other || other.seq === seq) return null
+      const o = other.p
+      // 另一头封存了：只给 id 和日子，连理由也不露，免得借联想又把它提起来
+      if (o.sealed) return { id: o.id, day: o.day, sealed: true, linkDay: l.day }
+      return { ...o, reason: l.reason, linkDay: l.day }
+    })
+    .filter(Boolean)
+  if (links.length) row.links = links
+  const ch = chapterEvents.chaptersOn(side.chapterList, row.day || '')
+  if (ch.length) row.chapters = ch.map((c) => ({ id: c.id, name: c.name }))
+  return row
+}
+
+// backend：'file'（默认，零行为变化）或 'sqlite'（读 memory.sqlite，要求 node:sqlite；拿不到就报错，不静默退回 file）
+export function loadAll(dir, { asOf = null, allowSealCorrupt = false, allowCorrupt = false, backend = 'file' } = {}) {
+  const until = parseAsOf(asOf)
+  const rawMode = Boolean(allowSealCorrupt || allowCorrupt)
+  const src = backendName(backend) === 'sqlite' ? sqliteSource(dir) : fileSource(dir)
+  const raw = src.records(!rawMode)
+  // 坏行数只给指标（不记内容）；一次读库观测一次，0 也记，修好之后指标才会回落
+  metrics.recordBadLines(raw.bad)
+  const { rows: all } = identifyRaw(raw)
+  const rows = until === null ? all : all.filter((r) => before(r, until))
+  if (!rows.length) return rows
+
+  const side = readSide(src, { until, rawMode, allowSealCorrupt })
+  const viewed = rows.map((r) => mergeRow(r, side))
+  const cross = buildCrossRef(viewed.map((row, seq) => ({ seq, row })))
+  for (let seq = 0; seq < viewed.length; seq++) attachLinks(attachRefs(viewed[seq], seq, cross), seq, cross, side)
   return viewed
+}
+
+// ---------------------------------------------------------------- 规模：逐条读与分页
+// loadAll 要把整个库读成数组，而它返回的正是这个数组：十万条时绕不开几百 MB。
+// 需要"一条一条处理"的地方（导出、备份、体检、搬家）用 iterate：
+// 内存只跟一份小索引走——每个 id 只留日子、前 24 字和封存状态，正文不进索引。
+//
+// 代价说清楚：为了填 refsInfo / citedBy / links 这些要看"别处有哪些 id"的字段，
+// iterate 要把经历文件读两遍（loadAll 一遍就够，因为它本来就持有全部记录）。
+// 另一条路是产出"没有跨行字段"的行：一趟就够，但读出来和 loadAll 不一致，
+// 调用方得自己记住哪些字段没有——那更容易出错，所以没这么做。
+//
+// 遍历期间文件被改（并发追加）：两遍的记录数对不上，直接抛 EXPERIENCE_CHANGED，
+// 不静默少返一条。要"同一时刻的一次性快照"请用 loadAll。
+
+function experienceChanged() {
+  const error = new Error('经历文件在遍历期间变了：两遍读到的记录数对不上。重跑一次，或改用 loadAll（同一时刻的一次性快照）。')
+  error.code = 'EXPERIENCE_CHANGED'
+  return error
+}
+
+// 第一遍：扫一遍记录，只留下"指路"需要的东西，正文解析完就丢掉。
+// entries：asOf 范围内的记录，按文件顺序；bySeq：按记录序号索引（范围外/被过滤掉的是 null）
+// 坏行这里**不抛**：只把条数记在 index.bad 上，由调用方按"这次是不是按字节抢救"决定抛不抛。
+// 这样同一份索引（分页会缓存）在两种口径下都能用，不会把 raw 模式的结果漏给展示路径。
+async function buildIndex(dir, { until }) {
+  const entries = []
+  const bySeq = []
+  const seenIds = new Set()     // 所有主 id（重复 id 靠它标）
+  const explicitIds = new Set() // 文件里**显式写着**这个 id 的那些主 id（identifyRaw 里的 explicit）
+  const legacy = []             // 需要认领旧 id 的在范围记录：{ entry, formerId }
+  const owners = new Map()      // 旧 id → [主 id]
+  let bad = 0
+  let seq = 0
+  for await (const rec of recordLinesAsync(dir, { withOffset: true })) {
+    if (rec.bad) { bad += 1; continue }
+    const mySeq = seq++
+    const row = normalize(rec.row)
+    if (!row || !row.then || !row.then.text) { bySeq[mySeq] = null; continue }
+    // 同一个 id 出现两次：只认先写下的那条（identifyRaw 就是这么标的）
+    const dup = seenIds.has(row.id)
+    if (!dup) seenIds.add(row.id)
+    if (!row.formerId) explicitIds.add(row.id)
+    else {
+      const list = owners.get(row.formerId)
+      if (list) list.push(row.id)
+      else owners.set(row.formerId, [row.id])
+    }
+    // asOf 只决定"在不在这一页里"：重复 id 与旧 id 的判据用的是全部记录，和 identifyRaw 一致
+    if (until !== null && !before(row, until)) { bySeq[mySeq] = null; continue }
+    const entry = {
+      seq: mySeq,
+      offset: rec.offset,
+      bytes: rec.bytes,
+      id: row.id,
+      day: row.day,
+      t24: briefText(row.then.text),
+      formerId: row.formerId || '',
+      dup: dup ? row.id : '',
+      sealed: row.sealed,
+      refs: (row.then && Array.isArray(row.then.refs) && row.then.refs.length) ? row.then.refs : null
+    }
+    entries.push(entry)
+    bySeq[mySeq] = entry
+    if (row.formerId) legacy.push({ entry, formerId: row.formerId })
+  }
+  metrics.recordBadLines(bad)
+  return { entries, bySeq, total: seq, bad, seenIds, explicitIds, legacy, owners }
+}
+
+// 旧格式记录的 id 认领：只有一个旧记录用着它、也没有别的记录显式用着这个 id，才认领
+// （判据和 identifyRaw 里 owners / explicit 那两条逐字相同）
+function resolveLegacy(index) {
+  for (const item of index.legacy) {
+    const owners = index.owners.get(item.formerId) || []
+    if (owners.length !== 1 || index.explicitIds.has(item.formerId)) item.entry.formerId = ''
+  }
+  return index
+}
+
+// 从索引里还原"指路表"：pointers（id / 前 24 字 / 封存）+ cited（谁引用了它）
+function indexCrossRef(index, side) {
+  const pointers = new Map()
+  for (const e of index.entries) {
+    if (e.dup) continue
+    const sealed = sealedOf(e, side)
+    const p = sealed ? { id: e.id, day: e.day, sealed: true } : { id: e.id, day: e.day, text: e.t24 }
+    putPointer(pointers, e.id, e.seq, p)
+    if (e.formerId) putPointer(pointers, e.formerId, e.seq, p)
+  }
+  const cited = new Map()
+  for (const e of index.entries) {
+    if (!e.refs) continue
+    const sealed = sealedOf(e, side)
+    const p = sealed ? { id: e.id, day: e.day, sealed: true } : { id: e.id, day: e.day, text: e.t24 }
+    for (const id of e.refs) {
+      const target = pointers.get(id)
+      if (!target || target.seq === e.seq) continue
+      const list = cited.get(target.seq)
+      if (list) list.push(p)
+      else cited.set(target.seq, [p])
+    }
+  }
+  return { pointers, cited }
+}
+
+// 索引里存的是"精简版的一行"，读出来的正文行要靠这两条对齐：重复 id、认领后的旧 id
+function applyEntry(row, entry) {
+  if (entry.dup) row.duplicateOf = entry.dup
+  else delete row.duplicateOf
+  if (entry.formerId) row.formerId = entry.formerId
+  else delete row.formerId
+  return row
+}
+
+// 逐条读：不建全量数组，内存只跟索引走。
+// 异步生成器：块读走 fs/promises，不把事件循环卡住（事件文件仍是同步读，与 loadAll 同一份代码）
+// backend='sqlite' 时退回整库快照（结果与 loadAll 逐条相同，但没有内存收益）：sqlite 的快照本来就整库进内存。
+export async function* iterate(dir, { asOf = null, backend = 'file', allowCorrupt = false, allowSealCorrupt = false } = {}) {
+  const name = backendName(backend)
+  const rawMode = Boolean(allowSealCorrupt || allowCorrupt)
+  if (name !== 'file') {
+    for (const row of loadAll(dir, { asOf, backend, allowCorrupt, allowSealCorrupt })) yield row
+    return
+  }
+  const until = parseAsOf(asOf)
+  const index = await buildIndex(dir, { until })
+  // 坏行：展示路径 fail closed，而且要在吐出第一条之前就拒绝（不许先给几条再抛）
+  if (index.bad && !rawMode) throw experienceCorrupt(index.bad)
+  if (!index.entries.length) return
+  const side = readSide(fileSource(dir), { until, rawMode, allowSealCorrupt })
+  resolveLegacy(index)
+  const cross = indexCrossRef(index, side)
+
+  let seq = 0
+  for await (const rec of recordLinesAsync(dir)) {
+    if (rec.bad) {
+      if (rawMode) continue
+      throw experienceCorrupt(1)
+    }
+    const mySeq = seq++
+    if (mySeq >= index.total) throw experienceChanged()
+    const entry = index.bySeq[mySeq]
+    if (!entry) continue
+    const row = normalize(rec.row)
+    if (!row || !row.then || !row.then.text) continue
+    applyEntry(row, entry)
+    const view = mergeRow(row, side)
+    yield attachLinks(attachRefs(view, mySeq, cross), mySeq, cross, side)
+  }
+  if (seq !== index.total) throw experienceChanged()
+}
+
+// 分页：after 是上一页最后一个 id（也收 page 自己给的 { id, n }：n = 那一页末尾连着几条同 id，
+// 只在文件里有重复 id 时才用得上）。不给 after 就是第一页。
+//
+// 代价：一页 = 一次索引扫描 + 只读这一页的字节。索引按「文件 size + mtime + asOf」认库：
+// 同一份没变过的文件连着翻页只建一次，否则十万条下每页都要重扫一遍（成了 O(n²)）。
+// 只留最近一份索引（换目录/文件一变就重来），避免长期占着一份几十 MB 的东西。
+// 事件文件每次仍然现读（封存可能刚变），所以翻页看到的状态不会停在建索引那一刻。
+let pageCache = { dir: null, key: '', until: null, index: null }
+
+function recordsKey(dir) {
+  try {
+    const st = fs.statSync(path.join(dir, FILE))
+    return st.size + ':' + st.mtimeMs
+  } catch (error) {
+    if (error.code === 'ENOENT') return 'missing'
+    throw experienceUnreadable(error)
+  }
+}
+
+export async function page(dir, { limit = 50, after = null, asOf = null, backend = 'file', allowCorrupt = false, allowSealCorrupt = false } = {}) {
+  const size = Number(limit)
+  if (!Number.isInteger(size) || size <= 0) throw new Error('limit must be a positive integer.（limit 必须是正整数。）')
+  const until = parseAsOf(asOf)
+  const rawMode = Boolean(allowSealCorrupt || allowCorrupt)
+  const name = backendName(backend)
+  if (name !== 'file') {
+    // sqlite：快照本来就整库在内存里，分页只能从全量里切（结果相同，但没有内存收益）
+    const all = loadAll(dir, { asOf, backend, allowCorrupt, allowSealCorrupt })
+    const ids = all.map((r) => r.id)
+    const start = cursorStart(ids, after)
+    const rows = all.slice(start, start + size)
+    const hasMore = start + size < all.length
+    return { rows, next: hasMore ? cursorOf(ids, start, size) : null, hasMore, total: all.length }
+  }
+  const key0 = recordsKey(dir)
+  let index = pageCache.dir === dir && pageCache.key === key0 && pageCache.until === until ? pageCache.index : null
+  if (!index) {
+    index = await buildIndex(dir, { until })
+    // 建的过程中文件又变了：这份索引已经对不上，别进缓存（下一页会重建）
+    if (recordsKey(dir) === key0) pageCache = { dir, key: key0, until, index }
+  }
+  if (index.bad && !rawMode) throw experienceCorrupt(index.bad)
+  const ids = index.entries.map((e) => e.id)
+  const start = cursorStart(ids, after)
+  const selected = index.entries.slice(start, start + size)
+  const total = index.entries.length
+  if (!selected.length) return { rows: [], next: null, hasMore: false, total }
+  const side = readSide(fileSource(dir), { until, rawMode, allowSealCorrupt })
+  resolveLegacy(index)
+  const cross = indexCrossRef(index, side)
+  const rows = await readEntries(dir, selected, side, cross)
+  const hasMore = start + selected.length < total
+  return { rows, next: hasMore ? cursorOf(ids, start, selected.length) : null, hasMore, total }
+}
+
+// 按索引里记下的字节位置把这一页的行读回来（只读这一页，不扫全文件）
+async function readEntries(dir, selected, side, cross) {
+  let fh
+  try {
+    fh = await fsp.open(path.join(dir, FILE), 'r')
+  } catch (error) {
+    throw experienceUnreadable(error)
+  }
+  try {
+    let max = 0
+    for (const e of selected) if (e.bytes > max) max = e.bytes
+    const buf = Buffer.allocUnsafe(max + 1)
+    const rows = []
+    for (const e of selected) {
+      const { bytesRead } = await fh.read(buf, 0, e.bytes, e.offset)
+      let row
+      try { row = normalize(JSON.parse(buf.toString('utf8', 0, bytesRead))) } catch { row = null }
+      if (!row || !row.then || !row.then.text) throw experienceChanged()
+      applyEntry(row, e)
+      const view = mergeRow(row, side)
+      rows.push(attachLinks(attachRefs(view, e.seq, cross), e.seq, cross, side))
+    }
+    return rows
+  } finally {
+    await fh.close()
+  }
+}
+
+// 游标落在第几行之后：找不到这个 id 就说清楚，不静默从头开始（那会把一页重复一遍）
+function cursorStart(ids, after) {
+  if (after === null || after === undefined || after === '') return 0
+  const cur = typeof after === 'string' ? { id: after, n: 1 } : after
+  const at = ids.indexOf(String(cur.id))
+  if (at < 0) {
+    const error = new Error('分页游标失效：找不到 id ' + String(cur.id) + '。用 after: null 从头开始，或换一个还在这一页里的 id。')
+    error.code = 'PAGE_CURSOR_UNKNOWN'
+    throw error
+  }
+  const n = Number.isInteger(cur.n) && cur.n > 0 ? cur.n : 1
+  return at + n
+}
+
+// 这一页的游标：n = 从这个 id **第一次出现**到这一页最后一行，一共走了几条。
+// 重复 id 的时候只有这样才不漏、不重（只数"本页末尾连着几条"会让下一页原地打转）。
+function cursorOf(ids, start, size) {
+  const lastAt = start + size - 1
+  const last = ids[lastAt]
+  const first = ids.indexOf(last)
+  return { id: last, n: lastAt - first + 1 }
 }
 
 // 事后联想：她发现两件事有关，亲手连起来，并说清为什么。两条都必须存在；同一对只连一次
@@ -440,7 +801,15 @@ function resolveRefs(dir, refs) {
 
 // 写下时的"当时"：她写的 + 系统能自动带的状态（情绪/时间/场合）
 // refs：这条是从哪几件事想到的（回想、归纳时用）。写入时就校验，引用不存在的经历直接拒绝
-export function addExperience(dir, { text, scene = '', feeling = [], thought = '', unfinished = '', quote = null, weight = 'normal', kind = '其它', state = null, source = 'own-time', refs = [] }) {
+export function addExperience(dir, input = {}) {
+  // 指标：写入延迟（含 refs 的存在性校验，那是这条路径真实的一部分）
+  const t0 = process.hrtime.bigint()
+  const row = addExperienceInner(dir, input)
+  metrics.recordWrite({ ms: Number(process.hrtime.bigint() - t0) / 1e6 })
+  return row
+}
+
+function addExperienceInner(dir, { text, scene = '', feeling = [], thought = '', unfinished = '', quote = null, weight = 'normal', kind = '其它', state = null, source = 'own-time', refs = [] }) {
   if (!String(text || '').trim()) throw new Error('text cannot be empty.（text 不能是空的。）')
   const safeText = tooLong('text', text, LIMITS.text)
   const safeScene = tooLong('scene', scene, LIMITS.scene)
@@ -568,7 +937,15 @@ export function currentView(dir, id, { asOf = null, backend = 'file' } = {}) {
 //         混合检索只用它排序（追问句本身几乎没有内容词时才用它补足门禁）。不传就是单轮，行为不变。
 // ranker='hybrid' 时 mode / gate / minOverlap / minRatio 都不参与（它有自己的覆盖率门槛，见 hybrid-recall.js）；
 // 空查询在 hybrid 下返回空（字面检索的旧行为不变）。ranker 传 null / undefined 都按 literal 处理。
-export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover', backend = 'file', ranker = 'literal', context = null } = {}) {
+export function recall(dir, query, opts = {}) {
+  // 指标：召回延迟、返回条数、后端类型。只记成功返回的那次——抛错由调用方和 doctor 说
+  const t0 = process.hrtime.bigint()
+  const hits = recallInner(dir, query, opts)
+  metrics.recordRecall({ ms: Number(process.hrtime.bigint() - t0) / 1e6, hits: hits.length, backend: backendName(opts && opts.backend) })
+  return hits
+}
+
+function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover', backend = 'file', ranker = 'literal', context = null } = {}) {
   if (mark && asOf !== null && asOf !== undefined && asOf !== '') throw new Error('Looking back at an earlier day does not record a recall: mark and asOf cannot be used together.（翻回旧日子时不记「想起」：mark 和 asOf 不能一起用。）')
   if (mark && backendName(backend) !== 'file') throw new Error('mark=true only works with the file backend for now: recalls are still written to JSONL.（写路径还没切到 sqlite：mark=true 目前只能配 file 后端。）')
   if (ranker !== 'literal' && ranker !== 'hybrid') {
