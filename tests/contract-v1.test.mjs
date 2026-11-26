@@ -87,7 +87,7 @@ test('契约 §0.1-3 / §2.1-1：文件名清单是契约，写完的文件就�
   audit.noteRead(dir, { actor: 'self', ids: [] })
   const allowed = new Set([
     'self-experience.jsonl', 'later-events.jsonl', 'seal-events.jsonl', 'recall-events.jsonl',
-    'unfinished-events.jsonl', 'unsaid.jsonl', 'tombstones.jsonl', 'audit.jsonl'
+    'unfinished-events.jsonl', 'unsaid.jsonl', 'tombstones.jsonl', 'audit.jsonl', 'fact-events.jsonl'
   ])
   const present = fs.readdirSync(dir).filter((f) => f.endsWith('.jsonl'))
   assert.deepEqual(present.filter((f) => !allowed.has(f)), [], '出现了清单外的 JSONL 文件名')

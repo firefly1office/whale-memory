@@ -12,6 +12,7 @@ import * as chapterEvents from './chapter-events.js'
 import { queryTerms, requiredOverlap, matchedTerms, normalizeText, contentUnits, coverage, MIN_COVER } from './query-match.js'
 import { hybridRank } from './hybrid-recall.js'
 import { embedRank } from './embed-recall.js'
+import { expandHits } from './graph-expand.js'
 import { parseAsOf, before, dayOf } from './as-of.js'
 import { readSnapshot, appendToStore, readFromStore, recordOfStore, legacyOwnersOfStore, lastSealOfStore } from './sqlite-store.js'
 import { readLines, readLinesAsync } from './jsonl-stream.js'
@@ -1056,8 +1057,14 @@ export function currentView(dir, id, { asOf = null, backend = 'file' } = {}) {
 //         见 hybrid-recall.js）。实验性：指标没显著提升就不切默认，默认仍是字面检索。
 // context：上一轮查询（字符串或数组）。宿主做多轮追问时把上下文一起递进来；字面检索把它拼到查询前面，
 //         混合检索只用它排序（追问句本身几乎没有内容词时才用它补足门禁）。不传就是单轮，行为不变。
-// ranker='hybrid' 时 mode / gate / minOverlap / minRatio 都不参与（它有自己的覆盖率门槛，见 hybrid-recall.js）；
-// 空查询在 hybrid 下返回空（字面检索的旧行为不变）。ranker 传 null / undefined 都按 literal 处理。
+// ranker='embed' 时 mode / gate / minOverlap / minRatio 都不参与（它有自己的覆盖率门槛，见 embed-recall.js）；
+// embed：向量函数注入（text → Float64Array）。不给就是确定性桩，每条命中带 embedKind='stub:char-ngram-hash'；
+// 给了真模型时必须同时给 embedKind（模型名），否则会用桩的标签——宁可标签错，不许把桩说成语义。
+// 空查询在 hybrid / embed 下返回空（字面检索的旧行为不变）。ranker 传 null / undefined 都按 literal 处理。
+// graphExpand：图扩展（1 跳），默认 false —— 不传时结果与以前逐条相同。
+//   打开后只在 limit 还有空位时补邻居（then.refs / link-events / 同一章节），补进来的
+//   一律排在基础命中之后，不许插到已有命中前面；每条带 via，说明"因为哪几条才想到它"。
+//   封存与 asOf 同样生效；补进来的不算"想起"，mark=true 也只给基础命中记一笔。
 export function recall(dir, query, opts = {}) {
   // 指标：召回延迟、返回条数、后端类型。只记成功返回的那次——抛错由调用方和 doctor 说
   const t0 = process.hrtime.bigint()
@@ -1066,7 +1073,7 @@ export function recall(dir, query, opts = {}) {
   return hits
 }
 
-function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover', backend = 'file', ranker = 'literal', context = null, dualWrite = true } = {}) {
+function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover', backend = 'file', ranker = 'literal', context = null, embed = null, embedKind = null, dualWrite = true, graphExpand = false } = {}) {
   if (mark && asOf !== null && asOf !== undefined && asOf !== '') throw new Error('Looking back at an earlier day does not record a recall: mark and asOf cannot be used together.（翻回旧日子时不记「想起」：mark 和 asOf 不能一起用。）')
   if (ranker !== 'literal' && ranker !== 'hybrid' && ranker !== 'embed') {
     if (ranker === null || ranker === undefined) ranker = 'literal'
@@ -1076,26 +1083,39 @@ function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minR
   const q0 = String(query || '')
   const ctxText = Array.isArray(context) ? context.filter(Boolean).join(' ') : String(context || '')
 
+  // 图扩展：只填基础命中剩下的名额。默认关时这一步整个不存在（返回的就是基础命中本身，
+  // 连数组都不换），所以不传 graphExpand 的结果与以前逐条相同。
+  // rows 已经按封存 / asOf / backend 过滤过，邻居不会绕开这些口径。
+  const withExpand = (found) => {
+    if (!graphExpand) return found
+    const extra = expandHits({ rows, hits: found, limit, includeSealed })
+    return extra.length ? found.concat(extra) : found
+  }
+
   // 混合检索：放行门槛仍是防编造那套（覆盖率），BM25 只重排；mark 的行为和字面检索一致
   if (ranker === 'hybrid') {
-    const hits = hybridRank({ rows, query: q0, context: ctxText, limit })
-    if (!mark || !hits.length) return hits
+    const found = hybridRank({ rows, query: q0, context: ctxText, limit })
+    const hits = withExpand(found)
+    if (!mark || !found.length) return hits
     const at = new Date().toISOString()
-    for (const r of hits) {
+for (const r of found) {
       markRecalled(dir, r.id, { backend, dualWrite, query: q0 })
     }
-    return hits.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at }))
+    // 只有基础命中算"想起"：扩展补进来的她并没有被问起，记成想起会污染次数
+    return found.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at })).concat(hits.slice(found.length))
   }
 
   // 语义检索（实验）：门禁与 hybrid 同口径，排序用向量；默认桩，不代表语义效果
   if (ranker === 'embed') {
-    const hits = embedRank({ rows, query: q0, context: ctxText, limit })
-    if (!mark || !hits.length) return hits
+// 真向量由调用方注入（见 tools/ollama-embed.mjs）；不注入就用确定性桩，命中里带 embedKind 标明是桩
+    const found = embedRank({ rows, query: q0, context: ctxText, limit, ...(embed ? { embed } : {}), ...(embedKind ? { embedKind } : {}) })
+    const hits = withExpand(found)
+    if (!mark || !found.length) return hits
     const at = new Date().toISOString()
-    for (const r of hits) {
+    for (const r of found) {
       markRecalled(dir, r.id, { backend, dualWrite, query: q0 })
     }
-    return hits.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at }))
+    return found.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at })).concat(hits.slice(found.length))
   }
 
   const q = ctxText ? ctxText + ' ' + q0 : q0
@@ -1134,7 +1154,7 @@ function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minR
     return { n: matched.size, size, matchedIn: fields, matchedLater, cover: coverage(units, fieldsText) }
   }
   const weightOf = (r) => (r.weight === 'important' ? 3 : r.weight === 'minor' ? 0.5 : 1)
-  const picked = rows.map((r) => {
+  const found = rows.map((r) => {
     const { n, size, matchedIn, matchedLater, cover } = measure(r)
     const legacy = gate === 'legacy'
     return { r: { ...r, matchedIn, matchedLater }, n, cover, s: (n / Math.sqrt(size)) * weightOf(r) * (legacy ? 1 : 0.5 + cover) }
@@ -1144,15 +1164,17 @@ function recallInner(dir, query, { limit = 3, minOverlap = 1, mark = false, minR
     .filter((x) => (!q ? true : mode === 'loose' || gate === 'legacy' ? x.n >= required : x.n >= minOverlap && x.cover >= MIN_COVER))
     .sort((a, b) => b.s - a.s || String(b.r.at).localeCompare(String(a.r.at)))
     .slice(0, limit).map((x) => x.r)
+  const picked = withExpand(found)
 
-  if (!mark || !picked.length) return picked
+  if (!mark || !found.length) return picked
 
-  // 记完就地 +1，不回读全量；下一次读取自然会对上
+  // 记完就地 +1，不回读全量；下一次读取自然会对上。
+  // 只记基础命中：扩展补进来的不算"想起"（她没被问起，是顺着别的线索想到的）。
   const at = new Date().toISOString()
-  for (const r of picked) {
+for (const r of found) {
     markRecalled(dir, r.id, { backend, dualWrite, query: q })
   }
-  return picked.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at }))
+  return found.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at })).concat(picked.slice(found.length))
 }
 
 const laterDay = (l) => l.day || String(l.at || '').slice(0, 10)

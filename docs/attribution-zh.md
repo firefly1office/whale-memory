@@ -13,7 +13,7 @@
 
 ### [zxl176463834/dsh-emotion-state](https://github.com/zxl176463834/dsh-emotion-state)
 
-- 借鉴内容：四本账（承诺 / 边界 / 拒绝 / 和解）、信任六档、"组合情绪不给名字"等设计（尚未落地）。
+- 借鉴内容：四本账（承诺 / 边界 / 拒绝 / 和解）、信任六档、"组合情绪不给名字"等设计（落地：`packages/core/lib/ledger.js`、`trust.js`，0.28.0 起，默认关）。
 - 落点：路线图 T6 / T7。
 
 ### [abrahamadams2436-glitch/dsh-xiaoyu-wake](https://github.com/abrahamadams2436-glitch/dsh-xiaoyu-wake)
