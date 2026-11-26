@@ -159,11 +159,7 @@
     },
     "./storage/backend": "./lib/storage/backend.js",
     "./storage/file-backend": "./lib/storage/file-backend.js",
-    "./storage/sqlite-backend": "./lib/storage/sqlite-backend.js",
-    "./manners": {
-      "types": "./lib/manners.d.ts",
-      "default": "./lib/manners.js"
-    }
+    "./storage/sqlite-backend": "./lib/storage/sqlite-backend.js"
   },
   "files": [
     "index.js",
