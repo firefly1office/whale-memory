@@ -6,8 +6,6 @@
 
 ### Added
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 - **`factKey`：事实键式取代（默认关，只做数据层）**：`packages/core/lib/fact-key.js` + `fact-events.jsonl`。
   同一个 `对象.方面` 再记一次就是取代上一代——旧的只标 `supersededBy`、不进"现行事实"，但**东西留着能撤销**；
   不同键互不影响；坏行 fail closed。**这一版不接召回、不进注入、不进 SQLite、不自动抽取**。
@@ -19,7 +17,6 @@
   不传 `enabled: true` 返回空串，宿主不用加分支。
 - **`docs/discipline-zh.md`：三档纪律**（可数 7 / 半可数 4 / 不可数 6，共 17 条）——按"机制能不能查"
   把我们说过要守的规矩分档，避免把"希望"写成"系统保证"。三档写法借自 dsh-xiaoyu-wake 的 `DISCIPLINE.md`。
-=======
 - **写路径切 SQLite（阶段 1 的尾巴）**：`addExperience` / `reviseExperience` / `setSealed` / `markRecalled`
   收可选参数 `{ backend: 'sqlite', dualWrite }`——记录与事件进 `memory.sqlite`，一次写入一个事务，
   提交前刷新 `sources`；`dualWrite: false` 时只写库、JSONL 一个字节不动；`recall({ backend: 'sqlite', mark: true })`
@@ -28,8 +25,6 @@
   **崩在两步之间**：JSONL 多一行、库没提交 → 读库报 `STORAGE_STALE`（fail closed），移走库重新迁移即恢复。
   `setUnfinishedState` / `linkExperiences` / 章节仍只写 JSONL，迁移后用它们会让库过期（同样 fail closed）。
   见 `docs/storage-backend-zh.md` §3.1。
->>>>>>> feat/s4-sqlite
-=======
 - **真向量接入通路（Ollama bge-m3，默认关）**：`recall({ ranker:'embed', embed, embedKind })` 可以注入
   同步向量函数；每条命中带 `embedKind` 自报家门（默认 `stub:char-ngram-hash`，一眼看出是桩）。
   新增 `tools/ollama-embed.mjs`（零依赖）：`probe` / `warm`（批量喂 Ollama、向量落磁盘缓存、原子替换）/
@@ -37,7 +32,12 @@
   `tools/eval-v2.mjs` 加 `--embed-cache`/`--embed-model`，报告首行明写"真向量"还是"桩——未接入真模型"。
   **本机没有 Ollama**：HTTP 通路只用本地假服务验过，真模型的三组数没有（见 `docs/embed-zh.md`）。
   评测里的 embed 仍是桩（452 条 recall@10 77.1% / MRR 0.761），**不能当语义效果**。
->>>>>>> feat/s5-embed
+- **线索表（T12，默认关）**：`packages/core/lib/cue-table.js` + `injection.surface({ cueTable, cueGate, turn })`。
+  给每条没封存的经历抽"将来可能被问到的词"（复用召回的两字组/英文整词，按稀有度取前 8 个）；消息的
+  词被某条经历盖住 ≥60% 时，在递记忆的 block 前插**一行**迟疑提醒（"我好像有点印象，但不一定对得上"），
+  频控为同标题连贴 ≤3 次、间隔 ≥2 轮。**452 条用例对照**：基线递 291 条，只插迟疑仍 291 条（少注 0、多注 0），
+  迟疑提醒 99 条、精度 99.0%、负面用例上 0 条。可选的旁路预筛（`cuePrefilter:'short'|'any'`）会少注
+  34–35 条（约 12%），所以**默认不跳过**。见 `docs/cue-table-zh.md`。
 
 ## [0.27.0] - 2026-11-26
 
