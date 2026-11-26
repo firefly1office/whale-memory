@@ -1,0 +1,13 @@
+{
+  "//": "1.0 类型面：`npm run types` 跑这份工程。只做类型检查（noEmit），不生成产物。",
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": false
+  },
+  "include": ["**/*.mts"]
+}
