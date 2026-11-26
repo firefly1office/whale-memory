@@ -1,5 +1,5 @@
 // 类型冒烟：CI 里用 tsc --strict 跑这个文件，保证 .d.ts 与导出对得上
-import { selfExperience, evidencePolicy, evidenceFromExperience, selfPrompt, waking, unfinishedEvents, sealEvents, recap, linkEvents, chapterEvents, book, unsaid, archive } from '../packages/core/index.js'
+import { selfExperience, evidencePolicy, evidenceFromExperience, selfPrompt, waking, unfinishedEvents, sealEvents, recap, linkEvents, chapterEvents, book, unsaid, archive, hybridRecall } from '../packages/core/index.js'
 
 import { recallDetail, timeSense, relativeWindow, personCard } from '../packages/core/index.js'
 // 包入口上其余的模块：每个都要 import 一次，缺任何一个导出都会让这条冒烟测编译失败
@@ -116,3 +116,12 @@ import { createSelfActionLog } from '../packages/core/lib/self-actions.js'
 const actionLog = createSelfActionLog({ dir: '/tmp/actions', actions: ['draft_save'] })
 const rec = actionLog.record({ action: 'draft_save', source: 'self', outcome: 'ok' })
 if (rec.ok) { const s2 = actionLog.summarize({ days: 7 }); void s2 }
+
+// 阶段 2：混合检索（实验性，默认仍走 literal）
+const hybridHits = selfExperience.recall('/tmp/whale', '外婆家的树', { ranker: 'hybrid', context: ['读到一棵树'] })
+const hybridVariants: string[] = hybridRecall.variantsOf('买花')
+const hybridTokens: string[] = hybridRecall.tokensOf('外婆家的桂花树')
+const hybridIndex = hybridRecall.buildIndex(['外婆家的桂花树'])
+const hybridBm: number[] = hybridRecall.bm25Scores(hybridIndex, hybridTokens)
+const hybridMinCover: number = hybridRecall.HYBRID_MIN_COVER
+console.log(hybridHits.length, hybridVariants.length, hybridBm.length, hybridMinCover)

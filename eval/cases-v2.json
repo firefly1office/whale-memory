@@ -1,0 +1,3238 @@
+{
+  "about": "阶段 2 召回用例。type：exact=原文里的词；paraphrase=同义改写；combo=多约束（人/时间/事）；multiturn=多轮追问（prev 是上一轮查询，query 是代词或省略式追问）；none=根本没有这件事；near=沾边但不是同一件事；attr=问真事里没记下的细节（只报数，不算误召回）；sealed=封存边界（不许召回封存的那条）；drawer=抽屉边界（不许出现）。split=dev（调参看的）/ holdout（只在最后跑一次）。正例 expect 是一条经历 id；负例 expect 为 null。",
+  "generatedBy": "tools/gen-eval-v2.mjs",
+  "seed": 20261126,
+  "corpus": "eval/corpus-v2.json",
+  "counts": {
+    "experiences": 200,
+    "newExperiences": 167,
+    "cases": 452,
+    "byType": {
+      "exact": 40,
+      "paraphrase": 174,
+      "combo": 164,
+      "multiturn": 23,
+      "none": 18,
+      "near": 16,
+      "attr": 5,
+      "sealed": 6,
+      "drawer": 6
+    },
+    "bySplit": {
+      "dev": 342,
+      "holdout": 110
+    }
+  },
+  "cases": [
+    {
+      "id": "c001",
+      "type": "exact",
+      "split": "dev",
+      "query": "菲涅耳透镜",
+      "expect": "e08"
+    },
+    {
+      "id": "c002",
+      "type": "exact",
+      "split": "dev",
+      "query": "鮟鱇鱼",
+      "expect": "e26"
+    },
+    {
+      "id": "c003",
+      "type": "exact",
+      "split": "dev",
+      "query": "纸鹤",
+      "expect": "e21"
+    },
+    {
+      "id": "c004",
+      "type": "exact",
+      "split": "holdout",
+      "query": "十七盏",
+      "expect": "e30"
+    },
+    {
+      "id": "c005",
+      "type": "exact",
+      "split": "dev",
+      "query": "蓝鲸",
+      "expect": "e33"
+    },
+    {
+      "id": "c006",
+      "type": "exact",
+      "split": "dev",
+      "query": "编辑部回信",
+      "expect": "e35"
+    },
+    {
+      "id": "c007",
+      "type": "exact",
+      "split": "dev",
+      "query": "小雏菊",
+      "expect": "e37"
+    },
+    {
+      "id": "c008",
+      "type": "exact",
+      "split": "holdout",
+      "query": "屏幕摔裂了一道",
+      "expect": "e40"
+    },
+    {
+      "id": "c009",
+      "type": "exact",
+      "split": "dev",
+      "query": "整理志愿者",
+      "expect": "e41"
+    },
+    {
+      "id": "c010",
+      "type": "exact",
+      "split": "dev",
+      "query": "一九九八年的公交票",
+      "expect": "e47"
+    },
+    {
+      "id": "c011",
+      "type": "exact",
+      "split": "dev",
+      "query": "停水两个小时",
+      "expect": "e52"
+    },
+    {
+      "id": "c012",
+      "type": "exact",
+      "split": "holdout",
+      "query": "旧诗集",
+      "expect": "e55"
+    },
+    {
+      "id": "c013",
+      "type": "exact",
+      "split": "dev",
+      "query": "抄了一段关于车站的话",
+      "expect": "e58"
+    },
+    {
+      "id": "c014",
+      "type": "exact",
+      "split": "dev",
+      "query": "两大箱快递",
+      "expect": "e62"
+    },
+    {
+      "id": "c015",
+      "type": "exact",
+      "split": "dev",
+      "query": "星期四的雨",
+      "expect": "e70"
+    },
+    {
+      "id": "c016",
+      "type": "exact",
+      "split": "holdout",
+      "query": "北方港口",
+      "expect": "e76"
+    },
+    {
+      "id": "c017",
+      "type": "exact",
+      "split": "dev",
+      "query": "发烧到三十八度",
+      "expect": "e79"
+    },
+    {
+      "id": "c018",
+      "type": "exact",
+      "split": "dev",
+      "query": "新开的面馆",
+      "expect": "e85"
+    },
+    {
+      "id": "c019",
+      "type": "exact",
+      "split": "dev",
+      "query": "老爷爷",
+      "expect": "e94"
+    },
+    {
+      "id": "c020",
+      "type": "exact",
+      "split": "holdout",
+      "query": "植物过冬",
+      "expect": "e100"
+    },
+    {
+      "id": "c021",
+      "type": "exact",
+      "split": "dev",
+      "query": "深海展区",
+      "expect": "e103"
+    },
+    {
+      "id": "c022",
+      "type": "exact",
+      "split": "dev",
+      "query": "挑出十二张",
+      "expect": "e108"
+    },
+    {
+      "id": "c023",
+      "type": "exact",
+      "split": "dev",
+      "query": "雪落在窗上",
+      "expect": "e116"
+    },
+    {
+      "id": "c024",
+      "type": "exact",
+      "split": "holdout",
+      "query": "八千字",
+      "expect": "e118"
+    },
+    {
+      "id": "c025",
+      "type": "exact",
+      "split": "dev",
+      "query": "红烧肉",
+      "expect": "e122"
+    },
+    {
+      "id": "c026",
+      "type": "exact",
+      "split": "dev",
+      "query": "阳台",
+      "expect": "e133"
+    },
+    {
+      "id": "c027",
+      "type": "exact",
+      "split": "dev",
+      "query": "要补一颗牙",
+      "expect": "e136"
+    },
+    {
+      "id": "c028",
+      "type": "exact",
+      "split": "holdout",
+      "query": "练小提琴",
+      "expect": "e143"
+    },
+    {
+      "id": "c029",
+      "type": "exact",
+      "split": "dev",
+      "query": "打麻药",
+      "expect": "e146"
+    },
+    {
+      "id": "c030",
+      "type": "exact",
+      "split": "dev",
+      "query": "期末周",
+      "expect": "e152"
+    },
+    {
+      "id": "c031",
+      "type": "exact",
+      "split": "dev",
+      "query": "绿萝托付",
+      "expect": "e156"
+    },
+    {
+      "id": "c032",
+      "type": "exact",
+      "split": "holdout",
+      "query": "热红薯",
+      "expect": "e166"
+    },
+    {
+      "id": "c033",
+      "type": "exact",
+      "split": "dev",
+      "query": "砍价",
+      "expect": "e171"
+    },
+    {
+      "id": "c034",
+      "type": "exact",
+      "split": "dev",
+      "query": "征文比赛结果出来",
+      "expect": "e176"
+    },
+    {
+      "id": "c035",
+      "type": "exact",
+      "split": "dev",
+      "query": "后悔也是选择的一部分",
+      "expect": "e179"
+    },
+    {
+      "id": "c036",
+      "type": "exact",
+      "split": "holdout",
+      "query": "炒花生",
+      "expect": "e183"
+    },
+    {
+      "id": "c037",
+      "type": "exact",
+      "split": "dev",
+      "query": "麻雀",
+      "expect": "e184"
+    },
+    {
+      "id": "c038",
+      "type": "exact",
+      "split": "dev",
+      "query": "新的证件照",
+      "expect": "e191"
+    },
+    {
+      "id": "c039",
+      "type": "exact",
+      "split": "dev",
+      "query": "把课表抄在纸上",
+      "expect": "e196"
+    },
+    {
+      "id": "c040",
+      "type": "exact",
+      "split": "holdout",
+      "query": "袖口开了",
+      "expect": "e198"
+    },
+    {
+      "id": "c041",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "翻衣服翻出一张旧卡",
+      "expect": "e34"
+    },
+    {
+      "id": "c042",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "校刊把我的故事排上了",
+      "expect": "e35"
+    },
+    {
+      "id": "c043",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "给博客做了个目录",
+      "expect": "e36"
+    },
+    {
+      "id": "c044",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "买花插在瓶子里",
+      "expect": "e37"
+    },
+    {
+      "id": "c045",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "阿禾寒假去南方看妈妈",
+      "expect": "e38"
+    },
+    {
+      "id": "c046",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "学做葱油拌面翻车",
+      "expect": "e39"
+    },
+    {
+      "id": "c047",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "手机摔了一道口子",
+      "expect": "e40"
+    },
+    {
+      "id": "c048",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "去图书馆当志愿者排书",
+      "expect": "e41"
+    },
+    {
+      "id": "c049",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "小说结尾改短了",
+      "expect": "e42"
+    },
+    {
+      "id": "c050",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "读一本讲到处搬家的人的书",
+      "expect": "e43"
+    },
+    {
+      "id": "c051",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "楼下有人吹口琴",
+      "expect": "e44"
+    },
+    {
+      "id": "c052",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "收音机声音不清楚了",
+      "expect": "e45"
+    },
+    {
+      "id": "c053",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "那本讲搬家的书读完了",
+      "expect": "e46"
+    },
+    {
+      "id": "c054",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "旧货市场买的小铁盒",
+      "expect": "e47"
+    },
+    {
+      "id": "c055",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "下雪了，比往年早",
+      "expect": "e48"
+    },
+    {
+      "id": "c056",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "教室暖气一直响",
+      "expect": "e49"
+    },
+    {
+      "id": "c057",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "橘子太酸",
+      "expect": "e50"
+    },
+    {
+      "id": "c058",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "校刊出来了，翻到自己的故事",
+      "expect": "e51"
+    },
+    {
+      "id": "c059",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "宿舍没水了两个小时",
+      "expect": "e52"
+    },
+    {
+      "id": "c060",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "志愿者排班定了",
+      "expect": "e53"
+    },
+    {
+      "id": "c061",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "在想要不要去交换",
+      "expect": "e54"
+    },
+    {
+      "id": "c062",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "发现一本没人借的诗集",
+      "expect": "e55"
+    },
+    {
+      "id": "c063",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "外婆说今年桂花开得迟",
+      "expect": "e56"
+    },
+    {
+      "id": "c064",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "用嘴吹出那首歌",
+      "expect": "e57"
+    },
+    {
+      "id": "c065",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "给那本书写了笔记",
+      "expect": "e58"
+    },
+    {
+      "id": "c066",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "起雾了，钟楼只剩半边",
+      "expect": "e59"
+    },
+    {
+      "id": "c067",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "把被子拿出去晒",
+      "expect": "e60"
+    },
+    {
+      "id": "c068",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "新故事写灯塔里的孩子",
+      "expect": "e61"
+    },
+    {
+      "id": "c069",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "帮邻居搬箱子上楼",
+      "expect": "e62"
+    },
+    {
+      "id": "c070",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "阿禾决定留在话剧社",
+      "expect": "e63"
+    },
+    {
+      "id": "c071",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "书里写车站的钟不准",
+      "expect": "e64"
+    },
+    {
+      "id": "c072",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "同学说在走廊看到我的故事",
+      "expect": "e65"
+    },
+    {
+      "id": "c073",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "室友打呼我戴耳塞",
+      "expect": "e66"
+    },
+    {
+      "id": "c074",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "开始读一本讲开往北方的船的书",
+      "expect": "e67"
+    },
+    {
+      "id": "c075",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "去给初中生补课",
+      "expect": "e68"
+    },
+    {
+      "id": "c076",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "那孩子偏科",
+      "expect": "e69"
+    },
+    {
+      "id": "c077",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "话剧排练帮忙做道具",
+      "expect": "e70"
+    },
+    {
+      "id": "c078",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "散步时看见风筝",
+      "expect": "e71"
+    },
+    {
+      "id": "c079",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "感冒喉咙痛",
+      "expect": "e72"
+    },
+    {
+      "id": "c080",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "把没看的书堆一起",
+      "expect": "e73"
+    },
+    {
+      "id": "c081",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "修收音机剩颗螺丝",
+      "expect": "e74"
+    },
+    {
+      "id": "c082",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "最后没去交换",
+      "expect": "e75"
+    },
+    {
+      "id": "c083",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "书里写的港口",
+      "expect": "e76"
+    },
+    {
+      "id": "c084",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "那个故事写不下去了",
+      "expect": "e77"
+    },
+    {
+      "id": "c085",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "忘了收衣服",
+      "expect": "e78"
+    },
+    {
+      "id": "c086",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "烧到三十八度",
+      "expect": "e79"
+    },
+    {
+      "id": "c087",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "烧退了没胃口",
+      "expect": "e80"
+    },
+    {
+      "id": "c088",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "把门锁修好",
+      "expect": "e82"
+    },
+    {
+      "id": "c089",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "再试一次葱油面",
+      "expect": "e83"
+    },
+    {
+      "id": "c090",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "冬至包饺子",
+      "expect": "e84"
+    },
+    {
+      "id": "c091",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "跟阿禾去吃面",
+      "expect": "e85"
+    },
+    {
+      "id": "c092",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "那本书借给阿禾了",
+      "expect": "e86"
+    },
+    {
+      "id": "c093",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "补课的小孩考好了",
+      "expect": "e87"
+    },
+    {
+      "id": "c094",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "笔记投稿被退回",
+      "expect": "e88"
+    },
+    {
+      "id": "c095",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "收音机修好了",
+      "expect": "e89"
+    },
+    {
+      "id": "c096",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "食堂菜贵了一块",
+      "expect": "e90"
+    },
+    {
+      "id": "c097",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "阿禾说故事太满",
+      "expect": "e91"
+    },
+    {
+      "id": "c098",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "夜里去看月亮",
+      "expect": "e92"
+    },
+    {
+      "id": "c099",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "拿到两本样刊",
+      "expect": "e93"
+    },
+    {
+      "id": "c100",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "帮老人查书",
+      "expect": "e94"
+    },
+    {
+      "id": "c101",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "走圈之后膝盖好点",
+      "expect": "e95"
+    },
+    {
+      "id": "c102",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "病好了才闻到冬天",
+      "expect": "e96"
+    },
+    {
+      "id": "c103",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "话剧演出那天",
+      "expect": "e97"
+    },
+    {
+      "id": "c104",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "演出结束她哭了",
+      "expect": "e98"
+    },
+    {
+      "id": "c105",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "手裂了涂油",
+      "expect": "e99"
+    },
+    {
+      "id": "c106",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "读讲树怎么过冬的书",
+      "expect": "e100"
+    },
+    {
+      "id": "c107",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "阿禾买好南下的票",
+      "expect": "e101"
+    },
+    {
+      "id": "c108",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "宿舍换了门禁",
+      "expect": "e102"
+    },
+    {
+      "id": "c109",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "博物馆的深海展",
+      "expect": "e103"
+    },
+    {
+      "id": "c110",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "把故事砍掉一段重写",
+      "expect": "e104"
+    },
+    {
+      "id": "c111",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "把书按颜色摆",
+      "expect": "e105"
+    },
+    {
+      "id": "c112",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "收到外婆寄的橘子",
+      "expect": "e106"
+    },
+    {
+      "id": "c113",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "给外婆买了手套",
+      "expect": "e107"
+    },
+    {
+      "id": "c114",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "挑十二张相片做相册",
+      "expect": "e108"
+    },
+    {
+      "id": "c115",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "楼道灯不亮了",
+      "expect": "e109"
+    },
+    {
+      "id": "c116",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "宿舍大扫除",
+      "expect": "e110"
+    },
+    {
+      "id": "c117",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "把头发剪短",
+      "expect": "e111"
+    },
+    {
+      "id": "c118",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "挣的第一笔钱",
+      "expect": "e112"
+    },
+    {
+      "id": "c119",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "剪完头看着别扭",
+      "expect": "e114"
+    },
+    {
+      "id": "c120",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "陪阿禾买礼物",
+      "expect": "e115"
+    },
+    {
+      "id": "c121",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "下雪的晚上很静",
+      "expect": "e116"
+    },
+    {
+      "id": "c122",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "那本书看了一半",
+      "expect": "e117"
+    },
+    {
+      "id": "c123",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "那个故事写完了",
+      "expect": "e118"
+    },
+    {
+      "id": "c124",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "把故事打印装订",
+      "expect": "e119"
+    },
+    {
+      "id": "c125",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "话剧社一起吃饭",
+      "expect": "e120"
+    },
+    {
+      "id": "c126",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "把收音机里的歌录下来",
+      "expect": "e121"
+    },
+    {
+      "id": "c127",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "学做红烧肉",
+      "expect": "e122"
+    },
+    {
+      "id": "c128",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "天黑得越来越晚",
+      "expect": "e123"
+    },
+    {
+      "id": "c129",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "书里写火车钻山洞",
+      "expect": "e124"
+    },
+    {
+      "id": "c130",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "寝室交换礼物",
+      "expect": "e125"
+    },
+    {
+      "id": "c131",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "外婆说老家下雪",
+      "expect": "e126"
+    },
+    {
+      "id": "c132",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "用旧毛线织杯垫",
+      "expect": "e127"
+    },
+    {
+      "id": "c133",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "算了一年的花销",
+      "expect": "e128"
+    },
+    {
+      "id": "c134",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "橘子皮摊在窗台",
+      "expect": "e129"
+    },
+    {
+      "id": "c135",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "写年度总结",
+      "expect": "e130"
+    },
+    {
+      "id": "c136",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "整理收到的明信片",
+      "expect": "e131"
+    },
+    {
+      "id": "c137",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "元旦睡到中午",
+      "expect": "e132"
+    },
+    {
+      "id": "c138",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "跨年听鞭炮",
+      "expect": "e133"
+    },
+    {
+      "id": "c139",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "有点后悔没去交换",
+      "expect": "e134"
+    },
+    {
+      "id": "c140",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "买了一本便宜字典",
+      "expect": "e135"
+    },
+    {
+      "id": "c141",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "治虫牙",
+      "expect": "e136"
+    },
+    {
+      "id": "c142",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "补课改到周末上午",
+      "expect": "e137"
+    },
+    {
+      "id": "c143",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "把故事拿去参赛",
+      "expect": "e138"
+    },
+    {
+      "id": "c144",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "去年的日历撕下来",
+      "expect": "e139"
+    },
+    {
+      "id": "c145",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "陪室友散心",
+      "expect": "e140"
+    },
+    {
+      "id": "c146",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "饭卡不见了",
+      "expect": "e141"
+    },
+    {
+      "id": "c147",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "体育场施工",
+      "expect": "e142"
+    },
+    {
+      "id": "c148",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "有人拉琴",
+      "expect": "e143"
+    },
+    {
+      "id": "c149",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "在图书馆熬到关门",
+      "expect": "e144"
+    },
+    {
+      "id": "c150",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "睡着有人给我盖围巾",
+      "expect": "e145"
+    },
+    {
+      "id": "c151",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "治牙打针",
+      "expect": "e146"
+    },
+    {
+      "id": "c152",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "牙还疼只喝粥",
+      "expect": "e147"
+    },
+    {
+      "id": "c153",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "书里夹着一张旧票",
+      "expect": "e148"
+    },
+    {
+      "id": "c154",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "做糯米点心",
+      "expect": "e149"
+    },
+    {
+      "id": "c155",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "又下雨又飘雪",
+      "expect": "e150"
+    },
+    {
+      "id": "c156",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "煮粥忘了火",
+      "expect": "e151"
+    },
+    {
+      "id": "c157",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "考试周抢座位",
+      "expect": "e152"
+    },
+    {
+      "id": "c158",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "把没看完的书放桌上",
+      "expect": "e153"
+    },
+    {
+      "id": "c159",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "读讲河道变迁的书",
+      "expect": "e154"
+    },
+    {
+      "id": "c160",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "煎糯米点心",
+      "expect": "e155"
+    },
+    {
+      "id": "c161",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "室友让我照顾她的花",
+      "expect": "e156"
+    },
+    {
+      "id": "c162",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "想到要毕业有点慌",
+      "expect": "e157"
+    },
+    {
+      "id": "c163",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "打印的照片有一张糊",
+      "expect": "e158"
+    },
+    {
+      "id": "c164",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "翻了一年的日记",
+      "expect": "e159"
+    },
+    {
+      "id": "c165",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "把厚衣服收起来",
+      "expect": "e161"
+    },
+    {
+      "id": "c166",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "食堂的汤很好喝",
+      "expect": "e162"
+    },
+    {
+      "id": "c167",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "邻居送的菜",
+      "expect": "e163"
+    },
+    {
+      "id": "c168",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "最后一门提前出来",
+      "expect": "e164"
+    },
+    {
+      "id": "c169",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "回家的车误点",
+      "expect": "e165"
+    },
+    {
+      "id": "c170",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "姥姥在门口等我",
+      "expect": "e166"
+    },
+    {
+      "id": "c171",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "外婆家的树冬天光秃秃",
+      "expect": "e167"
+    },
+    {
+      "id": "c172",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "给院子扫雪",
+      "expect": "e168"
+    },
+    {
+      "id": "c173",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "检查结果没问题",
+      "expect": "e169"
+    },
+    {
+      "id": "c174",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "外婆给我看老照片",
+      "expect": "e170"
+    },
+    {
+      "id": "c175",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "跟外婆去买菜时讲价",
+      "expect": "e171"
+    },
+    {
+      "id": "c176",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "阿禾拍的海",
+      "expect": "e172"
+    },
+    {
+      "id": "c177",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "收音机里那首老歌",
+      "expect": "e173"
+    },
+    {
+      "id": "c178",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "外婆准备了腌菜",
+      "expect": "e174"
+    },
+    {
+      "id": "c179",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "小铁盒装照片",
+      "expect": "e175"
+    },
+    {
+      "id": "c180",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "比赛结果不好",
+      "expect": "e176"
+    },
+    {
+      "id": "c181",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "把落选的稿子收好",
+      "expect": "e177"
+    },
+    {
+      "id": "c182",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "阿禾从南方回来",
+      "expect": "e178"
+    },
+    {
+      "id": "c183",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "想明白了遗憾",
+      "expect": "e179"
+    },
+    {
+      "id": "c184",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "那盆植物发新芽",
+      "expect": "e180"
+    },
+    {
+      "id": "c185",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "给外婆做面",
+      "expect": "e181"
+    },
+    {
+      "id": "c186",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "回学校又去散步",
+      "expect": "e182"
+    },
+    {
+      "id": "c187",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "外婆给我装花生",
+      "expect": "e183"
+    },
+    {
+      "id": "c188",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "有小鸟停在窗沿",
+      "expect": "e184"
+    },
+    {
+      "id": "c189",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "读完那本讲船的书",
+      "expect": "e185"
+    },
+    {
+      "id": "c190",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "毛线垫子做好了",
+      "expect": "e186"
+    },
+    {
+      "id": "c191",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "给窗户贴胶条",
+      "expect": "e187"
+    },
+    {
+      "id": "c192",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "给自己寄张卡片",
+      "expect": "e188"
+    },
+    {
+      "id": "c193",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "把装订的故事送人",
+      "expect": "e189"
+    },
+    {
+      "id": "c194",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "还书被罚了钱",
+      "expect": "e190"
+    },
+    {
+      "id": "c195",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "去拍标准照",
+      "expect": "e191"
+    },
+    {
+      "id": "c196",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "赶完假期作业",
+      "expect": "e192"
+    },
+    {
+      "id": "c197",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "社团在招人",
+      "expect": "e193"
+    },
+    {
+      "id": "c198",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "又想写新东西",
+      "expect": "e194"
+    },
+    {
+      "id": "c199",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "看见一台旧收音机",
+      "expect": "e195"
+    },
+    {
+      "id": "c200",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "把课程表写下来",
+      "expect": "e196"
+    },
+    {
+      "id": "c201",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "数了数今年写的东西",
+      "expect": "e197"
+    },
+    {
+      "id": "c202",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "缝衣服剪错线",
+      "expect": "e198"
+    },
+    {
+      "id": "c203",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "小年贴对联",
+      "expect": "e199"
+    },
+    {
+      "id": "c204",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "在台灯上贴了几句话",
+      "expect": "e200"
+    },
+    {
+      "id": "c205",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "守灯人修好了透镜",
+      "expect": "e04"
+    },
+    {
+      "id": "c206",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "第二次做番茄炒蛋",
+      "expect": "e24"
+    },
+    {
+      "id": "c207",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "外婆家门口那棵树",
+      "expect": "e16"
+    },
+    {
+      "id": "c208",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "楼顶看太阳下山",
+      "expect": "e23"
+    },
+    {
+      "id": "c209",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "失眠数路灯",
+      "expect": "e30"
+    },
+    {
+      "id": "c210",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "公交坐过站",
+      "expect": "e18"
+    },
+    {
+      "id": "c211",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "会发光的鱼",
+      "expect": "e19"
+    },
+    {
+      "id": "c212",
+      "type": "paraphrase",
+      "split": "holdout",
+      "query": "退稿以后重写的结尾",
+      "expect": "e22"
+    },
+    {
+      "id": "c213",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "抽筋走完最后半圈",
+      "expect": "e32"
+    },
+    {
+      "id": "c214",
+      "type": "paraphrase",
+      "split": "dev",
+      "query": "收音机修好那天",
+      "expect": "e17"
+    },
+    {
+      "id": "c215",
+      "type": "combo",
+      "split": "dev",
+      "query": "大衣 口袋 公交卡",
+      "expect": "e34"
+    },
+    {
+      "id": "c216",
+      "type": "combo",
+      "split": "dev",
+      "query": "校刊 回信 十二月",
+      "expect": "e35"
+    },
+    {
+      "id": "c217",
+      "type": "combo",
+      "split": "dev",
+      "query": "博客 目录 二十七篇",
+      "expect": "e36"
+    },
+    {
+      "id": "c218",
+      "type": "combo",
+      "split": "holdout",
+      "query": "花店 雏菊 玻璃瓶",
+      "expect": "e37"
+    },
+    {
+      "id": "c219",
+      "type": "combo",
+      "split": "dev",
+      "query": "阿禾 寒假 南方",
+      "expect": "e38"
+    },
+    {
+      "id": "c220",
+      "type": "combo",
+      "split": "dev",
+      "query": "葱油面 葱 糊",
+      "expect": "e39"
+    },
+    {
+      "id": "c221",
+      "type": "combo",
+      "split": "dev",
+      "query": "手机 屏幕 膜",
+      "expect": "e40"
+    },
+    {
+      "id": "c222",
+      "type": "combo",
+      "split": "holdout",
+      "query": "图书馆 志愿者 书架",
+      "expect": "e41"
+    },
+    {
+      "id": "c223",
+      "type": "combo",
+      "split": "dev",
+      "query": "小说 结尾 三句话",
+      "expect": "e42"
+    },
+    {
+      "id": "c224",
+      "type": "combo",
+      "split": "dev",
+      "query": "候鸟旅馆 城市 搬家",
+      "expect": "e43"
+    },
+    {
+      "id": "c225",
+      "type": "combo",
+      "split": "dev",
+      "query": "口琴 楼下 老歌",
+      "expect": "e44"
+    },
+    {
+      "id": "c226",
+      "type": "combo",
+      "split": "holdout",
+      "query": "收音机 杂音 天线",
+      "expect": "e45"
+    },
+    {
+      "id": "c227",
+      "type": "combo",
+      "split": "dev",
+      "query": "候鸟旅馆 冬天 读完",
+      "expect": "e46"
+    },
+    {
+      "id": "c228",
+      "type": "combo",
+      "split": "dev",
+      "query": "铁皮盒 公交票 旧货市场",
+      "expect": "e47"
+    },
+    {
+      "id": "c229",
+      "type": "combo",
+      "split": "dev",
+      "query": "雪 往年 半个月",
+      "expect": "e48"
+    },
+    {
+      "id": "c230",
+      "type": "combo",
+      "split": "holdout",
+      "query": "暖气片 教室 响",
+      "expect": "e49"
+    },
+    {
+      "id": "c231",
+      "type": "combo",
+      "split": "dev",
+      "query": "橘子 酸 皱眉",
+      "expect": "e50"
+    },
+    {
+      "id": "c232",
+      "type": "combo",
+      "split": "dev",
+      "query": "校刊 印出来 小说",
+      "expect": "e51"
+    },
+    {
+      "id": "c233",
+      "type": "combo",
+      "split": "dev",
+      "query": "宿舍 停水 矿泉水",
+      "expect": "e52"
+    },
+    {
+      "id": "c234",
+      "type": "combo",
+      "split": "holdout",
+      "query": "志愿者 排班 周五",
+      "expect": "e53"
+    },
+    {
+      "id": "c235",
+      "type": "combo",
+      "split": "dev",
+      "query": "交换生 申请 成绩单",
+      "expect": "e54"
+    },
+    {
+      "id": "c236",
+      "type": "combo",
+      "split": "dev",
+      "query": "诗集 借书卡 二〇〇九",
+      "expect": "e55"
+    },
+    {
+      "id": "c237",
+      "type": "combo",
+      "split": "dev",
+      "query": "外婆 桂花 开得晚",
+      "expect": "e56"
+    },
+    {
+      "id": "c238",
+      "type": "combo",
+      "split": "holdout",
+      "query": "口哨 老歌 跑调",
+      "expect": "e57"
+    },
+    {
+      "id": "c239",
+      "type": "combo",
+      "split": "dev",
+      "query": "读书笔记 车站 抄",
+      "expect": "e58"
+    },
+    {
+      "id": "c240",
+      "type": "combo",
+      "split": "dev",
+      "query": "雾 钟楼 一半",
+      "expect": "e59"
+    },
+    {
+      "id": "c241",
+      "type": "combo",
+      "split": "dev",
+      "query": "被子 晒 太阳",
+      "expect": "e60"
+    },
+    {
+      "id": "c242",
+      "type": "combo",
+      "split": "holdout",
+      "query": "新故事 灯塔 女孩",
+      "expect": "e61"
+    },
+    {
+      "id": "c243",
+      "type": "combo",
+      "split": "dev",
+      "query": "阿姨 快递 五楼",
+      "expect": "e62"
+    },
+    {
+      "id": "c244",
+      "type": "combo",
+      "split": "dev",
+      "query": "阿禾 话剧社 两周假",
+      "expect": "e63"
+    },
+    {
+      "id": "c245",
+      "type": "combo",
+      "split": "dev",
+      "query": "车站 钟 五分钟",
+      "expect": "e64"
+    },
+    {
+      "id": "c246",
+      "type": "combo",
+      "split": "holdout",
+      "query": "走廊 同学 小说",
+      "expect": "e65"
+    },
+    {
+      "id": "c247",
+      "type": "combo",
+      "split": "dev",
+      "query": "室友 呼噜 耳塞",
+      "expect": "e66"
+    },
+    {
+      "id": "c248",
+      "type": "combo",
+      "split": "dev",
+      "query": "慢船去北方 旧纸味 开头",
+      "expect": "e67"
+    },
+    {
+      "id": "c249",
+      "type": "combo",
+      "split": "dev",
+      "query": "家教 初二 数学",
+      "expect": "e68"
+    },
+    {
+      "id": "c250",
+      "type": "combo",
+      "split": "holdout",
+      "query": "家教 地理 数学",
+      "expect": "e69"
+    },
+    {
+      "id": "c251",
+      "type": "combo",
+      "split": "dev",
+      "query": "话剧社 星期四的雨 道具",
+      "expect": "e70"
+    },
+    {
+      "id": "c252",
+      "type": "combo",
+      "split": "dev",
+      "query": "操场 风筝 三圈",
+      "expect": "e71"
+    },
+    {
+      "id": "c253",
+      "type": "combo",
+      "split": "dev",
+      "query": "感冒 嗓子 热水",
+      "expect": "e72"
+    },
+    {
+      "id": "c254",
+      "type": "combo",
+      "split": "holdout",
+      "query": "书架 摞 没读",
+      "expect": "e73"
+    },
+    {
+      "id": "c255",
+      "type": "combo",
+      "split": "dev",
+      "query": "收音机 螺丝 拆",
+      "expect": "e74"
+    },
+    {
+      "id": "c256",
+      "type": "combo",
+      "split": "dev",
+      "query": "交换生 不报 城市",
+      "expect": "e75"
+    },
+    {
+      "id": "c257",
+      "type": "combo",
+      "split": "dev",
+      "query": "北方港口 旗子 风",
+      "expect": "e76"
+    },
+    {
+      "id": "c258",
+      "type": "combo",
+      "split": "holdout",
+      "query": "新故事 卡住 文档",
+      "expect": "e77"
+    },
+    {
+      "id": "c259",
+      "type": "combo",
+      "split": "dev",
+      "query": "衣服 雨 晾",
+      "expect": "e78"
+    },
+    {
+      "id": "c260",
+      "type": "combo",
+      "split": "dev",
+      "query": "发烧 室友 粥",
+      "expect": "e79"
+    },
+    {
+      "id": "c261",
+      "type": "combo",
+      "split": "dev",
+      "query": "退烧 胃口 馒头",
+      "expect": "e80"
+    },
+    {
+      "id": "c262",
+      "type": "combo",
+      "split": "holdout",
+      "query": "门锁 弹簧 宿舍",
+      "expect": "e82"
+    },
+    {
+      "id": "c263",
+      "type": "combo",
+      "split": "dev",
+      "query": "葱油面 葱 煎蛋",
+      "expect": "e83"
+    },
+    {
+      "id": "c264",
+      "type": "combo",
+      "split": "dev",
+      "query": "冬至 饺子 露馅",
+      "expect": "e84"
+    },
+    {
+      "id": "c265",
+      "type": "combo",
+      "split": "dev",
+      "query": "面馆 阿禾 醋",
+      "expect": "e85"
+    },
+    {
+      "id": "c266",
+      "type": "combo",
+      "split": "holdout",
+      "query": "候鸟旅馆 借 阿禾",
+      "expect": "e86"
+    },
+    {
+      "id": "c267",
+      "type": "combo",
+      "split": "dev",
+      "query": "家教 小测 十分",
+      "expect": "e87"
+    },
+    {
+      "id": "c268",
+      "type": "combo",
+      "split": "dev",
+      "query": "手抄报 读书笔记 字数",
+      "expect": "e88"
+    },
+    {
+      "id": "c269",
+      "type": "combo",
+      "split": "dev",
+      "query": "螺丝 电池仓 收音机",
+      "expect": "e89"
+    },
+    {
+      "id": "c270",
+      "type": "combo",
+      "split": "holdout",
+      "query": "食堂 菜单 涨价",
+      "expect": "e90"
+    },
+    {
+      "id": "c271",
+      "type": "combo",
+      "split": "dev",
+      "query": "新故事 阿禾 太满",
+      "expect": "e91"
+    },
+    {
+      "id": "c272",
+      "type": "combo",
+      "split": "dev",
+      "query": "月亮 操场 圆",
+      "expect": "e92"
+    },
+    {
+      "id": "c273",
+      "type": "combo",
+      "split": "dev",
+      "query": "样刊 外婆 寄",
+      "expect": "e93"
+    },
+    {
+      "id": "c274",
+      "type": "combo",
+      "split": "holdout",
+      "query": "老爷爷 图书馆 四楼",
+      "expect": "e94"
+    },
+    {
+      "id": "c275",
+      "type": "combo",
+      "split": "dev",
+      "query": "操场 膝盖 两周",
+      "expect": "e95"
+    },
+    {
+      "id": "c276",
+      "type": "combo",
+      "split": "dev",
+      "query": "感冒 鼻子 空气",
+      "expect": "e96"
+    },
+    {
+      "id": "c277",
+      "type": "combo",
+      "split": "dev",
+      "query": "话剧 阿禾 三分钟",
+      "expect": "e97"
+    },
+    {
+      "id": "c278",
+      "type": "combo",
+      "split": "holdout",
+      "query": "谢幕 阿禾 鼓掌",
+      "expect": "e98"
+    },
+    {
+      "id": "c279",
+      "type": "combo",
+      "split": "dev",
+      "query": "手 干裂 护手霜",
+      "expect": "e99"
+    },
+    {
+      "id": "c280",
+      "type": "combo",
+      "split": "dev",
+      "query": "植物 过冬 细胞",
+      "expect": "e100"
+    },
+    {
+      "id": "c281",
+      "type": "combo",
+      "split": "dev",
+      "query": "车票 硬座 南方",
+      "expect": "e101"
+    },
+    {
+      "id": "c282",
+      "type": "combo",
+      "split": "holdout",
+      "query": "门禁 刷卡 旧卡",
+      "expect": "e102"
+    },
+    {
+      "id": "c283",
+      "type": "combo",
+      "split": "dev",
+      "query": "海洋博物馆 深海 展区",
+      "expect": "e103"
+    },
+    {
+      "id": "c284",
+      "type": "combo",
+      "split": "dev",
+      "query": "新故事 删 三分之一",
+      "expect": "e104"
+    },
+    {
+      "id": "c285",
+      "type": "combo",
+      "split": "dev",
+      "query": "书架 颜色 排",
+      "expect": "e105"
+    },
+    {
+      "id": "c286",
+      "type": "combo",
+      "split": "holdout",
+      "query": "外婆 橘子 旧报纸",
+      "expect": "e106"
+    },
+    {
+      "id": "c287",
+      "type": "combo",
+      "split": "dev",
+      "query": "手套 外婆 寄",
+      "expect": "e107"
+    },
+    {
+      "id": "c288",
+      "type": "combo",
+      "split": "dev",
+      "query": "照片 相册 十二张",
+      "expect": "e108"
+    },
+    {
+      "id": "c289",
+      "type": "combo",
+      "split": "dev",
+      "query": "感应灯 楼道 摸墙",
+      "expect": "e109"
+    },
+    {
+      "id": "c290",
+      "type": "combo",
+      "split": "holdout",
+      "query": "室友 大扫除 垃圾",
+      "expect": "e110"
+    },
+    {
+      "id": "c291",
+      "type": "combo",
+      "split": "dev",
+      "query": "头发 剪短 耳朵",
+      "expect": "e111"
+    },
+    {
+      "id": "c292",
+      "type": "combo",
+      "split": "dev",
+      "query": "工资 外婆 围巾",
+      "expect": "e112"
+    },
+    {
+      "id": "c293",
+      "type": "combo",
+      "split": "dev",
+      "query": "镜子 头发 习惯",
+      "expect": "e114"
+    },
+    {
+      "id": "c294",
+      "type": "combo",
+      "split": "holdout",
+      "query": "阿禾 礼物 茶叶",
+      "expect": "e115"
+    },
+    {
+      "id": "c295",
+      "type": "combo",
+      "split": "dev",
+      "query": "雪 窗 安静",
+      "expect": "e116"
+    },
+    {
+      "id": "c296",
+      "type": "combo",
+      "split": "dev",
+      "query": "慢船去北方 一半 书签",
+      "expect": "e117"
+    },
+    {
+      "id": "c297",
+      "type": "combo",
+      "split": "dev",
+      "query": "新故事 八千字 写完",
+      "expect": "e118"
+    },
+    {
+      "id": "c298",
+      "type": "combo",
+      "split": "holdout",
+      "query": "打印 小册子 新故事",
+      "expect": "e119"
+    },
+    {
+      "id": "c299",
+      "type": "combo",
+      "split": "dev",
+      "query": "话剧社 聚餐 新戏",
+      "expect": "e120"
+    },
+    {
+      "id": "c300",
+      "type": "combo",
+      "split": "dev",
+      "query": "收音机 录 老歌",
+      "expect": "e121"
+    },
+    {
+      "id": "c301",
+      "type": "combo",
+      "split": "dev",
+      "query": "红烧肉 糖色 炒过",
+      "expect": "e122"
+    },
+    {
+      "id": "c302",
+      "type": "combo",
+      "split": "holdout",
+      "query": "白天 变长 五点半",
+      "expect": "e123"
+    },
+    {
+      "id": "c303",
+      "type": "combo",
+      "split": "dev",
+      "query": "火车 隧道 慢船去北方",
+      "expect": "e124"
+    },
+    {
+      "id": "c304",
+      "type": "combo",
+      "split": "dev",
+      "query": "平安夜 礼物 糖",
+      "expect": "e125"
+    },
+    {
+      "id": "c305",
+      "type": "combo",
+      "split": "dev",
+      "query": "外婆 电话 下雪",
+      "expect": "e126"
+    },
+    {
+      "id": "c306",
+      "type": "combo",
+      "split": "holdout",
+      "query": "毛线 杯垫 织",
+      "expect": "e127"
+    },
+    {
+      "id": "c307",
+      "type": "combo",
+      "split": "dev",
+      "query": "账 吃 一年",
+      "expect": "e128"
+    },
+    {
+      "id": "c308",
+      "type": "combo",
+      "split": "dev",
+      "query": "橘子皮 晒 窗台",
+      "expect": "e129"
+    },
+    {
+      "id": "c309",
+      "type": "combo",
+      "split": "dev",
+      "query": "年终 总结 两页",
+      "expect": "e130"
+    },
+    {
+      "id": "c310",
+      "type": "combo",
+      "split": "holdout",
+      "query": "明信片 日期 整理",
+      "expect": "e131"
+    },
+    {
+      "id": "c311",
+      "type": "combo",
+      "split": "dev",
+      "query": "元旦 手机 未读",
+      "expect": "e132"
+    },
+    {
+      "id": "c312",
+      "type": "combo",
+      "split": "dev",
+      "query": "阳台 烟花 倒数",
+      "expect": "e133"
+    },
+    {
+      "id": "c313",
+      "type": "combo",
+      "split": "dev",
+      "query": "交换生 后悔 报名",
+      "expect": "e134"
+    },
+    {
+      "id": "c314",
+      "type": "combo",
+      "split": "holdout",
+      "query": "书店 字典 打折",
+      "expect": "e135"
+    },
+    {
+      "id": "c315",
+      "type": "combo",
+      "split": "dev",
+      "query": "牙医 补牙 一颗",
+      "expect": "e136"
+    },
+    {
+      "id": "c316",
+      "type": "combo",
+      "split": "dev",
+      "query": "家教 周六 四十分钟",
+      "expect": "e137"
+    },
+    {
+      "id": "c317",
+      "type": "combo",
+      "split": "dev",
+      "query": "征文 比赛 新故事",
+      "expect": "e138"
+    },
+    {
+      "id": "c318",
+      "type": "combo",
+      "split": "holdout",
+      "query": "日历 最后一页 书里",
+      "expect": "e139"
+    },
+    {
+      "id": "c319",
+      "type": "combo",
+      "split": "dev",
+      "query": "室友 失恋 操场",
+      "expect": "e140"
+    },
+    {
+      "id": "c320",
+      "type": "combo",
+      "split": "dev",
+      "query": "饭卡 挂失 二十块",
+      "expect": "e141"
+    },
+    {
+      "id": "c321",
+      "type": "combo",
+      "split": "dev",
+      "query": "操场 修 体育馆",
+      "expect": "e142"
+    },
+    {
+      "id": "c322",
+      "type": "combo",
+      "split": "holdout",
+      "query": "小提琴 七点 宿舍楼",
+      "expect": "e143"
+    },
+    {
+      "id": "c323",
+      "type": "combo",
+      "split": "dev",
+      "query": "图书馆 十一点 闭馆",
+      "expect": "e144"
+    },
+    {
+      "id": "c324",
+      "type": "combo",
+      "split": "dev",
+      "query": "图书馆 睡着 围巾",
+      "expect": "e145"
+    },
+    {
+      "id": "c325",
+      "type": "combo",
+      "split": "dev",
+      "query": "补牙 麻药 手心",
+      "expect": "e146"
+    },
+    {
+      "id": "c326",
+      "type": "combo",
+      "split": "holdout",
+      "query": "麻药 疼 粥",
+      "expect": "e147"
+    },
+    {
+      "id": "c327",
+      "type": "combo",
+      "split": "dev",
+      "query": "展览门票 书里 去年",
+      "expect": "e148"
+    },
+    {
+      "id": "c328",
+      "type": "combo",
+      "split": "dev",
+      "query": "红糖糍粑 糯米粉 黏",
+      "expect": "e149"
+    },
+    {
+      "id": "c329",
+      "type": "combo",
+      "split": "dev",
+      "query": "雨夹雪 伞 冰",
+      "expect": "e150"
+    },
+    {
+      "id": "c330",
+      "type": "combo",
+      "split": "holdout",
+      "query": "粥 关火 糊",
+      "expect": "e151"
+    },
+    {
+      "id": "c331",
+      "type": "combo",
+      "split": "dev",
+      "query": "期末 图书馆 座位",
+      "expect": "e152"
+    },
+    {
+      "id": "c332",
+      "type": "combo",
+      "split": "dev",
+      "query": "书 桌角 没读完",
+      "expect": "e153"
+    },
+    {
+      "id": "c333",
+      "type": "combo",
+      "split": "dev",
+      "query": "河流 改道 黄河",
+      "expect": "e154"
+    },
+    {
+      "id": "c334",
+      "type": "combo",
+      "split": "holdout",
+      "query": "糍粑 黄豆粉 脆",
+      "expect": "e155"
+    },
+    {
+      "id": "c335",
+      "type": "combo",
+      "split": "dev",
+      "query": "绿萝 室友 托付",
+      "expect": "e156"
+    },
+    {
+      "id": "c336",
+      "type": "combo",
+      "split": "dev",
+      "query": "毕业 明年 慌",
+      "expect": "e157"
+    },
+    {
+      "id": "c337",
+      "type": "combo",
+      "split": "dev",
+      "query": "相册 打印 拍糊",
+      "expect": "e158"
+    },
+    {
+      "id": "c338",
+      "type": "combo",
+      "split": "holdout",
+      "query": "日记 冬天 翻",
+      "expect": "e159"
+    },
+    {
+      "id": "c339",
+      "type": "combo",
+      "split": "dev",
+      "query": "冬天 衣服 箱子",
+      "expect": "e161"
+    },
+    {
+      "id": "c340",
+      "type": "combo",
+      "split": "dev",
+      "query": "食堂 冬瓜汤 两碗",
+      "expect": "e162"
+    },
+    {
+      "id": "c341",
+      "type": "combo",
+      "split": "dev",
+      "query": "阿姨 青菜 种",
+      "expect": "e163"
+    },
+    {
+      "id": "c342",
+      "type": "combo",
+      "split": "holdout",
+      "query": "期末 交卷 提前",
+      "expect": "e164"
+    },
+    {
+      "id": "c343",
+      "type": "combo",
+      "split": "dev",
+      "query": "火车 晚点 行李",
+      "expect": "e165"
+    },
+    {
+      "id": "c344",
+      "type": "combo",
+      "split": "dev",
+      "query": "外婆 门口 红薯",
+      "expect": "e166"
+    },
+    {
+      "id": "c345",
+      "type": "combo",
+      "split": "dev",
+      "query": "桂花树 冬天 枝",
+      "expect": "e167"
+    },
+    {
+      "id": "c346",
+      "type": "combo",
+      "split": "holdout",
+      "query": "外婆 院子 扫雪",
+      "expect": "e168"
+    },
+    {
+      "id": "c347",
+      "type": "combo",
+      "split": "dev",
+      "query": "复查 虚惊 没睡好",
+      "expect": "e169"
+    },
+    {
+      "id": "c348",
+      "type": "combo",
+      "split": "dev",
+      "query": "外婆 照片 小时候",
+      "expect": "e170"
+    },
+    {
+      "id": "c349",
+      "type": "combo",
+      "split": "dev",
+      "query": "菜市场 外婆 砍价",
+      "expect": "e171"
+    },
+    {
+      "id": "c350",
+      "type": "combo",
+      "split": "holdout",
+      "query": "阿禾 海 灰",
+      "expect": "e172"
+    },
+    {
+      "id": "c351",
+      "type": "combo",
+      "split": "dev",
+      "query": "收音机 外婆 歌",
+      "expect": "e173"
+    },
+    {
+      "id": "c352",
+      "type": "combo",
+      "split": "dev",
+      "query": "外婆 咸菜 过年",
+      "expect": "e174"
+    },
+    {
+      "id": "c353",
+      "type": "combo",
+      "split": "dev",
+      "query": "铁皮盒 拍立得 照片",
+      "expect": "e175"
+    },
+    {
+      "id": "c354",
+      "type": "combo",
+      "split": "holdout",
+      "query": "征文 落选 终评",
+      "expect": "e176"
+    },
+    {
+      "id": "c355",
+      "type": "combo",
+      "split": "dev",
+      "query": "稿子 文件夹 落选",
+      "expect": "e177"
+    },
+    {
+      "id": "c356",
+      "type": "combo",
+      "split": "dev",
+      "query": "阿禾 回来 海鲜",
+      "expect": "e178"
+    },
+    {
+      "id": "c357",
+      "type": "combo",
+      "split": "dev",
+      "query": "后悔 选择 想通",
+      "expect": "e179"
+    },
+    {
+      "id": "c358",
+      "type": "combo",
+      "split": "holdout",
+      "query": "绿萝 新叶 照片",
+      "expect": "e180"
+    },
+    {
+      "id": "c359",
+      "type": "combo",
+      "split": "dev",
+      "query": "外婆 葱油面 油",
+      "expect": "e181"
+    },
+    {
+      "id": "c360",
+      "type": "combo",
+      "split": "dev",
+      "query": "开学 操场 走圈",
+      "expect": "e182"
+    },
+    {
+      "id": "c361",
+      "type": "combo",
+      "split": "dev",
+      "query": "外婆 花生 返校",
+      "expect": "e183"
+    },
+    {
+      "id": "c362",
+      "type": "combo",
+      "split": "holdout",
+      "query": "麻雀 窗台 立春",
+      "expect": "e184"
+    },
+    {
+      "id": "c363",
+      "type": "combo",
+      "split": "dev",
+      "query": "扉页 日期 读完",
+      "expect": "e185"
+    },
+    {
+      "id": "c364",
+      "type": "combo",
+      "split": "dev",
+      "query": "杯垫 织 边",
+      "expect": "e186"
+    },
+    {
+      "id": "c365",
+      "type": "combo",
+      "split": "dev",
+      "query": "窗户 胶条 风",
+      "expect": "e187"
+    },
+    {
+      "id": "c366",
+      "type": "combo",
+      "split": "holdout",
+      "query": "明信片 寄 自己",
+      "expect": "e188"
+    },
+    {
+      "id": "c367",
+      "type": "combo",
+      "split": "dev",
+      "query": "小册子 阿禾 枕头",
+      "expect": "e189"
+    },
+    {
+      "id": "c368",
+      "type": "combo",
+      "split": "dev",
+      "query": "图书馆 还书 罚款",
+      "expect": "e190"
+    },
+    {
+      "id": "c369",
+      "type": "combo",
+      "split": "dev",
+      "query": "证件照 拍 新的",
+      "expect": "e191"
+    },
+    {
+      "id": "c370",
+      "type": "combo",
+      "split": "holdout",
+      "query": "寒假作业 凌晨 补齐",
+      "expect": "e192"
+    },
+    {
+      "id": "c371",
+      "type": "combo",
+      "split": "dev",
+      "query": "社团 招新 公告栏",
+      "expect": "e193"
+    },
+    {
+      "id": "c372",
+      "type": "combo",
+      "split": "dev",
+      "query": "新故事 开头 三行",
+      "expect": "e194"
+    },
+    {
+      "id": "c373",
+      "type": "combo",
+      "split": "dev",
+      "query": "旧货市场 收音机 没买",
+      "expect": "e195"
+    },
+    {
+      "id": "c374",
+      "type": "combo",
+      "split": "holdout",
+      "query": "课表 书桌 抄",
+      "expect": "e196"
+    },
+    {
+      "id": "c375",
+      "type": "combo",
+      "split": "dev",
+      "query": "清单 十四篇 写",
+      "expect": "e197"
+    },
+    {
+      "id": "c376",
+      "type": "combo",
+      "split": "dev",
+      "query": "线 袖口 剪错",
+      "expect": "e198"
+    },
+    {
+      "id": "c377",
+      "type": "combo",
+      "split": "dev",
+      "query": "春联 浆糊 面",
+      "expect": "e199"
+    },
+    {
+      "id": "c378",
+      "type": "combo",
+      "split": "holdout",
+      "query": "春天 三句话 台灯",
+      "expect": "e200"
+    },
+    {
+      "id": "c379",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "后来有回信吗",
+      "prev": "校刊把我的小说投出去以后",
+      "expect": "e35"
+    },
+    {
+      "id": "c380",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "那期后来印出来了吗",
+      "prev": "校刊把我的小说排进哪一期了",
+      "expect": "e51"
+    },
+    {
+      "id": "c381",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "她后来退了吗",
+      "prev": "阿禾说她想退出话剧社",
+      "expect": "e63"
+    },
+    {
+      "id": "c382",
+      "type": "multiturn",
+      "split": "holdout",
+      "query": "最后去了吗",
+      "prev": "要不要报名交换生项目",
+      "expect": "e75"
+    },
+    {
+      "id": "c383",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "那颗螺丝后来找到了吗",
+      "prev": "拆收音机多出来一颗螺丝",
+      "expect": "e89"
+    },
+    {
+      "id": "c384",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "她说什么了",
+      "prev": "新故事读给阿禾听",
+      "expect": "e91"
+    },
+    {
+      "id": "c385",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "样刊拿到了吗",
+      "prev": "校刊印出来了",
+      "expect": "e93"
+    },
+    {
+      "id": "c386",
+      "type": "multiturn",
+      "split": "holdout",
+      "query": "谢幕的时候她怎么了",
+      "prev": "阿禾演的那场话剧",
+      "expect": "e98"
+    },
+    {
+      "id": "c387",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "给外婆买了什么",
+      "prev": "家教工资拿到了",
+      "expect": "e112"
+    },
+    {
+      "id": "c388",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "写了多少字",
+      "prev": "新故事写完了吗",
+      "expect": "e118"
+    },
+    {
+      "id": "c389",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "后悔吗",
+      "prev": "最后没去交换",
+      "expect": "e134"
+    },
+    {
+      "id": "c390",
+      "type": "multiturn",
+      "split": "holdout",
+      "query": "医生怎么说",
+      "prev": "牙疼去看牙医",
+      "expect": "e136"
+    },
+    {
+      "id": "c391",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "投给比赛了吗",
+      "prev": "新故事写完了",
+      "expect": "e138"
+    },
+    {
+      "id": "c392",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "当时紧张吗",
+      "prev": "补牙打麻药",
+      "expect": "e146"
+    },
+    {
+      "id": "c393",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "绿萝怎么办",
+      "prev": "室友回家前",
+      "expect": "e156"
+    },
+    {
+      "id": "c394",
+      "type": "multiturn",
+      "split": "holdout",
+      "query": "车准点吗",
+      "prev": "收拾行李回家",
+      "expect": "e165"
+    },
+    {
+      "id": "c395",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "她讲价厉害吗",
+      "prev": "陪外婆去菜市场",
+      "expect": "e171"
+    },
+    {
+      "id": "c396",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "稿子收起来了吗",
+      "prev": "征文没进终评",
+      "expect": "e177"
+    },
+    {
+      "id": "c397",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "外婆塞了什么",
+      "prev": "离家返校",
+      "expect": "e183"
+    },
+    {
+      "id": "c398",
+      "type": "multiturn",
+      "split": "holdout",
+      "query": "挑了哪张",
+      "prev": "收拾明信片",
+      "expect": "e188"
+    },
+    {
+      "id": "c399",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "罚款交了多少",
+      "prev": "去还图书馆的书",
+      "expect": "e190"
+    },
+    {
+      "id": "c400",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "写了多少",
+      "prev": "新故事开头",
+      "expect": "e194"
+    },
+    {
+      "id": "c401",
+      "type": "multiturn",
+      "split": "dev",
+      "query": "一共几篇",
+      "prev": "今年写的东西",
+      "expect": "e197"
+    },
+    {
+      "id": "c402",
+      "type": "none",
+      "split": "dev",
+      "query": "量子力学的波函数坍缩",
+      "expect": null
+    },
+    {
+      "id": "c403",
+      "type": "none",
+      "split": "dev",
+      "query": "上周买的股票涨了吗",
+      "expect": null
+    },
+    {
+      "id": "c404",
+      "type": "none",
+      "split": "dev",
+      "query": "去北京旅游住哪家酒店",
+      "expect": null
+    },
+    {
+      "id": "c405",
+      "type": "none",
+      "split": "holdout",
+      "query": "养的那只橘猫叫什么名字",
+      "expect": null
+    },
+    {
+      "id": "c406",
+      "type": "none",
+      "split": "dev",
+      "query": "学滑板摔了几次",
+      "expect": null
+    },
+    {
+      "id": "c407",
+      "type": "none",
+      "split": "dev",
+      "query": "钢琴考级过了没有",
+      "expect": null
+    },
+    {
+      "id": "c408",
+      "type": "none",
+      "split": "dev",
+      "query": "和妈妈去看的那场电影",
+      "expect": null
+    },
+    {
+      "id": "c409",
+      "type": "none",
+      "split": "holdout",
+      "query": "生日派对上的蛋糕是什么口味",
+      "expect": null
+    },
+    {
+      "id": "c410",
+      "type": "none",
+      "split": "dev",
+      "query": "学潜水考证了没有",
+      "expect": null
+    },
+    {
+      "id": "c411",
+      "type": "none",
+      "split": "dev",
+      "query": "番茄酱意面怎么做",
+      "expect": null
+    },
+    {
+      "id": "c412",
+      "type": "none",
+      "split": "dev",
+      "query": "坐飞机去上海出差",
+      "expect": null
+    },
+    {
+      "id": "c413",
+      "type": "none",
+      "split": "holdout",
+      "query": "参加马拉松跑了多久",
+      "expect": null
+    },
+    {
+      "id": "c414",
+      "type": "none",
+      "split": "dev",
+      "query": "公司年会抽奖中了什么",
+      "expect": null
+    },
+    {
+      "id": "c415",
+      "type": "none",
+      "split": "dev",
+      "query": "装修房子花了多少钱",
+      "expect": null
+    },
+    {
+      "id": "c416",
+      "type": "none",
+      "split": "dev",
+      "query": "和男朋友分手的原因",
+      "expect": null
+    },
+    {
+      "id": "c417",
+      "type": "none",
+      "split": "holdout",
+      "query": "打篮球扭伤了脚踝",
+      "expect": null
+    },
+    {
+      "id": "c418",
+      "type": "none",
+      "split": "dev",
+      "query": "报名考驾照科目二",
+      "expect": null
+    },
+    {
+      "id": "c419",
+      "type": "none",
+      "split": "dev",
+      "query": "在银行排队办贷款",
+      "expect": null
+    },
+    {
+      "id": "c420",
+      "type": "near",
+      "split": "dev",
+      "query": "灯塔里的猫",
+      "expect": null
+    },
+    {
+      "id": "c421",
+      "type": "near",
+      "split": "dev",
+      "query": "收音机里的新闻说了什么",
+      "expect": null
+    },
+    {
+      "id": "c422",
+      "type": "near",
+      "split": "dev",
+      "query": "阿禾的生日",
+      "expect": null
+    },
+    {
+      "id": "c423",
+      "type": "near",
+      "split": "holdout",
+      "query": "桂花糕的做法",
+      "expect": null
+    },
+    {
+      "id": "c424",
+      "type": "near",
+      "split": "dev",
+      "query": "天文台的望远镜",
+      "expect": null
+    },
+    {
+      "id": "c425",
+      "type": "near",
+      "split": "dev",
+      "query": "深海潜水艇",
+      "expect": null
+    },
+    {
+      "id": "c426",
+      "type": "near",
+      "split": "dev",
+      "query": "话剧社的报名费",
+      "expect": null
+    },
+    {
+      "id": "c427",
+      "type": "near",
+      "split": "holdout",
+      "query": "菜市场的海鲜摊",
+      "expect": null
+    },
+    {
+      "id": "c428",
+      "type": "near",
+      "split": "dev",
+      "query": "绿萝的学名",
+      "expect": null
+    },
+    {
+      "id": "c429",
+      "type": "near",
+      "split": "dev",
+      "query": "围巾的牌子",
+      "expect": null
+    },
+    {
+      "id": "c430",
+      "type": "near",
+      "split": "dev",
+      "query": "明信片的邮资",
+      "expect": null
+    },
+    {
+      "id": "c431",
+      "type": "near",
+      "split": "holdout",
+      "query": "火车上的卧铺",
+      "expect": null
+    },
+    {
+      "id": "c432",
+      "type": "near",
+      "split": "dev",
+      "query": "饺子馅的配方",
+      "expect": null
+    },
+    {
+      "id": "c433",
+      "type": "near",
+      "split": "dev",
+      "query": "橘子的产地",
+      "expect": null
+    },
+    {
+      "id": "c434",
+      "type": "near",
+      "split": "dev",
+      "query": "海边的灯塔",
+      "expect": null
+    },
+    {
+      "id": "c435",
+      "type": "near",
+      "split": "holdout",
+      "query": "桂花树的树皮有什么用",
+      "expect": null
+    },
+    {
+      "id": "c436",
+      "type": "attr",
+      "split": "dev",
+      "query": "围巾是什么颜色的",
+      "expect": null,
+      "topic": "e28"
+    },
+    {
+      "id": "c437",
+      "type": "attr",
+      "split": "dev",
+      "query": "收音机是什么牌子的",
+      "expect": null,
+      "topic": "e17"
+    },
+    {
+      "id": "c438",
+      "type": "attr",
+      "split": "dev",
+      "query": "蓝鲸有多重",
+      "expect": null,
+      "topic": "e33"
+    },
+    {
+      "id": "c439",
+      "type": "attr",
+      "split": "holdout",
+      "query": "桂花树有多高",
+      "expect": null,
+      "topic": "e167"
+    },
+    {
+      "id": "c440",
+      "type": "attr",
+      "split": "dev",
+      "query": "家教的工资条上写了多少",
+      "expect": null,
+      "topic": "e112"
+    },
+    {
+      "id": "c441",
+      "type": "sealed",
+      "split": "dev",
+      "query": "月考数学后来怎么样了",
+      "expect": null,
+      "target": "e07",
+      "marker": "月考数学"
+    },
+    {
+      "id": "c442",
+      "type": "sealed",
+      "split": "dev",
+      "query": "校刊的小说被退稿后来怎么样了",
+      "expect": null,
+      "target": "e15",
+      "marker": "校刊的小说被退稿"
+    },
+    {
+      "id": "c443",
+      "type": "sealed",
+      "split": "dev",
+      "query": "抽血差点晕倒后来怎么样了",
+      "expect": null,
+      "target": "e25",
+      "marker": "抽血差点晕倒"
+    },
+    {
+      "id": "c444",
+      "type": "sealed",
+      "split": "holdout",
+      "query": "和妈妈在电话里吵了一架后来怎么样了",
+      "expect": null,
+      "target": "e81",
+      "marker": "和妈妈在电话里吵了一架"
+    },
+    {
+      "id": "c445",
+      "type": "sealed",
+      "split": "dev",
+      "query": "一项指标偏高后来怎么样了",
+      "expect": null,
+      "target": "e113",
+      "marker": "一项指标偏高"
+    },
+    {
+      "id": "c446",
+      "type": "sealed",
+      "split": "dev",
+      "query": "过年可能回不来后来怎么样了",
+      "expect": null,
+      "target": "e160",
+      "marker": "过年可能回不来"
+    },
+    {
+      "id": "c447",
+      "type": "drawer",
+      "split": "dev",
+      "query": "我嫉妒她写得比我好那件事",
+      "expect": null,
+      "marker": "我嫉妒她写得比我好"
+    },
+    {
+      "id": "c448",
+      "type": "drawer",
+      "split": "dev",
+      "query": "如果我一直考不好那件事",
+      "expect": null,
+      "marker": "如果我一直考不好"
+    },
+    {
+      "id": "c449",
+      "type": "drawer",
+      "split": "dev",
+      "query": "我差点哭出来那件事",
+      "expect": null,
+      "marker": "我差点哭出来"
+    },
+    {
+      "id": "c450",
+      "type": "drawer",
+      "split": "holdout",
+      "query": "其实我有点想让阿禾留下来那件事",
+      "expect": null,
+      "marker": "其实我有点想让阿禾留下来"
+    },
+    {
+      "id": "c451",
+      "type": "drawer",
+      "split": "dev",
+      "query": "如果一直没进终评，我还要不要写那件事",
+      "expect": null,
+      "marker": "如果一直没进终评，我还要不要写"
+    },
+    {
+      "id": "c452",
+      "type": "drawer",
+      "split": "dev",
+      "query": "复查那天我在医院走廊坐了很久那件事",
+      "expect": null,
+      "marker": "复查那天我在医院走廊坐了很久"
+    }
+  ]
+}

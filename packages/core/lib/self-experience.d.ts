@@ -133,6 +133,10 @@ export function recall(dir: string, query: string, opts?: {
   gate?: 'cover' | 'legacy'
   /** 读哪个容器（默认 file）。sqlite 下不能 mark：写路径还在 JSONL 上 */
   backend?: StorageBackendName
+  /** 匹配/排序方式：literal（默认，0.23.0 及以前的行为不变）或 hybrid（BM25 + 字符 n-gram + 小同义词表，实验性；此时 mode / gate 不参与） */
+  ranker?: 'literal' | 'hybrid'
+  /** 上一轮查询（字符串或数组），给多轮追问用；字面检索拼到查询前面，混合检索只用它排序 */
+  context?: string | string[] | null
 }): Experience[]
 
 /** 事后联想：两条都必须存在、必须写理由；同一对（不分方向）只连一次 */
@@ -183,7 +187,7 @@ export interface RecallContextItem {
   raw: Experience
 }
 
-/** 宿主拿用户原话自动召回用；默认 gate 为 legacy，升级不改变自动递回的行为 */
+/** 宿主拿用户原话自动召回用；默认 gate 为 cover（0.17 起），升级不改变自动递回的行为 */
 export function recallForContext(dir: string, query: string, opts?: { max?: number; gate?: 'cover' | 'legacy' }): RecallContextItem[]
 
 export const internals: { WEIGHTS: Set<Weight>; FILE: string }

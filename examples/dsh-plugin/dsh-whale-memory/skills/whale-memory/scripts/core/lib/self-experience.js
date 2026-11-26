@@ -9,6 +9,7 @@ import * as sealEvents from './seal-events.js'
 import * as linkEvents from './link-events.js'
 import * as chapterEvents from './chapter-events.js'
 import { queryTerms, requiredOverlap, matchedTerms, normalizeText, contentUnits, coverage, MIN_COVER } from './query-match.js'
+import { hybridRank } from './hybrid-recall.js'
 import { parseAsOf, before, dayOf } from './as-of.js'
 import { readSnapshot } from './sqlite-store.js'
 
@@ -561,11 +562,31 @@ export function currentView(dir, id, { asOf = null, backend = 'file' } = {}) {
 //       'legacy' = 0.16 及以前的口径（长查询要 60% 的两字词对上），排序也照旧。宿主想保持旧行为时用
 // backend：读哪个容器（默认 file，见 loadAll）。写路径还没切到 sqlite：sqlite 下 mark=true 会把想起记到 JSONL、
 // 库里看不见，所以直接拒绝，不留一笔两边对不上的账
-export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover', backend = 'file' } = {}) {
+// ranker：'literal'（默认，0.23.0 及以前的行为一个字都没改）或 'hybrid'（BM25 + 字符 n-gram + 小同义词表，
+//         见 hybrid-recall.js）。实验性：指标没显著提升就不切默认，默认仍是字面检索。
+// context：上一轮查询（字符串或数组）。宿主做多轮追问时把上下文一起递进来；字面检索把它拼到查询前面，
+//         混合检索只用它排序（追问句本身几乎没有内容词时才用它补足门禁）。不传就是单轮，行为不变。
+// ranker='hybrid' 时 mode / gate / minOverlap / minRatio 不参与（它有自己的覆盖率门槛，见 hybrid-recall.js）。
+export function recall(dir, query, { limit = 3, minOverlap = 1, mark = false, minRatio = 0.6, mode = 'strict', asOf = null, includeSealed = false, gate = 'cover', backend = 'file', ranker = 'literal', context = null } = {}) {
   if (mark && asOf !== null && asOf !== undefined && asOf !== '') throw new Error('Looking back at an earlier day does not record a recall: mark and asOf cannot be used together.（翻回旧日子时不记「想起」：mark 和 asOf 不能一起用。）')
   if (mark && backendName(backend) !== 'file') throw new Error('mark=true only works with the file backend for now: recalls are still written to JSONL.（写路径还没切到 sqlite：mark=true 目前只能配 file 后端。）')
+  if (ranker !== 'literal' && ranker !== 'hybrid') throw new Error('ranker must be "literal" or "hybrid"（ranker 只能是 literal 或 hybrid）')
   const rows = loadAll(dir, { asOf, backend }).filter((r) => includeSealed || !r.sealed)
-  const q = String(query || '')
+  const q0 = String(query || '')
+  const ctxText = Array.isArray(context) ? context.filter(Boolean).join(' ') : String(context || '')
+
+  // 混合检索：放行门槛仍是防编造那套（覆盖率），BM25 只重排；mark 的行为和字面检索一致
+  if (ranker === 'hybrid') {
+    const hits = hybridRank({ rows, query: q0, context: ctxText, limit })
+    if (!mark || !hits.length) return hits
+    const at = new Date().toISOString()
+    for (const r of hits) {
+      try { recallEvents.append(dir, { id: r.id, query: q0 }) } catch { /* 坏文件时不阻断召回 */ }
+    }
+    return hits.map((r) => ({ ...r, recalls: Number(r.recalls || 0) + 1, lastRecalledAt: at }))
+  }
+
+  const q = ctxText ? ctxText + ' ' + q0 : q0
   const parsed = queryTerms(q)
   const { terms } = parsed
   const required = requiredOverlap(parsed, { mode, minOverlap, minRatio })

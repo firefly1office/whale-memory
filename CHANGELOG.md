@@ -2,6 +2,21 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Added
+
+- **混合检索（阶段 2，实验性，默认仍是字面检索）**：`packages/core/lib/hybrid-recall.js`——中文 2–3 字 n-gram + 拉丁整词建索引，BM25（k1=1.2，b=0.75）重排，加一张 40 对的日常同义词表（双向替换，单条查询最多 8 个变体）。零第三方依赖、不调外部 API。放行门槛仍然是防编造那套 `contentUnits` / `coverage`，只从 0.7 放到 0.65；BM25 和上下文都只影响排序，不参与放行。`recall` 新增可选 `ranker: 'literal' | 'hybrid'` 与 `context`（上一轮查询，给多轮追问用）；不传时行为和 0.23.0 逐字相同（`whale-eval` 输出与 0.23.0 提交的工作树对拍一致）。包入口与 `whale-memory-core/hybrid-recall` 子路径都导出。
+- **评测集 v2**：`tools/gen-eval-v2.mjs` 确定性生成 `eval/corpus-v2.json`（200 条经历 = 旧 33 条 + 新 167 条）与 `eval/cases-v2.json`（452 条：exact 40 / paraphrase 174 / combo 164 / multiturn 23 / none 18 / near 16 / attr 5 / sealed 6 / drawer 6；开发集 342、留出集 110）。旧的 33 条语料与 60 条用例原样保留作回归。
+- `tools/eval-v2.mjs` + `tools/lib/eval-v2-corpus.mjs`：recall@10 / MRR / 多轮（带上下文与裸问）/ 误召回率 / 封存与抽屉边界 / 标记外露，一行一条；带配对符号检验与"切不切默认"的判断。`--tune` 只打开发集，留出集只在最后跑一次。
+- `docs/eval-v2-zh.md`：复跑命令、语料与口径、全部数字、混合检索的取舍、以及没验的部分。留出集上 hybrid recall@10 70.7% → 77.8%（+7.1pp，配对 8:1，p=0.039），误召回与外露仍是 0。
+- `tests/hybrid-recall.test.mjs`（9 项）：默认路径不硬凑、同义词与防编造门槛、封存、上下文只排序不放行、mark 只追加事件、确定性、n-gram/BM25。
+- `tests/eval-v2-corpus.test.mjs`（3 项）：产物与脚本逐字节一致、语料结构、负例与边界在两种排序下都不漏。
+
+### Fixed
+
+- `self-experience.d.ts`：`recallForContext` 的注释还写着"默认 gate 为 legacy"，实现从 0.17 起就是 `cover`；改注。
+
 ## [0.23.0] - 2026-11-25
 
 ### Added

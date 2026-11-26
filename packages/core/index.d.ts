@@ -1,4 +1,5 @@
 export * as selfExperience from './lib/self-experience.js'
+export * as hybridRecall from './lib/hybrid-recall.js'
 export * as selfMemory from './lib/self-memory.js'
 export { recallDetail } from './lib/detail-recall.js'
 export * as waking from './lib/waking.js'

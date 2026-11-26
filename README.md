@@ -93,3 +93,4 @@ npm run check # 语法 + 副本一致性 + 测试 + 金丝雀 + 召回评测
 - [情绪采集：把"她懂"和"她感到"分开](docs/emotion-intake-zh.md)
 - [计划与后果：让她自己定的时间算数](docs/self-plan-zh.md)
 - [接入指南：把"她"接到你自己的宿主](docs/integrate-zh.md)
+- [检索层评测（阶段 2）](docs/eval-v2-zh.md)：200 条虚构经历上字面检索与混合检索（BM25 + 字符 n-gram + 小同义词表）的对比；混合检索用 `recall({ ranker: 'hybrid' })` 选，默认不变
