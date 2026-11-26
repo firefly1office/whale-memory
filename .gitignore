@@ -8,6 +8,10 @@ data/
 backups/
 .DS_Store
 
+# Python 封装（adapters/python）跑起来会生成，不进仓库
+__pycache__/
+*.pyc
+
 .env
 .env.*
 !.env.example

@@ -22,6 +22,7 @@
 | `metrics.mjs` | 她有没有在长：`node tools/metrics.mjs --data=<dir>` |
 | `migrate-later-events.mjs` | 把旧格式的 `later` 数组迁移成 `later-events.jsonl`；默认 dry-run |
 | `migrate-recall-events.mjs` | 把旧格式的 `recalls` 迁移成 `recall-events.jsonl`；默认 dry-run |
+| `migrate-drill.mjs` | 迁移演练：造 0.27.0 形态数据 → 迁移 → 对拍 → 回滚 → 再迁移（两次结果一致）；`--from <目录>` 只读真实数据、只在临时目录里演练 |
 
 ## 内部：鲸鲸的部署脚本
 
