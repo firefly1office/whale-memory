@@ -10,6 +10,8 @@ export interface Tombstone {
   actor: string
   /** 删除前那一行的 sha256（原样字节，不含行尾换行） */
   hash: string
+  /** 可选（阶段 4 复审后加）：这一条经历在库里用过的所有 id（当前 id + 旧 id） */
+  ids?: string[]
 }
 
 export const eventsFile: (memDir: string) => string

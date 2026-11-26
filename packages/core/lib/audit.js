@@ -16,6 +16,8 @@ import { readLines } from './jsonl-stream.js'
 import { currentView, recall as recallInner } from './self-experience.js'
 
 const FILE = 'audit.jsonl'
+// note 只给"这条是什么动作"用：限长，防止有人顺手把正文/查询原文塞进来
+export const LIMIT_NOTE = 500
 
 // 动作：至少这三类。别的名字也收（新增动作算兼容），但必须是非空字符串
 export const ACTIONS = Object.freeze(['read', 'recall', 'erase'])
@@ -45,6 +47,9 @@ export function record(memDir, { at = new Date().toISOString(), actor, action, i
     ids: (Array.isArray(ids) ? ids : []).map(String),
     note: String(note ?? '')
   }
+  // note 限长：这里不是写正文的地方。ids / actor 的"不含正文"由宿主保证——库只认形状，
+  // 挡不住一个故意把原话当 id 传进来的宿主（文档里写明了）。
+  if ([...row.note].length > LIMIT_NOTE) throw new Error('审计的 note 太长（' + [...row.note].length + '/' + LIMIT_NOTE + ' 字）：这里只写"是什么动作"，不写正文或查询原文。（audit note is too long）')
   if (!isValid(row)) throw new Error('审计行不合格（需要 at / actor / action / ids / note），拒绝写入。（audit row is not valid）')
   fs.mkdirSync(memDir, { recursive: true })
   return withFileLock(eventsFile(memDir) + '.lock', () => {

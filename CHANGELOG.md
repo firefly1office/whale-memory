@@ -2,6 +2,27 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.26.1] - 2026-11-26
+
+### Fixed
+
+独立只读复审抓到的三个必须修（都在 `tests/erase-audit-export.test.mjs` 里补了会红的用例）：
+
+- **按当前 id 撤回 0.10 之前的旧格式记录时，挂在旧 id 上的后记/想起不删**：`eventIds` 只收了当前 id，`later-events.jsonl` 里后记正文留在盘上、`removed.later` 还谎报 0。现在把「这条记录用过的旧 id」一起算进要删的事件 id；SQLite 那侧同样带上。
+- **按旧 id 撤回一条封存过的经历后体检永久红灯**：`seal-events.jsonl` 里的 id 是当前 id，墓碑只记了调用方给的旧 id，体检就把它当成孤儿。墓碑新增可选 `ids`（当前 id + 旧 id，只加不减、老墓碑照样读），体检的「已撤回」集合同时认 `id` 与 `ids`；`tombstones.byId()` / `ids()` 也跟着认。同时把「已撤回的 id 又出现在经历文件里」做成测试。
+- **过期 SQLite 库能被擦除「伪装成新的」**：擦除会把 JSONL 删小，若恰好缩回 `sources` 里记的字节数，`checkFresh` 就误判成对得上——`loadAll(backend:'sqlite')` 静默少记录、`doctor` 还写「和 JSONL 对得上」。现在删除与 `sources` 更新在同一个事务里；擦除前就过期的库，事务里把 `sources` 全写成 `-1` 哨兵，让它继续过期（读路径 fail closed）。`doctor` 的「迁移状态」另外核对两边的条数。
+
+### Added
+
+- `eraseExperience` 的返回新增 `tombstone: boolean`：`alreadyGone` 时区分「已撤回（墓碑在）」与「本来就没有（id 可能抄错）」。
+- **写到一半失败会整体回滚**：写每个文件之前把原文记进 journal；墓碑写下之前任何一步失败（含 SQLite 步骤失败），已经改过的文件按原样放回去，并抛「擦除没有完成（已放回）」。删除顺序改成先事件、后经历——万一进程被杀，记录还在，重跑能把墓碑补出来。
+- `audit.record` 的 `note` 限 500 字（审计只记动作，不记正文）；文档写明 `ids` / `actor` / `note` 的「不含正文」由宿主保证。
+
+### Docs
+
+- `docs/erase-audit-zh.md`：旧 id 事件、墓碑 `ids`、回滚与顺序、`sources` 哨兵、`tombstone` 标志，以及三处**做不到**的正文副本（seal 的 note、别的记录的 recall query、别人后记里的转述）与整目录导入会替换墓碑/审计。
+- `docs/contract-v1-zh.md`：§2.1 补登记 `tombstones.jsonl` / `audit.jsonl`；§3.6 第一条改成「展示型导出必须尊重封存」（原文无条件，与新增的数据导出口径冲突）。
+
 ## [0.26.0] - 2026-11-26
 
 ### Added

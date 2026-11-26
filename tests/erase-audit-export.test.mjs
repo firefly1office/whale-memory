@@ -21,6 +21,7 @@ import * as exp from '../packages/core/lib/self-experience.js'
 import { eraseExperience } from '../packages/core/lib/erase.js'
 import * as tombstones from '../packages/core/lib/tombstones.js'
 import * as audit from '../packages/core/lib/audit.js'
+import * as laterEvents from '../packages/core/lib/later-events.js'
 import { exportMemory } from '../packages/core/lib/export-memory.js'
 import { runDoctor } from '../tools/doctor.mjs'
 
@@ -123,9 +124,10 @@ test('擦除：loadAll / 三种召回路子 / 分页 / 导出 / doctor 都查不
   assert.equal(tomb.bad, 0)
   assert.equal(tomb.rows.length, 1)
   const mark = tomb.rows[0]
-  assert.deepEqual(Object.keys(mark).sort(), ['actor', 'at', 'hash', 'id', 'reason', 'v'])
+  assert.deepEqual(Object.keys(mark).sort(), ['actor', 'at', 'hash', 'id', 'ids', 'reason', 'v'])
   assert.equal(mark.v, 1)
   assert.equal(mark.id, a.id)
+  assert.equal(mark.ids.includes(a.id), true, 'ids 记下这一条用过的 id')
   assert.equal(mark.reason, '她本人要求撤回')
   assert.equal(mark.actor, 'self')
   assert.equal(mark.hash, hash, 'hash = 删除前那条记录的 sha256')
@@ -148,7 +150,95 @@ test('擦除：幂等——第二次是 alreadyGone，不再写第二条墓碑',
   const ghost = eraseExperience(dir, { id: 'exp_never_existed', reason: '本来就没有', actor: 'leo' })
   assert.equal(ghost.ok, true)
   assert.equal(ghost.alreadyGone, true)
+  assert.equal(ghost.tombstone, false, 'id 抄错时宿主必须能看出来（没有墓碑）')
   assert.equal(tombstones.readAll(dir).rows.length, 1)
+})
+
+test('擦除：旧格式记录——按当前 id 撤回时，挂在旧 id 上的后记/想起一起删', (t) => {
+  const dir = NEW(t)
+  const at = '2020-01-01T10:00:00.000Z'
+  fs.writeFileSync(path.join(dir, 'self-experience.jsonl'), JSON.stringify({ at, text: '老记录ALPHA', thought: '老想法BETA' }) + '\n', 'utf8')
+  const row = exp.loadAll(dir)[0]
+  assert.ok(row.formerId, '0.10 之前的行应该认领出一个旧 id')
+  laterEvents.append(dir, { id: row.formerId, thought: '旧后记GAMMA' })
+  assert.equal(exp.loadAll(dir)[0].later.length, 1, '撤回前这条后记是看得见的')
+
+  const res = eraseExperience(dir, { id: row.id, reason: '旧 id 上的事件也要清', actor: 'self' })
+  assert.equal(res.removed.records, 1)
+  assert.equal(res.removed.later, 1, '挂在旧 id 上的后记也要算进删除')
+  assert.equal(readText(dir, 'later-events.jsonl').includes('旧后记GAMMA'), false, '后记正文必须从盘上消失')
+  assert.equal(readText(dir, 'later-events.jsonl').includes(row.formerId), false)
+  assert.equal(exp.loadAll(dir).length, 0)
+  assert.deepEqual([...tombstones.ids(dir)].sort(), [row.id, row.formerId].sort(), '墓碑记下这一条用过的两个 id')
+})
+
+test('擦除：按旧 id 撤回一条封存过的经历，体检仍然全绿（墓碑 ids 把两边的账对上）', (t) => {
+  const dir = NEW(t)
+  const at = '2020-01-01T10:00:00.000Z'
+  fs.writeFileSync(path.join(dir, 'self-experience.jsonl'), JSON.stringify({ at, text: '封存过的旧记录DELTA' }) + '\n', 'utf8')
+  const row = exp.loadAll(dir)[0]
+  assert.equal(exp.setSealed(dir, { id: row.id, sealed: true, note: '先不想被提起' }).ok, true)
+
+  const res = eraseExperience(dir, { id: row.formerId, reason: '按旧 id 撤回', actor: 'self' })
+  assert.equal(res.ok, true)
+  assert.equal(res.alreadyGone, false)
+  assert.deepEqual([...tombstones.ids(dir)].sort(), [row.id, row.formerId].sort())
+
+  const report = runDoctor(dir)
+  assert.equal(report.ok, true, JSON.stringify(report.checks.filter((c) => !c.ok)))
+
+  // 墓碑的 ids 里记着当前 id：再按当前 id 撤回也认得出是 alreadyGone
+  const again = eraseExperience(dir, { id: row.id, reason: '再来一次', actor: 'self' })
+  assert.equal(again.alreadyGone, true)
+  assert.equal(again.tombstone, true)
+})
+
+test('擦除：写到一半失败时把改过的文件按原样放回，不留半条', (t) => {
+  const dir = NEW(t)
+  const { a } = makeLibrary(dir)
+  const beforeRecords = readText(dir, 'self-experience.jsonl')
+  const beforeLater = readText(dir, 'later-events.jsonl')
+  const beforeRecall = readText(dir, 'recall-events.jsonl')
+
+  // 注入一次 rename 失败：事件已经删了、轮到经历文件时炸掉
+  const original = fs.renameSync
+  fs.renameSync = (from, to) => {
+    if (String(to).endsWith('self-experience.jsonl')) throw Object.assign(new Error('injected rename failure'), { code: 'EIO' })
+    return original(from, to)
+  }
+  try {
+    assert.throws(() => eraseExperience(dir, { id: a.id, reason: '注入失败', actor: 'self' }), /擦除没有完成|injected rename failure/)
+  } finally {
+    fs.renameSync = original
+  }
+
+  assert.equal(readText(dir, 'self-experience.jsonl'), beforeRecords, '经历文件回滚')
+  assert.equal(readText(dir, 'later-events.jsonl'), beforeLater, '已经删过的事件文件也回滚')
+  assert.equal(readText(dir, 'recall-events.jsonl'), beforeRecall)
+  assert.equal(tombstones.readAll(dir).rows.length, 0, '没撤成就不许留墓碑')
+  assert.equal(exp.loadAll(dir).length, 3)
+})
+
+test('体检：墓碑坏行 / 已撤回的记录又出现，都必须报出来', (t) => {
+  const dir = NEW(t)
+  const { a } = makeLibrary(dir)
+  const raw = rawLineOf(dir, a.id)
+  eraseExperience(dir, { id: a.id, reason: '撤回', actor: 'self' })
+
+  // 手把撤回过的那一条写回去：体检要报「已撤回的 id 又出现」
+  fs.appendFileSync(path.join(dir, 'self-experience.jsonl'), JSON.stringify(JSON.parse(raw)) + '\n', 'utf8')
+  let report = runDoctor(dir)
+  const seal = report.checks.find((c) => c.name === '封存一致性')
+  assert.equal(seal.ok, false)
+  assert.match(seal.detail, /已撤回的 id 又出现/)
+  assert.equal(JSON.stringify(report).includes('薄荷糖'), false, '体检输出不带正文')
+
+  // 墓碑坏行：坏行项要红
+  fs.appendFileSync(path.join(dir, 'tombstones.jsonl'), '{"v":1,\n', 'utf8')
+  report = runDoctor(dir)
+  const bad = report.checks.find((c) => c.name === '坏行')
+  assert.equal(bad.ok, false)
+  assert.match(bad.detail, /tombstones\.jsonl/)
 })
 
 test('擦除：参数不全直接拒绝（撤回要说清为什么、谁要求的）', (t) => {
@@ -304,4 +394,30 @@ sq('擦除（sqlite）：记录与关联事件一起删，墓碑与审计照写�
   // 墓碑 / 审计：和 file 后端同一份
   assert.equal(tombstones.readAll(dir).rows.length, 1)
   assert.deepEqual(audit.read(dir).map((r) => r.action), ['erase'])
+})
+
+sq('擦除（sqlite）：擦除前库已经过期，擦完不许被当成「对得上」', (t) => {
+  const dir = NEW(t)
+  const day = '2026-11-20'
+  const line = (id, text) => JSON.stringify({ id, at: day + 'T10:00:00.000Z', day, then: { text } })
+  // 两行必须等长：擦掉一条之后文件字节数会缩回迁移时记下的那个值，
+  // 只靠字节数判断"过期"的旧实现会因此误判成 fresh（复审抓到的）
+  const firstName = line('exp_aa1', '甲甲甲甲甲甲甲甲甲甲')
+  const secondName = line('exp_bb1', '乙乙乙乙乙乙乙乙乙乙')
+  assert.equal(Buffer.byteLength(firstName), Buffer.byteLength(secondName), '两行要等长')
+  fs.writeFileSync(fileOf(dir, 'self-experience.jsonl'), firstName + '\n', 'utf8')
+
+  const migrated = spawnSync(process.execPath, [path.join(root, 'tools/migrate-storage.mjs'), dir, '--write'], { encoding: 'utf8' })
+  assert.equal(migrated.status, 0, migrated.stderr)
+  fs.appendFileSync(fileOf(dir, 'self-experience.jsonl'), secondName + '\n', 'utf8')
+
+  const res = eraseExperience(dir, { id: 'exp_aa1', reason: '过期库', actor: 'self' })
+  assert.equal(res.ok, true)
+  assert.equal(res.removed.sqlite, true)
+
+  // 文件删小之后恰好等于 sources 里记的字节数：库必须继续判为过期（fail closed）
+  assert.throws(() => exp.loadAll(dir, { backend: 'sqlite' }), (error) => error.code === 'STORAGE_STALE')
+  const storage = runDoctor(dir).checks.find((c) => c.name === '迁移状态')
+  assert.equal(storage.ok, false, '体检不许说"和目录里的 JSONL 对得上"')
+  assert.match(storage.detail, /STORAGE_STALE/)
 })

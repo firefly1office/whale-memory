@@ -10,12 +10,15 @@
 //   · 先查后删：经历文件或要重写的事件文件里有坏行，**整次拒绝**——坏行说不清是不是那条，
 //     不能假装删干净了。擦除不做"尽量"。
 //   · 文件原子：读全量 → 过滤 → 写 .tmp → rename（见 file-lock.writeFileAtomic），
-//     永远不会出现"写了一半"的经历文件。
-//   · 幂等：第二次调用返回 { ok: true, alreadyGone: true }，不再写第二条墓碑。
+//     永远不会出现"写了一半"的经历文件；墓碑写下之前任何一步失败，改过的文件按原样放回去。
+//   · 先删事件、再删经历：万一进程在中间被杀，记录还在，重跑还能把墓碑补出来。
+//   · 幂等：第二次调用返回 { ok: true, alreadyGone: true, tombstone: true }，不再写第二条墓碑；
+//     本来就没有这条记录时返回 alreadyGone + `tombstone: false`（宿主能分清"已撤回"和"id 抄错了"）。
 //   · 只由宿主在"她本人或 Leo 明确要求"时调用；库不自动擦除，也没有定时清理。
 //
 // 做不到（文档里也写清）：备份与快照里的历史副本不追溯；SQLite 删除后文件页里可能残留旧字节
-// （安全删除 / VACUUM 不在承诺里）；多写者不承诺（同一目录并发写按契约本来就是单写者假设）。
+// （安全删除 / VACUUM 不在承诺里）；多写者不承诺（同一目录并发写按契约本来就是单写者假设）；
+// seal 事件的 note 是人的自由文本，可能提到原话，不在本函数删除范围内。
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -110,7 +113,9 @@ function analyse(records, id) {
   return { infos, target }
 }
 
-function rewriteIfChanged(dir, name, lines, keep) {
+// 改写一个文件（真正的删除动作）。写之前把原文记进 journal：任何一步失败都能原样放回去。
+// 返回删掉的行数；一行都没删就不碰文件。
+function rewriteTracked(dir, name, lines, keep, journal) {
   const kept = []
   let removed = 0
   for (const line of lines) {
@@ -118,8 +123,31 @@ function rewriteIfChanged(dir, name, lines, keep) {
     else removed += 1
   }
   if (!removed) return 0
-  writeFileAtomic(path.join(dir, name), kept.length ? kept.join('\n') + '\n' : '')
+  const file = path.join(dir, name)
+  let before = null
+  try { before = fs.readFileSync(file, 'utf8') } catch { before = null }
+  journal.push({ name, before })
+  writeFileAtomic(file, kept.length ? kept.join('\n') + '\n' : '')
   return removed
+}
+
+// 把 journal 里已经改过的文件按原样放回去（倒序）。只在墓碑写成功之前用：
+// 墓碑一旦写下就代表"撤回了"，再把记录放回去会变成"墓碑说有、文件里又有"。
+function rollbackFiles(dir, journal) {
+  const failures = []
+  for (const item of [...journal].reverse()) {
+    const file = path.join(dir, item.name)
+    try {
+      // 已经和原文一样（比如那次写入本来就失败了）就不用再动它：省得把"写不进去"误报成"回滚失败"
+      const now = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null
+      if (now === item.before) continue
+      if (item.before === null) fs.rmSync(file, { force: true })
+      else writeFileAtomic(file, item.before)
+    } catch (error) {
+      failures.push(item.name + '：' + String(error && error.message ? error.message : error))
+    }
+  }
+  return failures
 }
 
 /**
@@ -147,8 +175,8 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
     // 1) 账本先看一遍：墓碑文件坏了就不知道撤回没撤回，宁可不猜
     const marks = tombstones.readAll(dir)
     if (marks.bad > 0) throw coded('墓碑文件有 ' + marks.bad + ' 行无法解析：先修好再撤回，不然没法确认这条是不是已经撤回过。（tombstones are corrupt）', 'ERASE_TOMBSTONES_CORRUPT', { bad: marks.bad })
-    const old = marks.rows.find((r) => r.id === key)
-    if (old) return { ok: true, id: key, alreadyGone: true, at: old.at, reason: old.reason, actor: old.actor, hash: old.hash, removed: emptyRemoved() }
+    const old = marks.rows.find((r) => r.id === key || (Array.isArray(r.ids) && r.ids.includes(key)))
+    if (old) return { ok: true, id: key, alreadyGone: true, at: old.at, reason: old.reason, actor: old.actor, hash: old.hash, tombstone: true, removed: emptyRemoved() }
 
     // 2) 读全量 + 预检：坏行 / 读不出来都整次拒绝，一个字节都不改
     const records = readLinesOf(dir, RECORDS)
@@ -170,48 +198,65 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
       hash = hashOfLine(doomed[0].line.text)
       if (doomed.length > 1) removed.duplicates = doomed.length - 1
     }
+    // 旧 id 上挂着的事件也要删：0.10 之前的后记/想起是挂在 12 位旧 id 上的，
+    // 用当前 id 撤回时如果不带上它，后记正文会留在盘上（独立复审抓到的）。
+    const formerIds = [...new Set(doomed.map((i) => (i.row && i.row.formerId ? String(i.row.formerId) : '')).filter(Boolean))]
+    // 墓碑记下这一条用过的所有 id（当前 id / 旧 id）：按旧 id 撤回时，封存事件挂在当前 id 上，
+    // 体检要靠 ids 把两边对上（复审抓到的：只记 key 会让 doctor 永远红灯）。
+    const tombIds = [...new Set([key, ...analysed.target, ...formerIds])]
+    const eventIds = new Set(tombIds)
 
-    // 5) 经历文件：过滤 → 原子替换（没命中就不碰文件）
-    removed.records = rewriteIfChanged(dir, RECORDS, records.lines, (line) => {
-      const row = recordOf(line.row)
-      return !(row && analysed.target.has(String(row.id)))
-    })
-
-    // 6) 关联事件：later / recall / unfinished / link 一起清（seal 与 chapter 不动）
-    const eventIds = new Set([key, ...analysed.target])
-    for (const file of events) {
-      removed[shortName(file.name)] = rewriteIfChanged(dir, file.name, file.lines, (line) => !eventIdsOf(line.row).some((x) => eventIds.has(x)))
-    }
-
-    // 7) SQLite 副本：记录 + 事件一起删（seal 留），删完按擦除前是否对得上决定刷不刷 sources
-    const sq = eraseFromStore(dir, [key, ...analysed.target], { refreshSources: store.fresh })
-    if (sq.present) { removed.sqliteRecords = sq.records; removed.sqliteEvents = sq.events }
-    removed.sqlite = Boolean(sq.present)
-
-    // 8) 什么都没找到：这次是"已经没了"（崩溃后重跑也走这里：顺手把残留事件清掉）
-    if (!doomed.length) {
-      if (!removed.records && !removed.later && !removed.recall && !removed.unfinished && !removed.link && !removed.sqliteRecords && !removed.sqliteEvents) {
-        return { ok: true, id: key, alreadyGone: true, at: '', removed }
+    const journal = []
+    let tombstoned = false
+    try {
+      // 5) 先删事件、再删经历：万一进程在中间被杀，记录还在，重跑还能把墓碑补出来。
+      //    每一步写之前都把原文记进 journal；任何一步失败就整体放回去（墓碑写下之前）。
+      for (const file of events) {
+        removed[shortName(file.name)] = rewriteTracked(dir, file.name, file.lines, (line) => !eventIdsOf(line.row).some((x) => eventIds.has(x)), journal)
       }
-      // 记录已经不在了、事件/库里的残留清掉了：不写墓碑（我们从没看见过那条记录，写不出它的哈希）
-      return { ok: true, id: key, alreadyGone: true, at: '', removed }
-    }
+      removed.records = rewriteTracked(dir, RECORDS, records.lines, (line) => {
+        const row = recordOf(line.row)
+        return !(row && analysed.target.has(String(row.id)))
+      }, journal)
 
-    // 9) 墓碑：删除成功之后才写（墓碑不会早于删除出现，谎报"已撤回"）
-    try {
-      tombstones.append(dir, { v: 1, id: key, at, reason: String(reason).trim(), actor: actorText, hash })
+      // 6) SQLite 副本：记录 + 事件一起删（seal 留），删完按擦除前是否对得上决定刷不刷 sources
+      const sq = eraseFromStore(dir, tombIds, { refreshSources: store.fresh })
+      if (sq.present) { removed.sqliteRecords = sq.records; removed.sqliteEvents = sq.events }
+      removed.sqlite = Boolean(sq.present)
+
+      // 7) 什么都没找到：这次是"已经没了"（崩溃后重跑也走这里：顺手把残留事件清掉）
+      if (!doomed.length) return { ok: true, id: key, alreadyGone: true, at: '', tombstone: false, removed }
+
+      // 8) 墓碑：删除成功之后才写（墓碑不会早于删除出现，谎报"已撤回"）
+      //    ids 记下"这一条经历在库里用过的所有 id"（当前 id + 旧 id），体检核对封存事件时用
+      try {
+        tombstones.append(dir, { v: 1, id: key, ids: tombIds, at, reason: String(reason).trim(), actor: actorText, hash })
+      } catch (error) {
+        throw coded('墓碑写失败：' + String(error && error.message ? error.message : error) + '。（tombstone write failed）', 'ERASE_TOMBSTONE_FAILED', { cause: error })
+      }
+      tombstoned = true
+
+      // 9) 审计：只记 id 与动作，不记正文（reason 里有人的话，不往审计里抄）
+      try {
+        audit.record(dir, { actor: actorText, action: 'erase', ids: [key], note: 'tombstone' })
+      } catch (error) {
+        throw coded('记录与墓碑都在，但审计追加失败：' + String(error && error.message ? error.message : error) + '。（audit write failed after erase）', 'ERASE_AUDIT_FAILED', { cause: error, erased: true })
+      }
+
+      return { ok: true, id: key, alreadyGone: false, at, hash, tombstone: true, actor: actorText, reason: String(reason).trim(), removed }
     } catch (error) {
-      throw coded('记录已经删掉了，但墓碑写失败：' + String(error && error.message ? error.message : error) + '。请先把墓碑补上再对外说"撤回了"。（tombstone write failed after erase）', 'ERASE_TOMBSTONE_FAILED', { cause: error, erased: true })
+      // 墓碑还没写下 = 这次撤回不算数：把改过的文件按原样放回去（SQLite 的事务自己回滚；
+      // 万一删除已经在库里提交过，回滚后库会判为过期、读路径 fail closed，重新迁移即可）
+      if (!tombstoned) {
+        const failures = rollbackFiles(dir, journal)
+        if (failures.length) {
+          throw coded(String(error && error.message ? error.message : error) + '；回滚失败：' + failures.join('；') + '（文件可能只删了一半，先别对外说撤回了）。（rollback failed）', 'ERASE_ROLLBACK_FAILED', { cause: error, rollback: failures })
+        }
+        // 回滚干净了：宿主看到的应该是"这次没撤成"，而不是一个光秃秃的 EPERM
+        throw coded('擦除没有完成（改过的文件已按原样放回）：' + String(error && error.message ? error.message : error) + '。（erase aborted, files rolled back）', (error && error.code) || 'ERASE_FAILED', { cause: error })
+      }
+      throw error
     }
-
-    // 10) 审计：只记 id 与动作，不记正文（reason 里有人的话，不往审计里抄）
-    try {
-      audit.record(dir, { actor: actorText, action: 'erase', ids: [key], note: 'tombstone' })
-    } catch (error) {
-      throw coded('记录与墓碑都在，但审计追加失败：' + String(error && error.message ? error.message : error) + '。（audit write failed after erase）', 'ERASE_AUDIT_FAILED', { cause: error, erased: true })
-    }
-
-    return { ok: true, id: key, alreadyGone: false, at, hash, actor: actorText, reason: String(reason).trim(), removed }
   })
 }
 

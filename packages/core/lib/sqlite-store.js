@@ -315,14 +315,32 @@ export function readRecords(db) {
 // 注意：SQLite 删除行之后，旧字节可能还留在文件页里（没有 VACUUM / secure_delete）。
 // 这不是"没擦掉"，是"磁盘上的碎片不追溯"——和备份里的历史副本一样，文档里写明不承诺。
 
-/** 擦除前的体检：库不存在 = { present:false }；存在但打不开/不全 = 抛；过期 = fresh:false。 */
-export function eraseReadiness(dir) {
+// 库文件本身的存在性/形状：不存在 = null；是目录 / 0 字节 = 抛（不能当"没有库"糊弄过去）
+function statDatabase(dir) {
   const file = path.join(dir, DB_FILE)
-  let exists = false
-  try { exists = fs.existsSync(file) } catch { exists = false }
+  let st
+  try {
+    st = fs.statSync(file)
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return null
+    throw coded(DB_FILE + ' 读不出来：' + String(error && error.message ? error.message : error), 'STORAGE_UNREADABLE')
+  }
+  if (!st.isFile()) throw coded(DB_FILE + ' 不是普通文件（是目录？）：不能当库用，先移走它。', 'STORAGE_UNREADABLE')
+  if (st.size === 0) throw coded(DB_FILE + ' 是 0 字节的空文件，不是完整的库（先移走它重新迁移）。', 'STORAGE_INCOMPLETE')
+  return st
+}
+
+/** 擦除前的体检：库不存在 = { present:false }；存在但打不开/不全/0 字节 = 抛；过期 = fresh:false。 */
+export function eraseReadiness(dir) {
   // 没有库就不碰 node:sqlite：Node 20 上擦一个只用 file 后端的目录必须照常能跑
-  if (!exists) return { present: false, fresh: false }
-  const db = openDatabase(dir)
+  if (!statDatabase(dir)) return { present: false, fresh: false }
+  let db
+  try {
+    db = openDatabase(dir)
+  } catch (error) {
+    if (error && error.code === 'SQLITE_UNAVAILABLE') throw error
+    throw unreadable(error)
+  }
   if (!db) return { present: false, fresh: false }
   try {
     let tables
@@ -330,8 +348,12 @@ export function eraseReadiness(dir) {
     if (!tables.has('records') || !tables.has('events')) {
       throw coded(DB_FILE + ' 缺表（' + ['records', 'events'].filter((t) => !tables.has(t)).join('、') + '）：结构不全的库不能拿来擦，先移走它重新迁移。', 'STORAGE_INCOMPLETE')
     }
+    // sources 是"库和 JSONL 对不对得上"的唯一依据；没有它就没法判断过期，宁可拒绝
+    if (!tables.has('sources')) {
+      throw coded(DB_FILE + ' 缺 sources 表（阶段 1 早期建的库）：没法判断这个库是不是过期，先移走它重新迁移。', 'STORAGE_INCOMPLETE')
+    }
     let fresh = true
-    try { checkFresh(db, dir, tables.has('sources')) } catch (error) {
+    try { checkFresh(db, dir, true) } catch (error) {
       if (error && error.code === 'STORAGE_STALE') fresh = false
       else throw unreadable(error)
     }
@@ -341,18 +363,25 @@ export function eraseReadiness(dir) {
   }
 }
 
+// 过期库擦完之后必须继续过期：把 sources 全都写成 -1 这个不可能等于真实字节数的哨兵。
+// 只靠"不刷新"不够——JSONL 删小之后可能恰好缩回迁移时记的字节数，checkFresh 就会误判成"对得上"。
+const STALE_SIZE = -1
+function invalidateSources(db) {
+  const st = db.prepare('INSERT OR REPLACE INTO sources (file, size, migrated_at) VALUES (?, ?, ?)')
+  const at = new Date().toISOString()
+  for (const name of SOURCE_FILES) st.run(name, STALE_SIZE, at)
+}
+
 /**
  * 从 SQLite 副本里删掉这些 id 的经历与关联事件（seal 保留，章节不指向经历所以不动）。
+ * 删除与 sources 更新在**同一个事务**里：要么都成，要么都不成（不会出现"记录删了、source 还挂着旧尺寸"）。
  * @param {string} dir
  * @param {string[]} ids 要删的经历 id
- * @param {{ refreshSources?: boolean }} opts refreshSources：删完把 sources 的字节数刷成现在 JSONL 的大小
- *   （只有擦除前库和 JSONL 对得上时才该这么做；否则会让一个缺记录的库看起来是新的）
+ * @param {{ refreshSources?: boolean }} opts refreshSources：擦除前库和 JSONL 对得上时才为 true
+ *   （这时删完把 sources 的字节数刷成现在 JSONL 的大小；否则写 -1 哨兵，让库继续保持过期、读路径 fail closed）
  */
 export function eraseFromStore(dir, ids, { refreshSources = false } = {}) {
-  const file = path.join(dir, DB_FILE)
-  let exists = false
-  try { exists = fs.existsSync(file) } catch { exists = false }
-  if (!exists) return { present: false, records: 0, events: 0 }
+  if (!statDatabase(dir)) return { present: false, records: 0, events: 0 }
   const wanted = [...new Set((Array.isArray(ids) ? ids : []).map(String).filter(Boolean))]
   const db = openDatabase(dir)
   if (!db) return { present: false, records: 0, events: 0 }
@@ -375,12 +404,13 @@ export function eraseFromStore(dir, ids, { refreshSources = false } = {}) {
           events += Number(delSeq.run(row.seq).changes || 0)
         }
       }
+      if (refreshSources) writeSources(db, sourceSizes(dir))
+      else invalidateSources(db)
       db.exec('COMMIT')
     } catch (error) {
       try { db.exec('ROLLBACK') } catch { }
       throw error
     }
-    if (refreshSources) writeSources(db, sourceSizes(dir))
     return { present: true, records, events }
   } finally {
     try { db.close() } catch { }

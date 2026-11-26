@@ -185,7 +185,12 @@ function checkSeal(dir, files) {
     return check('封存一致性', false, 'tombstones.jsonl 读不出来，无法核对撤回记录：' + String((error && (error.code || error.message)) || error))
   }
   if (tombs.bad) return check('封存一致性', false, 'tombstones.jsonl ' + tombs.bad + ' 行无法解析或不合格')
-  const withdrawn = new Set(tombs.rows.map((r) => r.id))
+  const withdrawn = new Set()
+  for (const r of tombs.rows) {
+    withdrawn.add(r.id)
+    // 阶段 4 复审后加的字段：按旧 id 撤回时，封存事件挂在当前 id 上，墓碑的 ids 里也记着它
+    if (Array.isArray(r.ids)) for (const id of r.ids) withdrawn.add(id)
+  }
   const tombNote = withdrawn.size ? '；' + withdrawn.size + ' 条经历已整条撤回（墓碑在）' : ''
 
   // 经历一条都读不出来时不能当成"封存全指向不存在"：那是两件事，先报读失败。
@@ -258,6 +263,12 @@ function checkStorage(dir, files) {
   }
   try {
     const rows = loadAll(dir, { backend: 'sqlite', allowCorrupt: true, allowSealCorrupt: true })
+    // 光"能读"不算对得上：字节数可能碰巧相等（擦除把文件删小到迁移时的尺寸）。条数也要比。
+    let fileRows = null
+    try { fileRows = loadAll(dir, { allowCorrupt: true, allowSealCorrupt: true }) } catch { fileRows = null }
+    if (fileRows !== null && fileRows.length !== rows.length) {
+      return check('迁移状态', false, DB_FILE + ' 可读，但条数和 JSONL 对不上：JSONL ' + fileRows.length + ' 条 / sqlite ' + rows.length + ' 条（库缺记录或没刷新，重新迁移）')
+    }
     return check('迁移状态', true, DB_FILE + ' 可读：按 sqlite 读到经历 ' + rows.length + ' 条，和目录里的 JSONL 对得上')
   } catch (error) {
     const code = String((error && error.code) || 'ERROR')

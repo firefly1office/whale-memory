@@ -22,6 +22,8 @@ export interface EraseResult {
   at: string
   /** 删除前那一行的 sha256 */
   hash?: string
+  /** 这次有没有墓碑在手：true = 确实撤回并留了墓碑（或之前已撤回）；false = 本来就没有这条记录（id 可能抄错） */
+  tombstone: boolean
   actor?: string
   reason?: string
   removed: EraseRemoved

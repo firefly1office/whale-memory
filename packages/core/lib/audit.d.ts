@@ -12,6 +12,8 @@ export interface AuditRow {
 }
 
 export const ACTIONS: readonly string[]
+/** note 上限（字）：审计只记动作，不记正文 */
+export const LIMIT_NOTE: number
 export function eventsFile(memDir: string): string
 export function isValid(r: unknown): r is AuditRow
 /** 查询的 sha256：审计只留这个指纹，不留原文 */
