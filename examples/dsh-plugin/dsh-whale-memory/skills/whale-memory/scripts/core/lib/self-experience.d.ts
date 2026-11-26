@@ -55,7 +55,13 @@ export interface Experience {
   /** 用 asOf 读出来时，截到的那一刻（ISO） */
   viewAsOf?: string
   /** 她封存了这件事（0.13 起）：不会被召回、不进醒来块，但还在 */
-  sealed?: { at: string; day: string; note: string }
+  sealed?: {
+    at: string
+    day: string
+    note: string
+    /** 用 asOf 读时：这条是在那一刻**之后**才封存的（各展示路径照样过滤；点名读会说明是"后来封存的"） */
+    afterAsOf?: boolean
+  }
   /** 事后联想（0.14 起）：她亲手连起来的另一件事，两头都能看到 */
   links?: Array<ExperienceBrief & { reason: string; linkDay: string }>
   /** 这一天落在她起过名字的哪段日子里（0.14 起） */

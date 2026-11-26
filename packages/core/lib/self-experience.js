@@ -1065,7 +1065,6 @@ export function currentView(dir, id, { asOf = null, backend = 'file' } = {}) {
 //   打开后只在 limit 还有空位时补邻居（then.refs / link-events / 同一章节），补进来的
 //   一律排在基础命中之后，不许插到已有命中前面；每条带 via，说明"因为哪几条才想到它"。
 //   封存与 asOf 同样生效；补进来的不算"想起"，mark=true 也只给基础命中记一笔。
->>>>>>> feat/s10-graphexpand
 export function recall(dir, query, opts = {}) {
   // 指标：召回延迟、返回条数、后端类型。只记成功返回的那次——抛错由调用方和 doctor 说
   const t0 = process.hrtime.bigint()

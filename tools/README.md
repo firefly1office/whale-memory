@@ -23,6 +23,7 @@
 | `star-map.mjs` | 记忆星图：经历当节点、refs/link 当连线、想起次数定大小，出一张自包含 HTML（只读，不联网）；`node tools/star-map.mjs --data=<dir> --out=<file.html>` |
 | `migrate-later-events.mjs` | 把旧格式的 `later` 数组迁移成 `later-events.jsonl`；默认 dry-run |
 | `migrate-recall-events.mjs` | 把旧格式的 `recalls` 迁移成 `recall-events.jsonl`；默认 dry-run |
+| `migrate-drill.mjs` | 迁移演练：造 0.27.0 形态数据 → 迁移 → 对拍 → 回滚 → 再迁移（两次结果一致）；`--from <目录>` 只读真实数据、只在临时目录里演练 |
 
 ## 内部：鲸鲸的部署脚本
 

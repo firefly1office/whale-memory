@@ -44,6 +44,24 @@ import * as exp from './packages/core/lib/self-experience.js'
 适合你在自己的 agent 里已经有工具注册与提示词拼接，只缺记忆内核。
 完整契约见 [`../docs/archive/porting.md`](../docs/archive/porting.md)。
 
+## 4. Python（零第三方依赖的单文件封装）
+
+```
+adapters/python/whale_memory.py
+adapters/python/smoke.py
+```
+
+`whale_memory.WhaleMemory(数据根)` 把每个动作转成一次 `node adapters/cli/memory-cli.mjs ...` 子进程，
+结果解析成 dict；只用 CPython 标准库。自查：`python adapters/python/smoke.py`。
+
+```python
+from whale_memory import WhaleMemory
+mem = WhaleMemory('/path/to/data')          # 库在 <数据根>/plugin-data/biomimetic-memory
+made = mem.write('今天把柜子修好了', weight='important')
+hits = mem.recall('柜子', limit=3)
+mem.seal(made['id'], note='先不提这件事')
+```
+
 ## 还没有的适配
 
 - LangChain / LlamaIndex 的 Memory 接口

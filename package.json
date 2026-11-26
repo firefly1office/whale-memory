@@ -16,7 +16,7 @@
     "eval:v2": "node tools/eval-v2.mjs",
     "metrics": "node tools/metrics.mjs",
     "sync": "node tools/sync-dsh-core.mjs",
-    "types": "npx --yes --package typescript@5.6.3 tsc --noEmit --strict --target es2022 --module nodenext --moduleResolution nodenext types/smoke.mts"
+    "types": "npx --yes --package typescript@5.6.3 tsc -p types"
   },
   "license": "MIT"
 }
