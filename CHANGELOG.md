@@ -2,7 +2,24 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [0.26.3] - 2026-11-26（待复审后发）
+## [0.27.0] - 2026-11-26
+
+### Added
+
+- **`recall({ ranker: 'embed' })`（默认关）**：`packages/core/lib/embed-recall.js`，接在 `recall` 的 ranker 分支上；
+  门禁仍走防编造覆盖率，不参与放行。**这一版是"通路"不是"效果"**：本机没有 Ollama，用的是确定性的字符
+  n-gram 哈希桩，不是 bge-m3；接口留了 `embed` 注入参数，有真模型时替换即可。452 条用例三组数：
+  literal 71.1% / hybrid 77.6% / embed 77.1%（留出集 70.7 / 77.8 / 76.8）——**embed 这个数不能当语义收益**。
+  `tools/eval-v2.mjs` 支持 `--ranker=embed`；`tests/embed-recall.test.mjs` 守着"默认关时与 0.26.3 逐字相同"。
+- **`manners`（知道不等于说，默认关）**：`packages/core/lib/manners.js`——场合（owner-private / other-private /
+  group / public）× 敏感度（normal / private / secret）× 来源（owner-said / other-said / herself / unknown）
+  → `say` / `paraphrase` / `withhold`，命中顺序写死七条，认不出的取值按最严兜底。不传 `enabled` 时恒为
+  `say` 且标 `off`，关闭时提示行返回空串，宿主不用加分支。口径与边界见 `docs/manners-zh.md`
+  （`withhold` 不得写成"我不记得"；`paraphrase` 不是脱敏器）。
+- 借鉴说明：`manners` 的分寸模型参照 dsh-rugu（MIT）的"知道不等于说"；衰减/钉住（未合入本仓库）参照 Lysmor
+  （AGPL，只学设计不抄代码）。见 `docs/attribution-zh.md`。
+
+## [0.26.3] - 2026-11-26
 
 ### Fixed
 
