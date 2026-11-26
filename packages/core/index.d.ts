@@ -25,6 +25,8 @@ export * as factStore from './lib/fact-store.js'
 export * as factJudge from './lib/fact-judge.js'
 export * as changed from './lib/changed.js'
 export * as injection from './lib/injection.js'
+// 阶段 5（S7）：线索表（短问句先查表、覆盖率门槛、迟疑提醒、频控；默认关）
+export * as cueTable from './lib/cue-table.js'
 export * as selfActions from './lib/self-actions.js'
 export * as actionSource from './lib/action-source.js'
 // 阶段 4：整条撤回（+ 墓碑）、审计、导出

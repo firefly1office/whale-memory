@@ -29,6 +29,8 @@ export * as changed from './lib/changed.js'
 export * as selfActions from './lib/self-actions.js'
 export * as actionSource from './lib/action-source.js'
 export * as injection from './lib/injection.js'
+// 阶段 5（S7）：线索表（短问句先查表、覆盖率门槛、迟疑提醒、频控；默认关）
+export * as cueTable from './lib/cue-table.js'
 // 阶段 4：整条撤回（+ 墓碑）、审计、导出
 export * as tombstones from './lib/tombstones.js'
 export * as audit from './lib/audit.js'

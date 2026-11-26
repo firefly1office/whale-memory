@@ -2,6 +2,17 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### Added
+
+- **线索表（T12，默认关）**：`packages/core/lib/cue-table.js` + `injection.surface({ cueTable, cueGate, turn })`。
+  给每条没封存的经历抽"将来可能被问到的词"（复用召回的两字组/英文整词，按稀有度取前 8 个）；消息的
+  词被某条经历盖住 ≥60% 时，在递记忆的 block 前插**一行**迟疑提醒（"我好像有点印象，但不一定对得上"），
+  频控为同标题连贴 ≤3 次、间隔 ≥2 轮。**452 条用例对照**：基线递 291 条，只插迟疑仍 291 条（少注 0、多注 0），
+  迟疑提醒 99 条、精度 99.0%、负面用例上 0 条。可选的旁路预筛（`cuePrefilter:'short'|'any'`）会少注
+  34–35 条（约 12%），所以**默认不跳过**。见 `docs/cue-table-zh.md`。
+
 ## [0.27.0] - 2026-11-26
 
 ### Added
