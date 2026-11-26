@@ -113,6 +113,14 @@ export function page(dir: string, opts?: { limit?: number; after?: PageCursor | 
 /** 经历文件里解析不了的行数：展示路径遇到坏行会 fail closed，这个用于诊断和"先备份再修复" */
 export function badLines(dir: string): number
 
+/** 写路径的后端选项（S4 起；不传 = 原来那条 file 路径，零行为变化） */
+export interface WriteOptions {
+  /** 写哪个容器：file（默认）或 sqlite（要求已迁移，否则抛 STORAGE_NOT_MIGRATED） */
+  backend?: StorageBackendName
+  /** sqlite 下要不要同时写 JSONL（默认 true）。false = 只写库，JSONL 一个字节不动 */
+  dualWrite?: boolean
+}
+
 export function addExperience(dir: string, opts: {
   text: string
   scene?: string
@@ -127,9 +135,9 @@ export function addExperience(dir: string, opts: {
   source?: string
   /** 出处：数组，或逗号分隔的字符串；引用不存在的经历会抛错，整条不写 */
   refs?: string[] | string
-}): Experience
+}, writeOpts?: WriteOptions): Experience
 
-export function reviseExperience(dir: string, opts: { id: string; thought: string; reason?: string; feeling?: string[] | string }): {
+export function reviseExperience(dir: string, opts: { id: string; thought: string; reason?: string; feeling?: string[] | string }, writeOpts?: WriteOptions): {
   ok: boolean
   id?: string
   at?: string
@@ -137,7 +145,8 @@ export function reviseExperience(dir: string, opts: { id: string; thought: strin
   error?: string
 }
 
-export function markRecalled(dir: string, id: string): boolean
+/** opts.query：把这次想起用的查询一起记下来（默认空串） */
+export function markRecalled(dir: string, id: string, opts?: WriteOptions & { query?: string }): boolean
 
 export function currentView(dir: string, id: string, opts?: { asOf?: AsOf; backend?: StorageBackendName }): Experience | null
 
@@ -153,8 +162,10 @@ export function recall(dir: string, query: string, opts?: {
   includeSealed?: boolean
   /** strict 用哪套门槛：cover（默认，0.17 起）或 legacy（0.16 及以前，结果逐条一致） */
   gate?: 'cover' | 'legacy'
-  /** 读哪个容器（默认 file）。sqlite 下不能 mark：写路径还在 JSONL 上 */
+  /** 读哪个容器（默认 file）。S4 起 mark=true 在 sqlite 下也能用（写路径已接上） */
   backend?: StorageBackendName
+  /** sqlite 下记「想起」时要不要同时写 JSONL（默认 true） */
+  dualWrite?: boolean
   /** 匹配/排序方式：literal（默认，0.23.0 及以前的行为不变；null/undefined 也按 literal）或 hybrid（BM25 + 字符 n-gram + 小同义词表，实验性）。
    * hybrid 下 mode / minOverlap / minRatio / gate 都不参与，空查询返回空。 */
   ranker?: 'literal' | 'hybrid' | null
@@ -173,7 +184,7 @@ export function linkExperiences(dir: string, opts: { from: string; to: string; r
 }
 
 /** 封存 / 解封：不删除任何东西；重复同一个动作是 noop */
-export function setSealed(dir: string, opts: { id: string; sealed?: boolean; note?: string }): {
+export function setSealed(dir: string, opts: { id: string; sealed?: boolean; note?: string }, writeOpts?: WriteOptions): {
   ok: boolean
   id?: string
   sealed?: boolean

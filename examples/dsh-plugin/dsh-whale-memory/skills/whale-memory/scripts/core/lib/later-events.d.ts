@@ -24,4 +24,9 @@ export function isValid(row: unknown): boolean
 
 export function list(memDir: string, opts?: { id?: string; limit?: number }): LaterEvent[]
 
+/** 造一行但**不落盘**（S4：写路径切 sqlite 时，JSONL 与库存同一行） */
+export function buildRow(event: { id: string; thought: string; reason?: string; feeling?: string[] }): LaterEvent
+/** 追加一行**已经造好**的事件（双写用） */
+export function appendRow(memDir: string, row: LaterEvent, opts?: { timeoutMs?: number }): LaterEvent
+
 export const internals: { FILE: string }

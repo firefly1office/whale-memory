@@ -94,7 +94,33 @@ sqlite 读路径的 fail closed（全部**抛错**，不当成空，也不退回
 
 目录里既没有库、也没有任何 JSONL 数据：如实返回空数组。读路径**不会顺手建库**。
 
-`recall({ backend: 'sqlite', mark: true })` 直接拒绝：写路径还在 JSONL 上，记下的想起 sqlite 看不见，两边的账会对不上。
+`recall({ backend: 'sqlite', mark: true })` 从 0.28 起**可以用了**（S4 把写路径接上了，见下一节）；在那之前它是直接拒绝的。
+
+### 3.1 写路径（S4 起）：四个写动作也认 `backend`
+
+```js
+addExperience(dir, { text: '海边' }, { backend: 'sqlite' })                     // 默认双写：JSONL + 库
+addExperience(dir, { text: '海边' }, { backend: 'sqlite', dualWrite: false })   // 只写库，JSONL 一个字节不动
+reviseExperience(dir, { id, thought }, { backend: 'sqlite' })
+setSealed(dir, { id, sealed: true }, { backend: 'sqlite' })
+markRecalled(dir, id, { backend: 'sqlite', query: '码头' })
+recall(dir, '码头', { backend: 'sqlite', mark: true })                          // mark:true 解禁
+```
+
+- **默认 file，零行为变化**：不传 `backend` 走的是原来那条路，一个字没改（原有 769 条用例一条没动、全过）。
+- **双写写的是同一行**：先 `buildRow` 造一行，JSONL 与库各存这一行——不是各写各的。所以两边读出来逐字段相同；
+  对拍测试在 8 个动作 × 2 个后端上逐字段比过（唯一不同的是随机生成的 `exp_` id，测试按出现顺序归一）。
+- **一次写入 = 一个事务**：记录 / 事件 / JSONL 追加 / `sources` 刷新全在一个事务里，任何一步失败整组回滚
+  （包括"JSONL 追加抛错"这种文件副作用失败）。
+- **先对账再写**：进来先 `checkFresh`。库没迁移（`STORAGE_NOT_MIGRATED`）、表不全（`STORAGE_INCOMPLETE`）、
+  JSONL 在迁移后又变过（`STORAGE_STALE`）都直接拒绝——不许把"库缺了旧行"洗成"库是新的"。
+- **崩在两步之间**：事务提交前进程被杀，留下的是"JSONL 多一行、库没这一行、`sources` 没刷新"。
+  之后读库报 `STORAGE_STALE`（fail closed），移走 `memory.sqlite` 重新迁移即可；file 后端一直读得到那一行。
+- **封存的 noop 口径不变**：同一个动作重复（已封存又封存、没封存却解封）还是 `noop: true`，不写第二条。
+- **独写（`dualWrite: false`）的代价**：这份记忆只剩库里有，JSONL 里没有——库丢了就等于丢了。
+  要用就自己给 `memory.sqlite` 做备份；库和 JSONL 不再互为备份。
+- **还没切的写**：`setUnfinishedState`（结案）、`linkExperiences`（联想）、章节事件、抽屉、提示词与设置，
+  仍然只写 JSONL。迁移之后用它们，库就会过期（`STORAGE_STALE`，fail closed，不会悄悄少读）。
 
 ## 四、迁移
 
@@ -139,7 +165,9 @@ node tools/migrate-storage.mjs <memory-dir> --verify-only # 已有的库和源�
 
 ## 六、这一阶段没做的
 
-- **写路径没切**：`addExperience` / `reviseExperience` / `setSealed` / `markRecalled` / `setUnfinishedState` / `linkExperiences` / 章节，仍然只写 JSONL。所以迁移之后再写，sqlite 就过期了——读库会报 `STORAGE_STALE`，不会悄悄读出一份少了东西的记忆。后端 API（`appendEvent` / `appendWithEvents`）已经备好，切写路径是下一步；
+- **写路径只切了四个动作**：`addExperience` / `reviseExperience` / `setSealed` / `markRecalled` 已能在 sqlite 下写（S4，
+  默认双写、可关）。`setUnfinishedState` / `linkExperiences` / 章节事件仍只写 JSONL，所以迁移之后用它们就会让库过期——
+  读库报 `STORAGE_STALE`，不会悄悄读出一份少了东西的记忆；
 - **没有 id 的旧格式记录**不进 sqlite（`records` 按 id 存），这样的目录先留在 file 后端；
 - **过期判断只比字节数**：只追加的文件，追加一定变长；同长度的手工改写查不出来；
 - **没有多写者支持**：sqlite 有事务，但契约里「单写者」的承诺没改；
@@ -148,6 +176,6 @@ node tools/migrate-storage.mjs <memory-dir> --verify-only # 已有的库和源�
 
 ## 七、下一步
 
-1. 写路径接到后端：同一个动作（写经历、改主意、封存……）在 sqlite 下走 `appendEvent` / `appendWithEvents`，一次一个动作切，切一个对拍一个；
-2. 写路径切完之后，`STORAGE_STALE` 的判据改成「切换之后 JSONL 不应再变」；
+1. 剩下三个写动作（结案 / 联想 / 章节）切到库，切一个对拍一个；
+2. 全切完之后，`STORAGE_STALE` 的判据改成「切换之后 JSONL 不应再变」（`dualWrite: false` 时就该是这个语义）；
 3. 读路径按需取：召回先用 sqlite 索引缩小候选，再合并——这时 sqlite 才在读上有优势。

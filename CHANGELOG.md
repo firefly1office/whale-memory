@@ -2,6 +2,19 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### Added
+
+- **写路径切 SQLite（阶段 1 的尾巴）**：`addExperience` / `reviseExperience` / `setSealed` / `markRecalled`
+  收可选参数 `{ backend: 'sqlite', dualWrite }`——记录与事件进 `memory.sqlite`，一次写入一个事务，
+  提交前刷新 `sources`；`dualWrite: false` 时只写库、JSONL 一个字节不动；`recall({ backend: 'sqlite', mark: true })`
+  解禁。默认仍是 `file`，不传参数行为与 0.27.0 逐字相同。
+  **对拍**：同一串 8 个动作在 file / sqlite 两个后端读出来逐字段相同（唯一不同的是随机 `exp_` id）。
+  **崩在两步之间**：JSONL 多一行、库没提交 → 读库报 `STORAGE_STALE`（fail closed），移走库重新迁移即恢复。
+  `setUnfinishedState` / `linkExperiences` / 章节仍只写 JSONL，迁移后用它们会让库过期（同样 fail closed）。
+  见 `docs/storage-backend-zh.md` §3.1。
+
 ## [0.27.0] - 2026-11-26
 
 ### Added
