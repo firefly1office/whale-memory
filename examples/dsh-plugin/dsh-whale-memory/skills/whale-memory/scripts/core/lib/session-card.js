@@ -14,14 +14,29 @@ const NAME_LIMIT = 24
 const DIR_LIMIT = 100
 const EXTRA_LIMIT = 40
 
-// 截断：名字留头，路径留尾（路径的头是盘符和用户名，尾巴才是"记忆在哪"）
+// 截断：名字留头，路径留尾（路径的头是盘符和用户名，尾巴才是"记忆在哪"）。
+// 上限按 **UTF-16 长度**（String.length）算，不按码点：宿主/别的语言按 length 或 token 计数时，
+// "≤220 字"这个承诺也要站得住（复审抓到的：emoji 拉满时码点 218、String.length 382）。
 const clipHead = (text, limit) => {
-  const chars = Array.from(String(text || ''))
-  return chars.length <= limit ? chars.join('') : chars.slice(0, Math.max(0, limit - 1)).join('') + '…'
+  const s = String(text || '')
+  if (s.length <= limit) return s
+  let out = ''
+  for (const ch of Array.from(s)) {
+    if (out.length + ch.length > Math.max(0, limit - 1)) break
+    out += ch
+  }
+  return out + '…'
 }
 const clipTail = (text, limit) => {
-  const chars = Array.from(String(text || ''))
-  return chars.length <= limit ? chars.join('') : '…' + chars.slice(chars.length - (limit - 1)).join('')
+  const s = String(text || '')
+  if (s.length <= limit) return s
+  const chars = Array.from(s)
+  let out = ''
+  for (let i = chars.length - 1; i >= 0; i -= 1) {
+    if (out.length + chars[i].length > Math.max(0, limit - 1)) break
+    out = chars[i] + out
+  }
+  return '…' + out
 }
 const oneLine = (text) => String(text || '').replace(/\s+/g, ' ').trim()
 
@@ -36,7 +51,10 @@ const oneLine = (text) => String(text || '').replace(/\s+/g, ' ').trim()
  *   extra     一行额外提醒（上限 40 字，换行会被压成空格）。
  * @returns {string} ≤ 220 字；默认关时是 ''
  */
-export function sessionCard({ enabled = false, name = '', memoryDir = '', today = '', extra = '' } = {}) {
+export function sessionCard(input) {
+  // null / undefined 都当"没传"（默认关）；别的非对象入参会被解构直接抛，这里统一兜住
+  if (input === null || input === undefined) return ''
+  const { enabled = false, name = '', memoryDir = '', today = '', extra = '' } = input
   if (enabled !== true) return ''
   const lines = []
   const who = clipHead(oneLine(name), NAME_LIMIT)
@@ -45,13 +63,15 @@ export function sessionCard({ enabled = false, name = '', memoryDir = '', today 
   if (dir) lines.push('记忆在 ' + dir + '：读得到才算数。')
   // 这一行是这张卡的骨头，任何情况下都不截断、不省略
   lines.push('读不到别编——没记录的事就说没有，别补。')
-  const day = clipHead(oneLine(today), 10)
+  // today 只取前 10 个码点（YYYY-MM-DD），不加省略号：日期被截成"2026-11-2…"像坏字（复审抓到的）
+  const day = Array.from(oneLine(today)).slice(0, 10).join('')
   if (day) lines.push('今天：' + day + '。')
   const more = clipHead(oneLine(extra).replace(/\n/g, ' '), EXTRA_LIMIT)
   if (more) lines.push(more + '。')
   const card = lines.join('\n')
-  const size = Array.from(card).length
-  // 上限是承诺：真超了宁可报错，也不悄悄截掉（截掉可能正好截在"别编"上）
+  // 上限是承诺，两种口径都要站得住：码点（"字"）与 UTF-16 长度（宿主按 length/token 计时）
+  const size = Math.max(Array.from(card).length, card.length)
+  // 真超了宁可报错，也不悄悄截掉（截掉可能正好截在"别编"上）。按当前四个上限，最坏 215，这里是兜底。
   if (size > MAX_CHARS) throw new Error('开局短卡超过 ' + MAX_CHARS + ' 字（' + size + '）：把 name / memoryDir / extra 缩短。（session card is too long）')
   return card
 }

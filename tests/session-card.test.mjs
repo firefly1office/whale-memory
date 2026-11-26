@@ -1,4 +1,4 @@
-// S3 · 开局短卡（K3）
+﻿// S3 · 开局短卡（K3）
 //
 // 验收口径：
 // 1. 默认关：不传 enabled 就是空串（宿主不加分支，0.27.0 的提示词逐字不变）；
@@ -44,7 +44,7 @@ test('S3：没名字就不写认人那一行，纪律那一行永远在', () => 
 
 test('S3：不读盘、不发请求（源码里没有 fs / http / fetch，目录不存在也照常返回）', () => {
   const source = fs.readFileSync(new URL('../packages/core/lib/session-card.js', import.meta.url), 'utf8')
-  for (const forbidden of ["node:fs", "node:http", "node:https", "node:net", "fetch(", "XMLHttpRequest"]) {
+  for (const forbidden of ["node:fs", "node:http", "node:https", "node:net", "fetch(", "XMLHttpRequest", "getBuiltinModule", "createRequire"]) {
     assert.equal(source.includes(forbidden), false, '开局短卡不该碰 ' + forbidden)
   }
   const dir = tmpDir('whale-card-')
@@ -73,7 +73,9 @@ test('S3：字段拉满仍 ≤ 220，纪律那一行一个字都不少', () => {
     today: '2026-11-27',
     extra: '提'.repeat(40)
   })
-  assert.ok(chars(card) <= 220, '拉满也不许超 220，实际 ' + chars(card))
+  assert.ok(chars(card) <= 220, '拉满也不许超 220（码点），实际 ' + chars(card))
+  assert.ok(card.length <= 220, '按 UTF-16 长度也不许超 220，实际 ' + card.length)
+  assert.ok(chars(card) >= 200 && card.length >= 200, '拉满时应该接近上限，不然这个用例是空跑')
   assert.ok(card.includes(DISCIPLINE), '拉满时纪律那一行不许被截断')
 })
 
@@ -87,4 +89,16 @@ test('S3：超长字段按方向截断（名字留头、路径留尾），换行
   assert.ok(card.includes('鲸…'), '名字留头')
   assert.ok(card.includes('…') && card.includes('memory'), '路径留尾（尾巴才是记忆在哪）')
   assert.ok(card.includes('第一行 第二行'), '备注里的换行要压成空格，别把短卡拆乱')
+})
+test('S3：emoji 拉满也守得住 220（码点与 UTF-16 两种口径都要过）', () => {
+  // 每个 emoji 是一个码点、两个 UTF-16 单元：只按码点算的话这里会 382 超过 220（复审抓到的）
+  const card = sessionCard({ enabled: true, name: '🐋'.repeat(40), memoryDir: '🐋'.repeat(120), extra: '🐋'.repeat(40), today: '2026-11-27' })
+  assert.ok(Array.from(card).length <= 220, '码点 ' + Array.from(card).length)
+  assert.ok(card.length <= 220, 'UTF-16 长度 ' + card.length)
+  assert.ok(card.includes('读不到别编'), '纪律那一行不许被挤掉')
+})
+
+test('S3：非对象入参不炸（null / undefined 都当没传）', () => {
+  assert.equal(sessionCard(null), '')
+  assert.equal(sessionCard(undefined), '')
 })
