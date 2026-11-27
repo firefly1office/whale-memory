@@ -1,4 +1,4 @@
-﻿// S7 · 线索表（T12）：短问句先查表、覆盖率门槛、迟疑提醒、频控
+// S7 · 线索表（T12）：短问句先查表、覆盖率门槛、迟疑提醒、频控
 //
 // 验收口径：
 // 1. 默认关：不传 cueTable 时 surface 与老路径完全一样（block 一个字都不多）；
@@ -24,6 +24,10 @@ const NEW = (t) => {
   return dir
 }
 const OWNER_DM = 'local:owner'
+
+// 「现在时间」精确到秒：两次渲染跨过一秒边界就会不同（2026-11-27 跑全量时偶发红过一次）。
+// 这条用例比的是「注入的内容变没变」，把这一行规格化掉，别让墙上时钟决定它红不红。
+const withoutNow = (s) => String(s).replace(/- 现在时间：[^\n]*/g, '- 现在时间：<now>')
 
 // 一个小库：灯塔那章 / 海边的贝壳 / 一条封存的（不该进线索表）
 function library(dir) {
@@ -68,12 +72,12 @@ test('S7：默认关——不传 cueTable 时 block 与老路径一个字都不�
   library(dir)
   const plain = surface(dir, { chatKey: OWNER_DM, text: '灯塔守灯人整晚没睡' })
   const withTableOff = surface(dir, { chatKey: OWNER_DM, text: '灯塔守灯人整晚没睡', cueTable: null })
-  assert.equal(withTableOff.block, plain.block)
+  assert.equal(withoutNow(withTableOff.block), withoutNow(plain.block))
   assert.equal(plain.block.includes(CUE_HINT_LINE), false)
 
   const withTable = surface(dir, { chatKey: OWNER_DM, text: '灯塔守灯人整晚没睡', cueTable: buildCueTable(loadAll(dir)) })
   assert.equal(withTable.block.startsWith(CUE_HINT_LINE + '\n'), true, '传了线索表才多这一行')
-  assert.equal(withTable.block.replace(CUE_HINT_LINE + '\n', ''), plain.block, '除了那一行，注入了什么一点没变')
+  assert.equal(withoutNow(withTable.block.replace(CUE_HINT_LINE + '\n', '')), withoutNow(plain.block), '除了那一行，注入了什么一点没变')
   assert.equal(withTable.id, plain.id, '递的还是同一条')
 })
 

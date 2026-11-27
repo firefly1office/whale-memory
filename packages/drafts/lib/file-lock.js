@@ -19,6 +19,19 @@ const DEFAULT_STALE_MS = 10000
 const DEFAULT_POLL_MS = 20
 const LOCKED_MESSAGE = 'The file is locked by another process; try again shortly.（文件被另一个进程锁着，稍后再试。）'
 
+// N3：目录级写锁。同一个记忆目录里的所有"读-算-写"（记录、后记、封存、想起、撤回）共用这一把：
+// 单写者假设（"不会有别人同时写"）到这里结束。锁里只做本地文件/库操作，不联网、不做长任务。
+// 默认等 30 秒、每 5ms 探一次：写入本身很短，真等这么久只有一种可能——有人拿着锁卡住了（那就报错）。
+export const WRITE_LOCK = '.write.lock'
+export function withWriteLock(dir, fn, { timeoutMs = 30000, pollMs = 5, ...rest } = {}) {
+  const base = String(dir)
+  // 目录还不存在时没有"别人正在这里写"这回事，直接跑；也不为了一次必然失败的"找不到这条"
+  // 先把空目录建出来（tests/mkdir-behavior.test.mjs 钉着这条）。真要写的入口（addExperience）
+  // 自己在拿锁之前建目录，所以"从零开始写"仍然会被锁住。
+  if (!fs.existsSync(base)) return fn()
+  return withFileLock(path.join(base, WRITE_LOCK), fn, { timeoutMs, pollMs, ...rest })
+}
+
 // 临时文件 + fsync + rename 原子替换。中途崩了只会留下 <file>.tmp-*，正式文件保持旧内容。
 export function writeFileAtomic(file, data) {
   const target = String(file)
