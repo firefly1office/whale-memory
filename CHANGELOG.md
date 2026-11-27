@@ -2,6 +2,15 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.28.1] - 2026-11-27
+
+### Fixed
+
+- **npm 包里带上了 schema 与契约正文**：新增 `prepack`，发布前把 `schemas/record.v1.json` 与
+  `docs/contract-v1-zh.md` 复制进包内；tarball 从 109 个文件变成 111 个。之前装包的人看不到"数据长什么样"。
+- **契约里的版本口径**：`erase` / `exportMemory` / 墓碑 / 审计这几处原来写"v1.1 起"，它们在 0.26 就已实现，
+  改成"0.26 起"，避免和库版本号混着读。
+
 ## [0.28.0] - 2026-11-27
 
 ### Added
