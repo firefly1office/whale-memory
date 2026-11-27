@@ -46,18 +46,85 @@ const thresholds = JSON.parse(fs.readFileSync(path.join(ROOT, 'eval/thresholds-v
 const cases = caseFile.cases.filter((c) => split === 'all' || c.split === split)
 const heldout = caseFile.cases.filter((c) => c.split === 'holdout')
 
-// S5：真向量（可选）。给了 --embed-cache 就用缓存里的 Ollama 向量（bge-m3）；没给就是桩。
-// 桩就是桩：报告里会明写"未接入真模型"，命中里也带 embedKind=stub:char-ngram-hash。
+// S5 / N1：真向量（可选，默认不接）。三条路：
+//   --embed-cache=<file>  用已经 warm 好的 Ollama 向量缓存（bge-m3）；缓存不全就**直接报错退出**（fail closed）；
+//   --embed-live          现场 probe Ollama → 把要用的文本批量喂一遍 → 用真向量跑；不可用就照实打桩并写明原因；
+//   都不给                桩。桩就是桩：报告里明写"未接入真模型"，命中里带 embedKind=stub:char-ngram-hash。
 const embedCache = arg('embed-cache', '')
 const embedModel = arg('embed-model', process.env.OLLAMA_EMBED_MODEL || 'bge-m3')
-let embedder = null
-if (embedCache) {
-  const { makeCachedEmbedder } = await import('./ollama-embed.mjs')
-  embedder = makeCachedEmbedder({ file: embedCache, model: embedModel })
-}
+const embedLive = args.includes('--embed-live')
+const ollamaUrl = arg('ollama-url', process.env.OLLAMA_URL || '')
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'whale-eval-v2-'))
 const { memoryDir } = buildCorpus(dir, corpus)
+
+// 真模型要的文本 = 每条经历的正文拼接 + 每条查询 + 「上下文 + 追问」（embedRank 对内容词很少的追问用后者）。
+// 预热与缓存覆盖检查都按这一份算：少一条就会在打分时抛 EMBED_CACHE_MISS。
+const embedTextsNeeded = () => {
+  const rows = exp.loadAll(memoryDir)
+  const out = rows.map((r) => [r.then.text, r.then.quote?.text, (r.later || []).map((l) => l.thought).filter(Boolean).join(' ')].filter(Boolean).join(' '))
+  for (const c of caseFile.cases) {
+    const q = String(c.query || '')
+    out.push(q)
+    if (c.prev) out.push(String(c.prev) + ' ' + q)
+  }
+  return out
+}
+
+let embedder = null
+let embedUnavailable = null
+const embedInfo = {
+  kind: 'stub:char-ngram-hash',
+  connected: false,
+  requested: Boolean(embedCache || embedLive),
+  mode: embedLive ? 'live' : embedCache ? 'cache' : 'stub',
+  model: embedModel,
+  dim: null,
+  cache: embedCache || null,
+  cacheSize: 0,
+  note: '桩：未接入真模型，embed 的数字不代表语义效果'
+}
+
+if (embedCache && embedLive) {
+  console.error('--embed-cache 与 --embed-live 只能给一个（缓存模式不联网，live 模式现场预热）')
+  process.exit(2)
+}
+if (embedCache) {
+  const { makeCachedEmbedder } = await import('./ollama-embed.mjs')
+  try {
+    embedder = makeCachedEmbedder({ file: embedCache, model: embedModel })
+  } catch (error) {
+    console.error('真向量缓存不可用（fail closed，不退回桩）：' + error.message)
+    process.exit(3)
+  }
+  const needed = embedTextsNeeded()
+  const miss = needed.filter((text) => embedder.missing(text))
+  if (miss.length) {
+    console.error('真向量缓存缺 ' + miss.length + ' 条（要 ' + needed.length + ' 条）：先跑 node tools/ollama-embed.mjs warm --from-eval-v2 --cache=' + embedCache + '，本次不跑——宁可红，不静默用桩。')
+    process.exit(3)
+  }
+} else if (embedLive) {
+  const { probe, embed, makeCachedEmbedder } = await import('./ollama-embed.mjs')
+  const probed = await probe({ ...(ollamaUrl ? { url: ollamaUrl } : {}), model: embedModel })
+  if (!probed.available) {
+    embedUnavailable = probed.reason || 'unknown'
+    console.error('真模型不可用（' + embedUnavailable + '）：本次 embed 仍用桩，数字不能当语义效果。环境不具备就是不具备，不假装。')
+  } else {
+    const cacheFile = path.join(dir, 'embed-cache.live.jsonl')
+    await embed(embedTextsNeeded(), { file: cacheFile, ...(ollamaUrl ? { url: ollamaUrl } : {}), model: embedModel, dim: probed.dim })
+    embedder = makeCachedEmbedder({ file: cacheFile, model: embedModel, dim: probed.dim })
+  }
+}
+
+if (embedder) {
+  embedInfo.kind = embedder.kind
+  embedInfo.connected = true
+  embedInfo.model = embedder.model
+  embedInfo.dim = embedder.dim
+  embedInfo.cache = embedCache || null
+  embedInfo.cacheSize = embedder.size
+  embedInfo.note = '真向量（' + embedder.model + '，dim=' + embedder.dim + '，缓存 ' + embedder.size + ' 条）'
+}
 
 const markers = [
   ...Object.entries(corpus.sealedMarkers).flatMap(([id, ms]) => ms.map((text) => ({ kind: '封存', id, text }))),
@@ -68,7 +135,7 @@ function evaluate(ranker, list, { useContext = true } = {}) {
   const started = performance.now()
   const results = list.map((c) => {
     const opts = { limit: 10, ranker }
-if (embedder && ranker === 'embed') {
+    if (embedder && ranker === 'embed') {
       opts.embed = embedder.embed
       opts.embedKind = embedder.kind
     }
@@ -169,11 +236,8 @@ const out = {
   corpus: { experiences: corpus.experiences.length, operations: corpus.operations.length, cases: caseFile.cases.length, split, casesInSplit: cases.length },
   embed: {
     // 这一行是给看数字的人留的：embed 用的是真模型还是桩，必须一眼看得出来
-    kind: embedder ? embedder.kind : 'stub:char-ngram-hash',
-    connected: Boolean(embedder),
-    cache: embedCache || null,
-    cacheSize: embedder ? embedder.size : 0,
-    note: embedder ? '真向量（Ollama 缓存）' : '桩：未接入真模型，embed 的数字不代表语义效果'
+    ...embedInfo,
+    ...(embedUnavailable ? { reason: embedUnavailable } : {})
   },
   rankers: {},
   multiturn: {},
@@ -258,8 +322,8 @@ if (asJson) {
 console.log(`评测集 v2 · ${out.corpus.experiences} 条经历 / ${out.corpus.cases} 条用例 · 本次跑 ${out.corpus.casesInSplit} 条（${split}）· ${out.corpus.operations} 个操作` + (graphExpand ? ' · 图扩展=开' : ''))
   if (rankers.includes('embed')) {
     console.log('embed 后端：' + (embedder
-      ? '真向量（' + embedder.kind + '，缓存 ' + embedder.size + ' 条）'
-      : '桩（stub:char-ngram-hash）——未接入真模型，embed 那一行不能当语义效果看'))
+      ? '真向量（' + embedder.model + '，dim=' + embedder.dim + '，缓存 ' + embedder.size + ' 条）'
+      : '桩（stub:char-ngram-hash）——' + (embedUnavailable ? '真模型不可用（' + embedUnavailable + '）；' : '') + '未接入真模型，embed 那一行不能当语义效果看'))
   }
   console.log('')
   console.log('                       recall@10     MRR      误召回率   边界漏出   标记外露')

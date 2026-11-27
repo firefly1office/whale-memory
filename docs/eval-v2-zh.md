@@ -12,9 +12,13 @@ node tools/eval-v2.mjs               # 字面检索 vs 混合检索，开发集 
 node tools/eval-v2.mjs --tune        # 只打开发集（调参时用，不碰留出集）
 node tools/eval-v2.mjs --check       # 安全边界（负例 / 封存 / 抽屉 / 标记外露）+ 指标回归线
 node tools/eval-v2.mjs --json        # 机器读
+# 语义排序（默认仍是桩；第三行见第八节）
+node tools/eval-v2.mjs --ranker=embed                              # 桩
+node tools/eval-v2.mjs --ranker=embed --embed-live                 # 现场 probe Ollama，接不上就照实打桩
+node tools/eval-v2.mjs --ranker=embed --embed-cache=dev/embed-cache.jsonl   # 用预热好的真向量
 ```
 
-不联网、不调模型。语料写进临时目录，跑完就删。本机 Node 24.21 上两种排序加起来约 4 秒（每次会漂零点几秒）。指标下限在 `eval/thresholds-v2.json`，是回归线不是目标。
+不联网、不调模型（`--embed-live` 除外，它只连本机 Ollama）。语料写进临时目录，跑完就删。本机 Node 24.21 上两种排序加起来约 4 秒（每次会漂零点几秒）。指标下限在 `eval/thresholds-v2.json`，是回归线不是目标。
 
 ## 二、语料与用例
 
@@ -125,7 +129,7 @@ recall(dir, '她后来退了吗', { context: ['阿禾说她想退出话剧社'] 
 
 ## 六、这一版没做到的（别当成通用准确率）
 
-- **没有语义检索**：没有向量、没有 embedding、不调外部 API（契约里也写明 v1 不承诺）。真正换说法的句子，表里没覆盖就会失败。
+- **默认路径没有语义检索**：没有向量、没有 embedding、不调外部 API（契约里也写明 v1 不承诺）。向量路径只存在于 `recall({ ranker: 'embed' })`，默认是桩；真要语义得自己注入真模型（见 [embed-zh.md](embed-zh.md)），本机未接入，所以评测里的 embed 行仍然不是语义效果。
 - **同义词表是手写的**，40 对，偏日常；不是从数据里学出来的，也没有做实体消歧。
 - **评测集是自造的**：语料、查询、标注都是我们写的，开发集和留出集出自同一支笔。留出集没用来调参，但它不是盲集；数字是"这套语料上的表现"，不是"她的记忆准确率"。
 - **规模只有 200 条**：几万条以上的表现、索引开销、长尾查询都没测（见 [limits.md](limits.md)）。
@@ -142,3 +146,60 @@ recall(dir, '她后来退了吗', { context: ['阿禾说她想退出话剧社'] 
 3. 另起一个**只读独立复审**逐项核：它在临时副本里把 0.23.0 的提交与工作树各跑 4117 组对比（9 组参数 × 457 条查询 + mark），差异 0；文档里的数字全部复现。它抓到的问题：三个内容单元只对上两个（0.667）会放行「桂花糕」「灯塔猫」「去北京」；「上下文只排序不放行」那条测试没有牙；p = 0.039 依赖两对只出现在留出集查询里的同义词；工具里的 verdict 措辞与"不切默认"的决定相反；没有指标回归线。
 4. 按复审修：短句门槛回到 0.7 并补测试；换掉没有牙的那条测试的上下文；加 `eval/thresholds-v2.json`；把 verdict 改名为 `metricsFavorHybrid`（指标判断 ≠ 现在切默认）；文档补上 p 值的尾巴、paraphrase 桶不纯、以及最近的负例其实只有 0.63。
 5. 修完重跑全量：字面检索不变（71.1% / 0.707），混合检索 77.6%（留出集 77.8%）；留出集的配对与 p 不变（8 : 1、p = 0.039），去掉那两对同义词后是 75.8% / 6 : 1 / p = 0.125。默认路径仍然没动。
+
+## 八、真向量接入（N1，2026-11-27）
+
+这一节只回答一件事：评测里的 `embed` 那一行到底是真语义还是桩。
+
+### 8.1 本机结论：未接入真模型
+
+- `node tools/ollama-embed.mjs probe` → `available:false`、`dim:null`、`reason` 写的是连不上 127.0.0.1:11434；
+- 所以**没有"真语义"这一行**。三行里只有：字面检索、混合检索、桩；
+- 桩那一行（452 条，2026-11-27 本机 Node 24.21）：recall@10 **77.1%**、MRR **0.761**、误召回 0.0%、边界漏出 0/12、标记外露 0、约 1.1s。
+  **这不是语义效果**：桩是 256 维字符 n-gram 哈希，涨的那部分仍然来自字面重合，只是换了相似度算法；
+- 没有 Ollama 就不装、不下载模型——这一节的数字只有一条"环境不具备"。
+
+### 8.2 有 Ollama 的机器怎么把那一行换成真的
+
+```sh
+ollama pull bge-m3
+node tools/ollama-embed.mjs probe                # 期望 available:true、dim 是实测值（bge-m3 为 1024）
+node tools/eval-v2.mjs --ranker=embed --embed-live
+```
+
+报告首行会变成 `embed 后端：真向量（bge-m3，dim=1024，缓存 675 条）`；`--json` 里 `embed.connected=true`、
+`embed.kind="ollama:bge-m3"`、`embed.dim=1024`，每条命中带 `embedKind="ollama:bge-m3"`。
+要留档就先把向量存下来（不联网也能复跑）：
+
+```sh
+node tools/ollama-embed.mjs warm --from-eval-v2 --cache=dev/embed-cache.jsonl
+node tools/eval-v2.mjs --ranker=embed --embed-cache=dev/embed-cache.jsonl
+```
+
+缓存不全时评测**直接退出 3** 并说缺多少条——不会偷偷退回桩，跑出个看起来正常的报告。
+
+### 8.3 三条路都在测试里跑过（假模型，不是真模型）
+
+`tests/embed-adapter.test.mjs` 用本地假服务（127.0.0.1 随机端口、8 维确定性向量）验证了 7 条：
+
+1. `probe` 可用时给 `{available:true, model, dim:8}`；连不上 / 没 pull 模型 / 接口 500 时 `{available:false, dim:null, reason}`，不抛错、不编维度；
+2. `embed` 内容哈希缓存：同一段文本只请求一次（3 条文本 2 次 HTTP）、第二次零 HTTP、顺序与维度都对；
+3. 维度不符 fail closed：报 `EMBED_DIM_MISMATCH`、缓存一个字节都不动；同批长短不一、缓存自身维度混了同样红；
+4. 归一化：`[3,4]` 出来是单位长度的 `[0.6,0.8]`；NaN / 零向量报 `EMBED_BAD_VECTOR` 且不落盘；
+5. CLI `probe`：有假服务时退出 0 并打印 `dim`，没有时退出 1 并写「未接入真模型」；
+6. 评测三条路都跑得动：桩 / 真模型（假服务，首行 `真向量（bge-m3，dim=8…）`）/ 真模型不可用（照实打桩 + 原因，退出码仍 0）；
+7. 让评测用缓存却没预热全：退出码 3、stderr 写「缓存缺 N 条」，不产出看起来正常的报告。
+
+**这 7 条证明的是适配器行为，不是 bge-m3 的中文效果。** 真模型的三行数仍然没有——环境不具备。
+
+### 8.4 和桩的差别怎么读
+
+| | 桩 `stub:char-ngram-hash` | 真向量 `ollama:bge-m3` |
+| --- | --- | --- |
+| 向量来源 | 字符 2–3 字 n-gram 哈希，256 维 | 模型前向，维度由 probe 实测 |
+| 能证明的 | "门禁 → 向量 → 排序"这条通路是通的 | 能处理同义词表覆盖不到的换说法（前提是真有模型） |
+| 不能证明的 | 任何语义效果；桩的涨幅主要来自字面重合 | 本机没验过：真实维度、真实相似度、真实中文效果一条数都没有 |
+| 报告里长什么样 | `桩（stub:char-ngram-hash）——未接入真模型…` | `真向量（bge-m3，dim=1024，缓存 N 条）` |
+
+小节说明：`warm` 现在也会校验维度/归一化（拿 `--dim=1024` 钉死也行），不合格就不写缓存；`readCache` 会把
+"维度与记录不符、含 NaN"的行记成坏行丢掉——缓存不是真相来源，重新预热即可，但坏向量不许进排序。
