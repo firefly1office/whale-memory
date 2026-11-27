@@ -43,11 +43,11 @@ The last one is **going back to the person she was that day**: only the thoughts
 | | |
 |---|---|
 | Fabrication rate | **0** — ask about a detail that was never recorded and she answers "no record"; same on the dev and held-out sets |
-| Recall (strict, first hit) | dev set 92.9% · held-out 73.1% |
+| Recall (strict, first hit) | literal 71.1% · hybrid 77.6% (452 cases); held-out 70.7% / 77.8% |
 | Sealing vs. leaking | 1290 checks (counted live by `whale-eval`), **0** leaks |
-| Tests | 631, CI runs ubuntu / windows × node 20 / 22 |
+| Tests | 946, CI runs ubuntu / windows × node 20 / 22 |
 
-The evaluation corpus is only 33 fictional experiences — [what it cannot measure](docs/eval.md) is written down too. Do not read this table as general accuracy.
+The corpus is 200 fictional experiences / 452 cases (plus a 33-case quick regression set) — [what it cannot measure](docs/eval.md) is written down too. Do not read this table as general accuracy.
 
 ## What it does not do
 

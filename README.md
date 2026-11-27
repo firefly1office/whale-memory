@@ -42,11 +42,11 @@ node adapters/cli/memory-cli.mjs read --id <id> --as-of 2026-11-14
 | | |
 |---|---|
 | 编造率 | **0** —— 问不存在的细节，答"没有记录"；开发集与留出集都是 0 |
-| 召回（strict 首位） | 开发集 92.9% · 留出集 73.1% |
+| 召回（strict 首位） | 字面 71.1% · 混合 77.6%（452 条用例）；留出集 70.7% · 77.8% |
 | 封存与外露 | 1290 处检查（由 `whale-eval` 按当前语料与出口现算），外露 **0** 次 |
-| 测试 | 631 个，CI 跑 ubuntu / windows × node 20 / 22 |
+| 测试 | 946 个，CI 跑 ubuntu / windows × node 20 / 22 |
 
-评测语料只有 33 条虚构经历——[它测不出的东西](docs/eval.md)也写在文档里，别把这张表当成通用准确率。
+评测语料是 200 条虚构经历 / 452 条用例（另有一条 33 条的快速回归集）——[它测不出的东西](docs/eval.md)也写在文档里，别把这张表当成通用准确率。
 
 ## 它不做什么
 
@@ -67,10 +67,16 @@ node adapters/cli/memory-cli.mjs read --id <id> --as-of 2026-11-14
 | 库变大之后还能不能读 | [规模与观测](docs/scale-zh.md)：`iterate` 逐条读、`page` 游标分页，与 `loadAll` 逐条相同；十万条实测 `loadAll` 要 128 MB 堆、`iterate` 80 MB |
 | 一条记忆要真的拿掉 | [擦除与审计](docs/erase-audit-zh.md)：`eraseExperience` 整条撤回（记录 + 关联事件物理删除），只留墓碑（id/时间/原因/哈希）；`audit` 只记 id 与动作、不记正文；`exportMemory` 只读导出 |
 | 出了事怎么知道 | `node tools/doctor.mjs <目录> --json`：六项检查、退出码 0/1、不记正文；运行时指标走 `metrics.snapshot()`（[说明](docs/scale-zh.md)） |
-| 宿主能依赖什么、库不做什么 | [v1 契约](docs/contract-v1-zh.md)：记录不可变、封存是事件、兼容承诺与五条「不承诺」；配套 [schema](schemas/record.v1.json) 与契约测试 |
+| 宿主能依赖什么、库不做什么 | [v1 契约（1.0 稳定面）](docs/contract-v1-zh.md)：记录不可变、封存是事件、兼容承诺与五条「不承诺」；配套 [schema](schemas/record.v1.json)、契约测试与覆盖矩阵 |
 | 别用「主人」的身份对她说话 | [一次内部测试的复盘](docs/no-impersonation-zh.md)：本机注入入口要有闸，验证走夹具或真实回合，出了事不删不瞒 |
 | 发出去的材料要先扫一遍 | [外发预检](docs/preflight-zh.md)：`node tools/preflight.mjs <文件...>`——扫路径、用户名、账号样式数字、长哈希；文档同时写明它查不到调用链 |
 | 记录她做过什么、谁发起的（不存正文） | [自主行动日志](docs/self-actions-zh.md)：`whale-memory-core/self-actions`，只追加、到顶拒写、source/outcome 全由调用方声明 |
+| 会变的事实按字段取代 | [事实键](docs/fact-key-zh.md)：同一个 `对象.方面` 只留最新，旧的标 `supersededBy`、能撤销（默认关） |
+| 知道不等于说 | [分寸](docs/manners-zh.md)：场合 × 敏感度 × 来源 → say / paraphrase / withhold（默认关） |
+| 答应了没做、越界、和解 | [四本账与信任分档](docs/ledger-zh.md)：承诺/边界/拒绝/和解 + 六个信任档（默认关） |
+| 短问句别被功能词带偏 | [线索表](docs/cue-table-zh.md)：覆盖率门槛 + 频控（默认关） |
+| 顺着联想找回旧事 | [图扩展](docs/graph-expand-zh.md)：`recall({ graphExpand: true })`，1 跳补位、不挤掉基础命中（默认关） |
+| 看一眼记忆的形状 | `node tools/star-map.mjs <目录>` 出一张自包含星图；`node tools/admin.mjs <目录>` 起本地只读管理页 |
 
 ## 接之前先看这四篇
 
