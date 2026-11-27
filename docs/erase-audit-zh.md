@@ -155,7 +155,9 @@ exportMemory(dir, { personId: 'p_2' })              // 只导这个人的
   只想清它一份就手动删目录——详见 [`limits.md` 的删除一节](limits.md)。
   **库自己的恢复（`importArchive`，0.26.3 起）不会把已撤回的经历带回来**：导入时会把现有墓碑里的 id 从
   新目录里剔掉（返回 `skippedTombstoned` 是剔掉几条），墓碑与审计也一并保留。所以"翻出擦除前的备份"不能
-  让这条经历复活。别的工具手工覆盖目录不在此列——那种情况下记录会回来，但再撤一次也能真的删掉
+  让这条经历复活。**但它只剔「记录」**：备份里指向这条经历的 later / recall 等事件行不会被剔，
+  会作为孤儿事件留在盘上（`loadAll` 不展示，但字节在）——`tools/ops-drill.mjs` 每次演练都会量到这一点
+  并写进报告；要彻底干净得改 `importArchive`，这一轮没动。别的工具手工覆盖目录不在此列——那种情况下记录会回来，但再撤一次也能真的删掉
   （返回 `resurrected: true`，审计记 `erase-resurrected`）。
 - **SQLite 文件里的残留字节**：擦除路径会先开 `secure_delete`（0.26.2 起），删完再按原始字节搜整个目录
   搜不到正文（`tests/erase-audit-fixes.test.mjs` 有一条按字节扫全目录的测试）。

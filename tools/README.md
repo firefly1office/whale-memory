@@ -24,6 +24,7 @@
 | `migrate-later-events.mjs` | 把旧格式的 `later` 数组迁移成 `later-events.jsonl`；默认 dry-run |
 | `migrate-recall-events.mjs` | 把旧格式的 `recalls` 迁移成 `recall-events.jsonl`；默认 dry-run |
 | `migrate-drill.mjs` | 迁移演练：造 0.27.0 形态数据 → 迁移 → 对拍 → 回滚 → 再迁移（两次结果一致）；`--from <目录>` 只读真实数据、只在临时目录里演练 |
+| `ops-drill.mjs` | 运维演练（N4）：造数据 → 备份 → 新写 → 撤回 → 从备份恢复（已撤回的不复活）→ doctor → 再擦除 → 再 doctor → 按字节搜残留 → 故意截断备份必须报错；全在临时目录，`--json` 出可贴的报告 |
 
 ## 内部：鲸鲸的部署脚本
 
