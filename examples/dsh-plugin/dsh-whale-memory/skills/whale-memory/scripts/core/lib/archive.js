@@ -372,11 +372,15 @@ export function importArchive(fromDir, memDir, { force = false } = {}) {
 
     // 但"恢复"不该把撤回过的经历带回来：她要求忘掉的东西，不能靠翻出一份旧备份复活。
     // 这里把已撤回的记录从新目录里剔掉，并把剔掉几条报给调用方。
+    // 只剔记录不够：后记/想起/结案/封存/联想这些事件行也指向同一条经历，备份里还留着。
+    // 记录剔掉、事件留下，就会在盘上留下指向已撤回 id 的孤儿行（正文也跟着留下）。
+    // 所以同一批 id 的事件行一起剔，并单独计数。
     let skippedTombstoned = 0
+    let skippedOrphanEvents = 0
     {
       const tombFile = path.join(stage, 'tombstones.jsonl')
       const recFile = path.join(stage, 'self-experience.jsonl')
-      if (fs.existsSync(tombFile) && fs.existsSync(recFile)) {
+      if (fs.existsSync(tombFile)) {
         const withdrawn = new Set()
         for (const line of fs.readFileSync(tombFile, 'utf8').split('\n')) {
           if (!line.trim()) continue
@@ -386,7 +390,7 @@ export function importArchive(fromDir, memDir, { force = false } = {}) {
             if (row && Array.isArray(row.ids)) for (const id of row.ids) withdrawn.add(String(id))
           } catch { /* 坏行由 doctor 报；这里只认读得出来的 */ }
         }
-        if (withdrawn.size) {
+        if (withdrawn.size && fs.existsSync(recFile)) {
           const kept = []
           for (const line of fs.readFileSync(recFile, 'utf8').split('\n')) {
             if (!line.trim()) continue
@@ -397,6 +401,36 @@ export function importArchive(fromDir, memDir, { force = false } = {}) {
             kept.push(line)
           }
           fs.writeFileSync(recFile, kept.join('\n') + (kept.length ? '\n' : ''), 'utf8')
+        }
+        // 事件文件：单 id 的按 id 判，联想按 from/to 判。认不出的坏行原样留着，交给 doctor。
+        if (withdrawn.size) {
+          const singleId = ['later-events.jsonl', 'recall-events.jsonl', 'unfinished-events.jsonl', 'seal-events.jsonl']
+          for (const name of singleId) {
+            const file = path.join(stage, name)
+            if (!fs.existsSync(file)) continue
+            const kept = []
+            for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
+              if (!line.trim()) continue
+              let row
+              try { row = JSON.parse(line) } catch { kept.push(line); continue }
+              if (row && row.id && withdrawn.has(String(row.id))) { skippedOrphanEvents += 1; continue }
+              kept.push(line)
+            }
+            fs.writeFileSync(file, kept.join('\n') + (kept.length ? '\n' : ''), 'utf8')
+          }
+          const linkFile = path.join(stage, 'link-events.jsonl')
+          if (fs.existsSync(linkFile)) {
+            const kept = []
+            for (const line of fs.readFileSync(linkFile, 'utf8').split('\n')) {
+              if (!line.trim()) continue
+              let row
+              try { row = JSON.parse(line) } catch { kept.push(line); continue }
+              const ids = [row && row.from, row && row.to].filter(Boolean).map(String)
+              if (ids.some((id) => withdrawn.has(id))) { skippedOrphanEvents += 1; continue }
+              kept.push(line)
+            }
+            fs.writeFileSync(linkFile, kept.join('\n') + (kept.length ? '\n' : ''), 'utf8')
+          }
         }
       }
     }
@@ -426,6 +460,7 @@ export function importArchive(fromDir, memDir, { force = false } = {}) {
       backup,
       counts: { experiences: loaded.length },
       skippedTombstoned,
+      skippedOrphanEvents,
       recovered: recovery.recovered,
       recoveredFrom: recovery.recovered ? recovery.action : ''
     }
