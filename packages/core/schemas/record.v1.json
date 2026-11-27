@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/firefly1office/whale-memory/schemas/record.v1.json",
+  "title": "whale-memory 经历记录 v1",
+  "description": "self-experience.jsonl 里的一行。记录写入后不可变；封存、改主意、想起次数都是独立的事件，不写回这一行。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "at", "day", "then"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^exp_[a-z0-9]+$",
+      "description": "不透明、稳定、永不复用。宿主必须把它当字符串，不要解析其中含义。"
+    },
+    "at": { "type": "string", "description": "写入时刻，ISO 8601 带时区。" },
+    "day": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "本地日，用于“那一天”的检索。" },
+    "author": { "type": "string", "enum": ["self", "legacy"], "default": "self" },
+    "source": { "type": "string", "description": "来源标签，由宿主决定，例如 own-time / chat。" },
+    "kind": { "type": "string", "maxLength": 20, "default": "其它" },
+    "weight": { "type": "string", "enum": ["important", "normal", "minor"], "default": "normal" },
+    "status": { "type": "string", "enum": ["kept"], "default": "kept" },
+    "formerId": { "type": "string", "description": "旧版本 id，仅迁移记录带。" },
+    "then": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "scene": { "type": "string", "maxLength": 500, "default": "" },
+        "feeling": { "type": "array", "maxItems": 8, "items": { "type": "string" }, "default": [] },
+        "thought": { "type": "string", "maxLength": 1000, "default": "" },
+        "unfinished": { "type": "string", "maxLength": 300, "default": "" },
+        "quote": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["text"],
+              "properties": {
+                "text": { "type": "string", "maxLength": 500 },
+                "source": { "type": "string", "maxLength": 120, "default": "" }
+              }
+            }
+          ]
+        },
+        "state": { "type": "object", "description": "写入那一刻的宿主状态，字段由宿主决定。" },
+        "refs": { "type": "array", "items": { "type": "string" }, "default": [] }
+      }
+    },
+    "later": {
+      "type": "array",
+      "description": "写入时总是空数组。之后的“改主意”只进 later-events.jsonl，不写回这里。",
+      "maxItems": 0
+    }
+  }
+}

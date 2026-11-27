@@ -63,8 +63,8 @@
   recall-events.jsonl          想起次数
   unfinished-events.jsonl      没弄完的事后来怎么样了
   unsaid.jsonl                 没说出口的抽屉（独立空间，永不自动注入）
-  tombstones.jsonl             撤回墓碑（v1.1 起；{v, id, ids, at, reason, actor, hash}，不含正文）
-  audit.jsonl                  审计（v1.1 起；{at, actor, action, ids, note}，只记 id 与动作）
+  tombstones.jsonl             撤回墓碑（0.26 起；{v, id, ids, at, reason, actor, hash}，不含正文）
+  audit.jsonl                  审计（0.26 起；{at, actor, action, ids, note}，只记 id 与动作）
   fact-events.jsonl            事实键事件（v1.2 起、可选；只在调用 factKey.setFact 时出现）
 ```
 
@@ -142,7 +142,7 @@
 
 - （`§3.6-1`）导出是**只读**的；不得因为导出而修改任何数据文件。
 - （`§3.6-2`）**展示型**导出（`book` / 回顾）必须尊重封存：默认不把封存正文写进导出物。
-- （`§3.6-3`）**数据导出 `exportMemory` 是整份数据口径**（v1.1 起）：封存内容默认也导出，只打 `sealed: true` 标记、不带封存理由；`includeSealed: false` 时完全排除。展示型导出（`book` / 回顾）仍按上一条默认不写封存正文。见[擦除与审计](erase-audit-zh.md)。
+- （`§3.6-3`）**数据导出 `exportMemory` 是整份数据口径**（0.26 起）：封存内容默认也导出，只打 `sealed: true` 标记、不带封存理由；`includeSealed: false` 时完全排除。展示型导出（`book` / 回顾）仍按上一条默认不写封存正文。见[擦除与审计](erase-audit-zh.md)。
 
 ## 四、错误契约
 
@@ -166,7 +166,7 @@
 
 ## 六、明确不承诺（v1）
 
-- （`§6-1`〔非承诺〕）**单条物理删除自 v1.1 起提供**（`erase`，见[擦除与审计](erase-audit-zh.md)）；**备份 / 快照里的历史副本不追溯**。整库删除仍是 `purge`。
+- （`§6-1`〔非承诺〕）**单条物理删除自 0.26 起提供**（`erase`，见[擦除与审计](erase-audit-zh.md)）；**备份 / 快照里的历史副本不追溯**。整库删除仍是 `purge`。
 - （`§6-2`〔非承诺〕）**不承诺多写者**：同一目录多进程并发写会导致丢行；需要并发请在外层串行化。
 - （`§6-3`〔非承诺〕）**不承诺明文存储之外的加密**：数据是明文 JSONL，磁盘加密由宿主负责。
 - （`§6-4`〔非承诺〕）**不承诺可用性 / SLA**：这是库，不是服务。

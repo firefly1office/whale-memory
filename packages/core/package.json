@@ -167,13 +167,16 @@
     "lib",
     "bin",
     "demo.mjs",
-    "README.md"
+    "README.md",
+    "schemas",
+    "contract-v1-zh.md"
   ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "demo": "node demo.mjs"
+    "demo": "node demo.mjs",
+    "prepack": "node prepack.mjs"
   },
   "keywords": [
     "ai-companion",
