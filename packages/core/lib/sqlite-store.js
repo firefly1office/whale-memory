@@ -127,8 +127,9 @@ export function openDatabaseFile(file, { create = false } = {}) {
   if (create) fs.mkdirSync(path.dirname(file), { recursive: true })
   const db = new DatabaseSync(file)
   // 另一个进程正拿着写锁时等一会儿，而不是立刻抛原始的 "database is locked"（S4 复审抓到的）。
-  // 契约仍不承诺多写者；这条只是把"两次写入撞上"从难看的原文错误变成"最多等 3 秒"。
-  try { db.exec('PRAGMA busy_timeout = 3000') } catch { }
+  // N3 把等待放到 5 秒（原来是 3 秒），并在 beginImmediate() 里再加有限次重试。
+  // 契约仍不承诺多写者：这里只是把"两次写入撞上"从难看的原文错误变成"最多等一会儿"。
+  try { db.exec('PRAGMA busy_timeout = 5000') } catch { }
   if (create) {
     try {
       db.exec('PRAGMA journal_mode = WAL')
@@ -140,6 +141,46 @@ export function openDatabaseFile(file, { create = false } = {}) {
     }
   }
   return db
+}
+
+// ---------------------------------------------------------------- 并发写（N3）
+//
+// BEGIN IMMEDIATE 撞上另一个进程的写事务时，SQLite 先按 busy_timeout（上面设的 5 秒）自己等；
+// 等完还输就抛原始的 SQLITE_BUSY / "database is locked"。这里再有限次重试（3 次，50/100ms），
+// 仍然不行就换成明确的 STORE_BUSY——调用方知道该稍后重试，而不是看到一句英文原文。
+const BUSY_ERRCODES = new Set([5, 6]) // SQLITE_BUSY / SQLITE_LOCKED
+const BUSY_ATTEMPTS = 3
+
+function isBusy(error) {
+  if (!error) return false
+  if (BUSY_ERRCODES.has(Number(error.errcode))) return true
+  return /SQLITE_BUSY|SQLITE_LOCKED|database is locked|database table is locked/i.test(String(error.code || '') + ' ' + String(error.message || ''))
+}
+
+// 同步睡一下（DatabaseSync 是同步 API，不能 await）
+function sleepBlocking(ms) {
+  try { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms) } catch { const t = Date.now(); while (Date.now() - t < ms) { /* spin */ } }
+}
+
+/**
+ * BEGIN IMMEDIATE + 有限次重试。撞锁重试，别的一律原样抛。
+ * @param {object} db node:sqlite 的 DatabaseSync（或同样的接口）
+ * @param {{ attempts?: number, baseDelayMs?: number }} [opts]
+ */
+export function beginImmediate(db, { attempts = BUSY_ATTEMPTS, baseDelayMs = 50 } = {}) {
+  const tries = Number.isInteger(attempts) && attempts > 0 ? attempts : BUSY_ATTEMPTS
+  for (let i = 0; i < tries; i += 1) {
+    try {
+      db.exec('BEGIN IMMEDIATE')
+      return
+    } catch (error) {
+      if (!isBusy(error)) throw error
+      if (i === tries - 1) {
+        throw coded('库被另一个进程的写事务占着（busy_timeout 用完，又重试了 ' + tries + ' 次）：稍后再写，别并发硬顶。（store busy）', 'STORE_BUSY', { cause: error, attempts: tries })
+      }
+      sleepBlocking(baseDelayMs * (i + 1))
+    }
+  }
 }
 
 export function tablesOf(db) {
@@ -219,7 +260,7 @@ export function appendToStore(dir, { record = null, events = [], fileWrite = nul
   const db = openDatabase(dir)
   if (!db) throw storeNotMigrated()
   try {
-    db.exec('BEGIN IMMEDIATE')
+    beginImmediate(db)
     try {
       assertStoreReady(db, dir)
       if (record) insertRecord(db, record)
@@ -536,7 +577,7 @@ export function eraseFromStore(dir, ids, { refreshSources = false } = {}) {
     let events = 0
     // 擦除要把旧页里的字节也抹掉：否则被删的正文还留在库文件里（验收抓到的）
     db.exec('PRAGMA secure_delete = ON')
-    db.exec('BEGIN IMMEDIATE')
+    beginImmediate(db)
     try {
       const delRecord = db.prepare('DELETE FROM records WHERE id = ?')
       for (const id of wanted) records += Number(delRecord.run(id).changes || 0)

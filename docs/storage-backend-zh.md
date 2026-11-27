@@ -125,15 +125,17 @@ recall(dir, '码头', { backend: 'sqlite', mark: true })                        
   再决定是删库重迁还是补一次迁移。备份也要做在库上，不能只做 JSONL。
 - **独写的行被撤回时照样写墓碑**（S4 复审后修）：`eraseExperience` 现在会先问一次库——
   JSONL 里没有、库里有的记录，按真删处理并写墓碑（哈希取库里那一行 JSON），不再是"删了却没墓碑"。
-- **多写者仍然不承诺**：两个进程同时写时，SQLite 会等 `busy_timeout`（3 秒）再报错；
-  file 后端靠文件锁串行。两个后端在"并发撞上"时的表现不同（一个 noop、一个报错），
-  这是既有取舍，宿主别拿并发写当能力。
+- **多写者仍然不承诺（契约 §6-2 没改）**：实现层 N3 补了两件事——
+  file 后端所有"追加一行"的写（记录 / 后记 / 封存 / 想起 / 结案 / 联想 / 擦除）走同一把目录写锁 `.write.lock`，
+  锁里完成"读-算-写"；sqlite 连接上 `PRAGMA busy_timeout = 5000`，`BEGIN IMMEDIATE` 撞锁后再重试 3 次
+  （50/100ms），仍锁不上就报 `STORE_BUSY`，不再把 `database is locked` 原文甩给调用方。
+  这是加固，不是承诺：跨机 / 共享盘、读路径隔离都不在内（`tests/concurrent-write.test.mjs`：4 进程 × 200 次写一条不丢）。
 - **`markRecalled` 返回 false 就是没记上**：它吞掉所有错误（file 与 sqlite 一样），
-  sqlite 下库过期（`STORAGE_STALE`）或锁住都会返回 false，宿主/召回不会因此中断。
-- **写事务里的对账有 TOCTOU 窗口**（推断，单写者假设下不会发生）：`checkFresh` 读 JSONL 字节数之后、
-  `writeSources` 之前，如果另一个 file 后端写者插进来，`sources` 会记下"包含那一行"的尺寸而库里没有——
-  读路径会以为库是新的。要彻底解决得把整段加锁或改成"每次提交都取一次尺寸并与行数对账"，
-  这一轮按契约的"单写者"假设接受它，写在这里。
+  sqlite 下库过期（`STORAGE_STALE`）、锁住（`STORE_BUSY`）都会返回 false，宿主/召回不会因此中断。
+- **写事务里的对账 TOCTOU 窗口**（S4 时写在这里的）：`checkFresh` 读 JSONL 字节数之后、`writeSources` 之前，
+  如果另一个 file 后端写者插进来，`sources` 会记下"包含那一行"的尺寸而库里没有——读路径会以为库是新的。
+  N3 起 `self-experience` 的写路径整段都在 `.write.lock` 里，同机同目录下这个窗口已经关上；
+  **直接调 `appendToStore`（不走那把锁）的工具仍有窗口**。
 - **`packages/core/lib/storage/` 那套后端层和这里的同步写面并存**：异步那套（`appendEvent` /
   `appendWithEvents` / `transaction`，带 SAVEPOINT、mustExist）给的是"事务化的后端对象"；
   这里必须是同步的（`loadAll`/`recall` 都是同步 API），所以另起了 `appendToStore`。两套都只写 JSON 原样行，
@@ -189,7 +191,8 @@ node tools/migrate-storage.mjs <memory-dir> --verify-only # 已有的库和源�
   读库报 `STORAGE_STALE`，不会悄悄读出一份少了东西的记忆；
 - **没有 id 的旧格式记录**不进 sqlite（`records` 按 id 存），这样的目录先留在 file 后端；
 - **过期判断只比字节数**：只追加的文件，追加一定变长；同长度的手工改写查不出来；
-- **没有多写者支持**：sqlite 有事务，但契约里「单写者」的承诺没改；
+- **没有多写者承诺**：sqlite 有事务，但契约里「单写者」的承诺没改；N3 只补了实现层的目录写锁与
+  `busy_timeout` / `STORE_BUSY`（见第三节），不是新的承诺面；
 - `unsaid.jsonl`（抽屉）不在 `loadAll` 里，这一轮没搬；
 - **只在 Node 24 上实测过**。没有 node:sqlite 的 Node（20、22.5 以下）上 sqlite 用例会跳过，file 用例照跑——用 `--no-experimental-sqlite` 模拟过，复审时也在真 Node 20 上复现过原来的失败；22.5–22.12（要加 `--experimental-sqlite`）没测。
 

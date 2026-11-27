@@ -16,6 +16,7 @@ import { expandHits } from './graph-expand.js'
 import { parseAsOf, before, dayOf } from './as-of.js'
 import { readSnapshot, appendToStore, readFromStore, recordOfStore, legacyOwnersOfStore, lastSealOfStore } from './sqlite-store.js'
 import { readLines, readLinesAsync } from './jsonl-stream.js'
+import { withWriteLock } from './file-lock.js'
 import * as metrics from './metrics.js'
 
 const FILE = 'self-experience.jsonl'
@@ -760,14 +761,17 @@ export function linkExperiences(dir, { from, to, reason = '' } = {}) {
   if (!String(reason || '').trim()) return { ok: false, error: 'Say why you are linking them (reason). If you cannot say why, do not link them yet.（说一句为什么把它们连起来（reason）。说不出来就先别连。）' }
   try {
     const why = tooLong('reason', String(reason).trim(), LIMITS.laterReason)
-    const a = resolveId(dir, String(from))
-    const b = resolveId(dir, String(to))
-    for (const [x, t] of [[from, a], [to, b]]) {
-      if (t.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + x + '. Use the current id listed by `read`.（这个旧 id 有好几条旧经历共用：' + x + '。用 read 里列出的当前 id。）' }
-      if (!t.id) return { ok: false, error: 'Experience not found: ' + x + '. Run `read` to check the id.（找不到这条经历：' + x + '。先用 read 看一下 id。）' }
-    }
-    const res = linkEvents.link(dir, { from: a.id, to: b.id, reason: why })
-    return { ok: true, from: a.id, to: b.id, noop: res.noop, ...(res.row ? { at: res.row.at } : {}) }
+    // N3：认 id → 追加事件在同一把目录写锁里（锁外不做 IO），和别的写者 / 擦除串行
+    return withWriteLock(dir, () => {
+      const a = resolveId(dir, String(from))
+      const b = resolveId(dir, String(to))
+      for (const [x, t] of [[from, a], [to, b]]) {
+        if (t.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + x + '. Use the current id listed by `read`.（这个旧 id 有好几条旧经历共用：' + x + '。用 read 里列出的当前 id。）' }
+        if (!t.id) return { ok: false, error: 'Experience not found: ' + x + '. Run `read` to check the id.（找不到这条经历：' + x + '。先用 read 看一下 id。）' }
+      }
+      const res = linkEvents.link(dir, { from: a.id, to: b.id, reason: why })
+      return { ok: true, from: a.id, to: b.id, noop: res.noop, ...(res.row ? { at: res.row.at } : {}) }
+    })
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) }
   }
@@ -780,24 +784,27 @@ export function setSealed(dir, { id, sealed = true, note = '' } = {}, opts = {})
   if (!String(id || '').trim()) return { ok: false, error: 'Missing id（需要 id）' }
   try {
     const target = writeTarget(opts)
-    const hit = target.backend === 'sqlite' ? resolveIdInStore(dir, String(id)) : resolveId(dir, String(id))
-    if (hit.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + id + '. Use the current id listed by `read`.（这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id。）' }
-    if (!hit.id) return { ok: false, error: 'Experience not found: ' + id + '. Run `read` to check the id.（找不到这条经历：' + id + '。先用 read 看一下 id。）' }
     const action = sealed ? 'seal' : 'unseal'
     const safeNote = tooLong('note', note, 200)
-    if (target.backend === 'file') {
-      const decided = sealEvents.decide(dir, { id: hit.id, action, note: safeNote })
-      return { ok: true, id: hit.id, sealed: Boolean(sealed), at: decided.row ? decided.row.at : '', noop: decided.noop }
-    }
-    // sqlite：先看库里最后一次动作，重复就是 noop——和文件后端同一条判据（有坏行时不合并，按她的请求追加）
-    const last = readFromStore(dir, (db) => lastSealOfStore(db, hit.id))
-    const sealedNow = last.action === 'seal'
-    if (!last.bad && ((action === 'seal' && sealedNow) || (action === 'unseal' && !sealedNow))) {
-      return { ok: true, id: hit.id, sealed: Boolean(sealed), at: last.at, noop: true }
-    }
-    const row = sealEvents.buildRow({ id: hit.id, action, note: safeNote })
-    appendToStore(dir, { events: [{ kind: 'seal', row }], fileWrite: target.dualWrite ? () => sealEvents.appendRow(dir, row) : null })
-    return { ok: true, id: hit.id, sealed: Boolean(sealed), at: row.at, noop: false }
+    // N3：认 id → 判断是不是重复动作 → 追加，全在同一把目录写锁里
+    return withWriteLock(dir, () => {
+      const hit = target.backend === 'sqlite' ? resolveIdInStore(dir, String(id)) : resolveId(dir, String(id))
+      if (hit.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + id + '. Use the current id listed by `read`.（这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id。）' }
+      if (!hit.id) return { ok: false, error: 'Experience not found: ' + id + '. Run `read` to check the id.（找不到这条经历：' + id + '。先用 read 看一下 id。）' }
+      if (target.backend === 'file') {
+        const decided = sealEvents.decide(dir, { id: hit.id, action, note: safeNote })
+        return { ok: true, id: hit.id, sealed: Boolean(sealed), at: decided.row ? decided.row.at : '', noop: decided.noop }
+      }
+      // sqlite：先看库里最后一次动作，重复就是 noop——和文件后端同一条判据（有坏行时不合并，按她的请求追加）
+      const last = readFromStore(dir, (db) => lastSealOfStore(db, hit.id))
+      const sealedNow = last.action === 'seal'
+      if (!last.bad && ((action === 'seal' && sealedNow) || (action === 'unseal' && !sealedNow))) {
+        return { ok: true, id: hit.id, sealed: Boolean(sealed), at: last.at, noop: true }
+      }
+      const row = sealEvents.buildRow({ id: hit.id, action, note: safeNote })
+      appendToStore(dir, { events: [{ kind: 'seal', row }], fileWrite: target.dualWrite ? () => sealEvents.appendRow(dir, row) : null })
+      return { ok: true, id: hit.id, sealed: Boolean(sealed), at: row.at, noop: false }
+    })
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) }
   }
@@ -889,7 +896,12 @@ export function addExperience(dir, input = {}, opts = {}) {
   // 指标：写入延迟（含 refs 的存在性校验，那是这条路径真实的一部分）
   const t0 = process.hrtime.bigint()
   const target = writeTarget(opts)
-  const row = target.backend === 'sqlite' ? addExperienceToStore(dir, input, target) : addExperienceInner(dir, input)
+  // 写入口统一自动建目录（和以前一样）；先建目录再拿锁，从零开始写也不会绕过写锁。
+  // sqlite 后端不在这里建：库没迁移就该直接报 STORAGE_NOT_MIGRATED，不留下一个空目录。
+  if (target.backend === 'file') fs.mkdirSync(dir, { recursive: true })
+  // N3：造行（含 refs 存在性校验：要读文件/库）+ 追加，全在同一把目录写锁里；
+  // 锁外只记指标。并发时不会出现"校验时在、写下去时已经被撤回"的半截。
+  const row = withWriteLock(dir, () => (target.backend === 'sqlite' ? addExperienceToStore(dir, input, target) : addExperienceInner(dir, input)))
   metrics.recordWrite({ ms: Number(process.hrtime.bigint() - t0) / 1e6 })
   return row
 }
@@ -974,16 +986,19 @@ export function reviseExperience(dir, { id, thought, reason = '', feeling = [] }
     const safeReason = tooLong('reason', reason, LIMITS.laterReason)
     const feelings = feelingList(feeling, { name: 'feeling', perWord: true })
     const target = writeTarget(opts)
-    const hit = target.backend === 'sqlite' ? resolveIdInStore(dir, String(id)) : resolveId(dir, String(id))
-    if (hit.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + id + '. Use the current id listed by `read` to revise it.（这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id 来改。）' }
-    if (!hit.id) return { ok: false, error: 'Experience not found: ' + id + '. Run `read` or `recall` to check the id.（找不到这条经历：' + id + '。先用 read 或 recall 看一下 id。）' }
-    if (target.backend === 'file') {
-      const row = laterEvents.append(dir, { id: hit.id, thought: safeThought, reason: safeReason, feeling: feelings })
+    // N3：认 id → 追加一条后记，全在同一把目录写锁里（读-算-写不跨锁）
+    return withWriteLock(dir, () => {
+      const hit = target.backend === 'sqlite' ? resolveIdInStore(dir, String(id)) : resolveId(dir, String(id))
+      if (hit.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + id + '. Use the current id listed by `read` to revise it.（这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id 来改。）' }
+      if (!hit.id) return { ok: false, error: 'Experience not found: ' + id + '. Run `read` or `recall` to check the id.（找不到这条经历：' + id + '。先用 read 或 recall 看一下 id。）' }
+      if (target.backend === 'file') {
+        const row = laterEvents.append(dir, { id: hit.id, thought: safeThought, reason: safeReason, feeling: feelings })
+        return { ok: true, id: row.id, at: row.at, ...(feelings.length ? { feeling: feelings } : {}) }
+      }
+      const row = laterEvents.buildRow({ id: hit.id, thought: safeThought, reason: safeReason, feeling: feelings })
+      appendToStore(dir, { events: [{ kind: 'later', row }], fileWrite: target.dualWrite ? () => laterEvents.appendRow(dir, row) : null })
       return { ok: true, id: row.id, at: row.at, ...(feelings.length ? { feeling: feelings } : {}) }
-    }
-    const row = laterEvents.buildRow({ id: hit.id, thought: safeThought, reason: safeReason, feeling: feelings })
-    appendToStore(dir, { events: [{ kind: 'later', row }], fileWrite: target.dualWrite ? () => laterEvents.appendRow(dir, row) : null })
-    return { ok: true, id: row.id, at: row.at, ...(feelings.length ? { feeling: feelings } : {}) }
+    })
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) }
   }
@@ -996,16 +1011,19 @@ export function setUnfinishedState(dir, { id, choice, note = '' } = {}) {
   if (!String(id || '').trim()) return { ok: false, error: 'Missing id（需要 id）' }
   if (!unfinishedEvents.CHOICES.has(choice)) return { ok: false, error: 'state must be done / shelved / reopen（state 只能是 done / shelved / reopen）' }
   try {
-    const target = resolveId(dir, String(id))
-    if (target.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + id + '. Use the current id listed by `read`.（这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id。）' }
-    if (!target.id) return { ok: false, error: 'Experience not found: ' + id + '. Run `read` or `recall` to check the id.（找不到这条经历：' + id + '。先用 read 或 recall 看一下 id。）' }
-    const row = rowsById(dir, target.id)
-    if (!row || !row.then || !row.then.unfinished) return { ok: false, error: 'This experience has no "unfinished" part, so there is nothing to close.（这条经历没有「还没弄完」的内容，不需要结案。）' }
+    // N3：认 id、读那一条、判断、追加，全在同一把目录写锁里——和别的写者 / 擦除串行
+    return withWriteLock(dir, () => {
+      const target = resolveId(dir, String(id))
+      if (target.ambiguous) return { ok: false, error: 'This legacy id is shared by several old experiences: ' + id + '. Use the current id listed by `read`.（这个旧 id 有好几条旧经历共用：' + id + '。用 read 里列出的当前 id。）' }
+      if (!target.id) return { ok: false, error: 'Experience not found: ' + id + '. Run `read` or `recall` to check the id.（找不到这条经历：' + id + '。先用 read 或 recall 看一下 id。）' }
+      const row = rowsById(dir, target.id)
+      if (!row || !row.then || !row.then.unfinished) return { ok: false, error: 'This experience has no "unfinished" part, so there is nothing to close.（这条经历没有「还没弄完」的内容，不需要结案。）' }
 
-    // 重读、判断、追加都在同一把锁里：两个进程同时提交同一选择，只有一个会写
-    const decided = unfinishedEvents.decide(dir, { id: target.id, choice, note: tooLong('note', note, 200) })
-    if (decided.noop) return { ok: true, id: target.id, at: decided.row ? decided.row.at : '', choice, noop: true }
-    return { ok: true, id: target.id, at: decided.row.at, choice, noop: false }
+      // 重读、判断、追加都在同一把锁里：两个进程同时提交同一选择，只有一个会写
+      const decided = unfinishedEvents.decide(dir, { id: target.id, choice, note: tooLong('note', note, 200) })
+      if (decided.noop) return { ok: true, id: target.id, at: decided.row ? decided.row.at : '', choice, noop: true }
+      return { ok: true, id: target.id, at: decided.row.at, choice, noop: false }
+    })
   } catch (e) {
     return { ok: false, error: String(e && e.message ? e.message : e) }
   }
@@ -1025,13 +1043,16 @@ export function markRecalled(dir, id, opts = {}) {
   try {
     const target = writeTarget(opts)
     const query = (opts && opts.query) || ''
-    if (target.backend === 'file') {
-      recallEvents.append(dir, { id: String(id), query })
+    // N3：追加一条想起事件也走目录写锁（它不读，但要和擦除 / 别的写者串行）
+    return withWriteLock(dir, () => {
+      if (target.backend === 'file') {
+        recallEvents.append(dir, { id: String(id), query })
+        return true
+      }
+      const row = recallEvents.buildRow({ id: String(id), query })
+      appendToStore(dir, { events: [{ kind: 'recall', row }], fileWrite: target.dualWrite ? () => recallEvents.appendRow(dir, row) : null })
       return true
-    }
-    const row = recallEvents.buildRow({ id: String(id), query })
-    appendToStore(dir, { events: [{ kind: 'recall', row }], fileWrite: target.dualWrite ? () => recallEvents.appendRow(dir, row) : null })
-    return true
+    })
   } catch { return false }
 }
 

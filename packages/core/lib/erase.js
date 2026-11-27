@@ -17,12 +17,13 @@
 //   · 只由宿主在"她本人或 Leo 明确要求"时调用；库不自动擦除，也没有定时清理。
 //
 // 做不到（文档里也写清）：备份与快照里的历史副本不追溯；SQLite 删除后文件页里可能残留旧字节
-// （安全删除 / VACUUM 不在承诺里）；多写者不承诺（同一目录并发写按契约本来就是单写者假设）；
+// （安全删除 / VACUUM 不在承诺里）；多写者不承诺（契约 §6：单写者假设没改）——N3 起擦除和写者
+// 共用一把目录写锁 `.write.lock`，同机同目录下串行，跨机/共享盘不在内；
 // seal 事件的 note 是人的自由文本，可能提到原话，不在本函数删除范围内。
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
-import { withFileLock, writeFileAtomic } from './file-lock.js'
+import { withFileLock, withWriteLock, writeFileAtomic } from './file-lock.js'
 import { readLines } from './jsonl-stream.js'
 import * as tombstones from './tombstones.js'
 import * as audit from './audit.js'
@@ -181,8 +182,11 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
   const at = (now instanceof Date ? now : new Date(now)).toISOString()
 
   fs.mkdirSync(dir, { recursive: true })
-  // 同一目录的撤回串行化；它跟事件文件各自的锁不是同一把，但擦除本身是单写者操作
-  return withFileLock(path.join(dir, 'erase.lock'), () => {
+  // 同一目录的撤回串行化；它跟事件文件各自的锁不是同一把，但擦除本身是单写者操作。
+  // N3：擦除还要和"追加上一行"的写者串行——它是"读全量 → 过滤 → 整文件重写"，
+  // 并发追加的那一行如果不在读到的快照里，会在重写时被覆盖掉。目录写锁在外层拿；
+  // 写者拿不到锁就等，等不到就 fail closed（抛错），不许写半截。
+  return withFileLock(path.join(dir, 'erase.lock'), () => withWriteLock(dir, () => {
     // 1) 账本先看一遍：墓碑文件坏了就不知道撤回没撤回，宁可不猜
     const marks = tombstones.readAll(dir)
     if (marks.bad > 0) throw coded('墓碑文件有 ' + marks.bad + ' 行无法解析：先修好再撤回，不然没法确认这条是不是已经撤回过。（tombstones are corrupt）', 'ERASE_TOMBSTONES_CORRUPT', { bad: marks.bad })
@@ -304,7 +308,7 @@ export function eraseExperience(dir, { id, reason = '', actor = '', now = new Da
       }
       throw error
     }
-  })
+  }))
 }
 
 function emptyRemoved() {

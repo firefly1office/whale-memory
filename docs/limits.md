@@ -123,13 +123,16 @@ node adapters/cli/memory-cli.mjs purge --data <数据根目录> --yes true  # �
 
 实际行为：
 
-- `addExperience` **不加文件锁**，用操作系统的追加写（`a+`）。多进程同时写不丢行的前提是每次都整行追加；它不是事务，不能保证顺序。
-- `later-events` / `recall-events` 的追加**走文件锁**（mkdir 互斥）；锁那一层的 mkdir 遇到 Windows 的 EPERM 会重试，**rename 不重试**。
+- `addExperience` / `reviseExperience` / `setSealed` / `markRecalled` / `setUnfinishedState` / `linkExperiences`
+  的写（N3 起）**都走同一把目录写锁** `.write.lock`（mkdir 互斥），锁里完成"读-算-写"：
+  记录是"追加一行"，后记 / 封存 / 想起是各自的事件文件再套一把自己的锁。它不是事务，但同机同目录的写者会串行。
+- `later-events` / `recall-events` 等事件文件的追加**另有一把文件锁**（mkdir 互斥）；锁那一层的 mkdir 遇到 Windows 的 EPERM 会重试，**rename 不重试**。
 - `self-settings` 和 `prompt` 的写是"锁 + 临时文件 + rename"。
-- `eraseExperience` 只拿一把 `erase.lock`（目录锁），重写经历 / 事件文件走 `writeFileAtomic`
-  （临时文件 + rename），**不抢**各事件文件自己的 `.lock`——擦除期间只持自己的锁，避免和事件写入路径
-  互相等锁（`tests/erase-lock-scope.test.mjs` 验过：别的进程正持有某个事件文件的锁时，擦除照常完成）。
-  代价是并发下擦除可能覆盖对方刚追加的那一行；仍然在「单写者」假设里（契约第六节）。
+- `eraseExperience` 拿目录写锁 `.write.lock` + 自己的 `erase.lock`，重写经历 / 事件文件走 `writeFileAtomic`
+  （临时文件 + rename），**不抢**各事件文件自己的 `.lock`——避免和事件写入路径互相等锁
+  （`tests/erase-lock-scope.test.mjs` 验过：别的进程正持有某个事件文件的锁时，擦除照常完成）。
+  写者也在同一把目录写锁上，所以"一边擦除一边写"要么串行、要么写者 fail closed（`tests/concurrent-write.test.mjs`）。
+  仍然在「单写者」假设里（契约第六节）——这是加固，不是承诺。
 - `export` / `import` **不加锁**：宿主还在写的时候导出，可能拿到一个文件新、一个文件旧的快照；导入时宿主还在写，也没有人拦。
 
 导入会先在目标旁的 `.import-stage-*` 目录里准备完整副本，再替换目标。复制或校验失败时原目录保留；替换报错时尝试还原 `.pre-import-*` 备份。两步改名之间会写 `<memDir>.import-journal.json`（含 target/backup/stage/phase），下次 `import` / `export` 会先调 `recoverImport()`：崩在两次 rename 之间 → 自动把 `.pre-import-*` 改回记忆目录并清 stage/日志；新目录已装好但日志没删 → 保留新目录与备份、只清日志。**通常不需要人工干预**；只有自动恢复失败时才保留 journal、备份与暂存目录并报错，按 journal 的 `backup` 字段人工改名回去，确认内容后再清理。这套流程没有跨文件系统事务或断电持久性保证。

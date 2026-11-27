@@ -24,13 +24,15 @@ Once sealed she no longer recalls it on her own, but the original text, the late
 - Do not promise “delete a certain memory”; there is no such capability right now.
 - “Discard” in the drawer is only a status; the original text is still in the file.
 
-## 4. Single writer, no database
+## 4. Single-writer assumption (the contract does not promise concurrency); the implementation has a directory write lock
 
-The experience file is not locked; it relies on the operating system's whole-line append. The event file has a file lock, but the overall design is single-process writing.
+The contract still assumes a single writer ([contract §6-2](contract-v1-zh.md) explicitly does not promise multi-writer). Since N3 the implementation adds one layer: every "append one line" write in a directory (record / later / seal / recall / unfinished / link / erase) takes the same directory write lock `.write.lock`, and the whole read-compute-write happens inside it. Measured with 4 processes × 200 writes: nothing lost (`tests/concurrent-write.test.mjs`).
 
-- Do not let two host processes write to the same directory at the same time.
+- That lock is only effective on the **same machine and same directory**; cross-machine / shared / network drives do not count.
+- Read paths (`loadAll` / `recall`) do not take the lock: they see a snapshot "at some instant", not transaction isolation.
 - Every read is a full replay, with no index; tens of thousands of entries will slow down noticeably, and above a hundred thousand it is not suitable.
 - The concurrent-write tests only cover local Windows/NTFS and are not a cross-platform guarantee.
+- **The contract's "no concurrency safety" promise is unchanged** (add-only): the serialization above is hardening, not a promise.
 
 ## 5. The core layer only distinguishes “one-to-one / not one-to-one”
 
